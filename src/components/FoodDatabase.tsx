@@ -318,6 +318,35 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
   </button>
   </div>
 
+  {/* Szybkie pigułki kategorii w stylu Pixel Search Chips */}
+  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none select-none">
+    {[
+      { label: '🍎 Owoce', q: 'jabłko' },
+      { label: '🍞 Pieczywo', q: 'chleb' },
+      { label: '🥛 Nabiał', q: 'mleko' },
+      { label: '🥩 Mięso', q: 'kurczak' },
+      { label: '🍚 Ryż / Kasze', q: 'ryż' },
+      { label: '🍫 Przekąski', q: 'czekolada' }
+    ].map((chip) => (
+      <button
+        key={chip.q}
+        type="button"
+        onClick={() => {
+          Haptics.tick();
+          setSearchTerm(chip.q);
+        }}
+        className={cn(
+          "px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all shrink-0 cursor-pointer active:scale-95",
+          searchTerm.toLowerCase() === chip.q.toLowerCase()
+            ? "bg-accent-500/20 text-accent-700 dark:text-accent-300 border-accent-500/40 shadow-xs"
+            : "bg-white/70 dark:bg-slate-900/70 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800"
+        )}
+      >
+        {chip.label}
+      </button>
+    ))}
+  </div>
+
   {/* Quick Action Search Bar */}
   <div className="flex gap-2 pb-1 overflow-x-auto hide-scrollbar snap-x snap-mandatory">
   <button
@@ -578,7 +607,7 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  </div>
  </div>
 
- <div className="grid gap-1 will-change-transform">
+ <div className="grid gap-1 will-change-transform pixel-stretch-scroll">
  <AnimatePresence>
  {filtered.slice(0, 100).map((p, idx) => {
  const isCustom = p.author === user?.uid && !p.isCommunity;

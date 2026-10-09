@@ -65,10 +65,10 @@ export default function GlikoSenseTips({ pumpStatus, compact = false }: { pumpSt
  results.push({
  id: 'trend_down',
  type: 'trend',
- title: 'Trend spadkowy',
+ title: t('auto.trend_spadkowy_tytul', { defaultValue: 'Tendencja spadkowa' }),
  content: isChildMode
-   ? "Twoje glikemie wykazują tendencję spadkową. Poinformuj o tym rodziców lub opiekuna! 👨‍👩‍👦"
-   : i18n.t('auto.twoje_glikemie_wykazuja_tenden', { defaultValue: i18n.t('auto.twoje_glikemie_wykazuja_t', { defaultValue: "Twoje glikemie wykazują tendencję spadkową. Uważaj na niedocukrzenia." }) }),
+   ? t('auto.trend_spadkowy_dziecko', { defaultValue: 'Odczyty wykazują tendencję spadkową. Pokaż ten ekran rodzicowi lub opiekunowi! 👨‍👩‍👦' })
+   : t('auto.twoje_glikemie_wykazuja_tenden', { defaultValue: 'Odczyty wykazują tendencję spadkową. Uważaj na niedocukrzenia.' }),
  icon: <TrendingDown size={20} className="text-emerald-500" />,
  color: 'emerald'
  });
@@ -76,10 +76,10 @@ export default function GlikoSenseTips({ pumpStatus, compact = false }: { pumpSt
  results.push({
  id: 'trend_up',
  type: 'trend',
- title: 'Trend wzrostowy',
+ title: t('auto.trend_wzrostowy_tytul', { defaultValue: 'Tendencja wzrostowa' }),
  content: isChildMode
-   ? "Ostatnie pomiary rosną. Pokaż te wyniki rodzicom lub opiekunowi. 👨‍👩‍👦"
-   : "Ostatnie pomiary rosną. Zwróć uwagę na dynamikę wchłaniania posiłków.",
+   ? t('auto.trend_wzrostowy_dziecko', { defaultValue: 'Ostatnie pomiary rosną. Pokaż te wyniki rodzicom lub opiekunowi. 👨‍👩‍👦' })
+   : t('auto.trend_wzrostowy_dorosly', { defaultValue: 'Ostatnie pomiary rosną. Zwróć uwagę na dynamikę wchłaniania posiłków.' }),
  icon: <TrendingUp size={20} className="text-rose-500" />,
  color: 'rose'
  });
@@ -99,8 +99,8 @@ export default function GlikoSenseTips({ pumpStatus, compact = false }: { pumpSt
  type: 'activity',
  title: i18n.t('auto.wykryto_dzien_sportu', { defaultValue: i18n.t('auto.wykryto_dzien_sportu', { defaultValue: "Wykryto \"Dzień Sportu\"" }) }),
  content: isChildMode
-   ? "Zauważyłem powtarzające się spadki we wtorki wieczorem. Przed wysiłkiem sportowym koniecznie porozmawiaj z rodzicami lub opiekunem! 🏃"
-   : "Zauważyłem powtarzające się spadki we wtorki wieczorem. Skonsultuj z lekarzem odpowiednie przygotowanie do aktywności fizycznej.",
+   ? t('auto.sport_spadki_dziecko', { defaultValue: 'Zauważono powtarzające się spadki we wtorki wieczorem. Przed aktywnością fizyczną porozmawiaj z rodzicami lub opiekunem! 🏃' })
+   : t('auto.sport_spadki_dorosly', { defaultValue: 'Zauważono powtarzające się spadki we wtorki wieczorem. Pamiętaj o uwzględnieniu zaplanowanej aktywności w harmonogramie.' }),
  icon: <Activity size={20} className="text-indigo-500" />,
  color: 'indigo'
  });

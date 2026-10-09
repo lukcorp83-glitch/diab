@@ -14,23 +14,37 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.59';
+export const CURRENT_VERSION = '6.0.60';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.60",
+    date: "2026-10-09",
+    title: "Kolejność Kęsów, Wskaźnik Sytości i Skrobia Oporna",
+    changes: [
+      "Wdrożono asystenta kolejności spożywania produktów (sekwencjonowanie kęsów) tworzącego naturalny bufor żołądkowy",
+      "Dodano zasadę «Ubierania Węglowodanów» ostrzegającą przed posiłkami z samych węglowodanów bez tłuszczu i białka",
+      "Wprowadzono wskaźnik sytości posiłku (Satiety Score) szacujący czas trwania nasycenia energią",
+      "Dodano modyfikator schłodzonej skrobi (efekt retrogradacji ziemniaków, ryżu i makaronu) obniżający indeks glikemiczny",
+      "Wdrożono wykrywacz ukrytych cukrów w gotowych sosach i dressingach"
+    ]
+  },
+  {
     version: "6.0.59",
     date: "2026-10-06",
     title: "Styl Pixel & Material You oraz Usprawnienia Interfejsu",
     changes: [
       "Wdrożono inteligentny pasek «W skrócie» na pulpicie z dynamicznym statusem stopera, osprzętu i glikemii (z możliwością wyłączenia w Ustawieniach)",
-      "Dodano Material 3 Segmented Button na wykresie pełnoekranowym z płynną animacją sprężystą i tyknięciem haptycznym",
-      "Wprowadzono zwijający się przycisk akcji Expressive FAB w historii posiłków (kompaktowe koło przy scrollowaniu w dół)",
-      "Wdrożono mechaniczne steppery z haptyką oraz pigułki szybkiego wyboru (70, 100, 120, 150 mg/dL) w oknie wprowadzania cukru",
-      "Zaimplementowano okna dialogowe potwierdzeń w stylu Pixel Monet z pastelowymi ikonami i zaokrąglonymi przyciskami",
-      "Zreorganizowano sekcję wyglądu w Ustawieniach w zgrupowane karty Pixel Inset Group z wewnętrznymi separatorami"
+      "Dodano haptyczne suwaki precyzyjnego doboru dawek insuliny i wagi produktów na Talerzu z mechanicznym tyknięciem",
+      "Wprowadzono pigułki filtrów Material 3 Filter Chips w historii posiłków oraz elastyczne rozciąganie listy",
+      "Wdrożono ekspresowe pigułki szybkiego wyszukiwania w Bazie Produktów oraz inteligentny dymek punktu na wykresie glikemii",
+      "Dodano Material 3 Segmented Button na wykresie pełnoekranowym oraz zwijany przycisk Expressive FAB",
+      "Zaimplementowano okna dialogowe potwierdzeń Pixel Monet oraz klauzulę bezpieczeństwa medycznego przy analizie leków AI",
+      "Wdrożono klauzulę o wartościach poglądowych analizy AI ze zdjęcia oraz pamięć podręczną ostatniego posiłku z aparatu (zapobiegającą utracie)",
+      "Wdrożono Haptic Target Pulse na wykresie cukru, wskaźnik błonnika Fiber Shield na Talerzu oraz szybkie chipy przesunięcia czasu posiłku"
     ]
   },
   {
@@ -64,34 +78,36 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Rozszerzono dekodowanie dawek insuliny (bolusów) ze wszystkich formatów Nightscout (units, dose, combo bolus, amount)",
       "Wydłużono lokalne przechowywanie historii odczytów glukozy CGM w bazie SQLite na telefonie do 90 dni (pełny kwartał)",
       "Zwiększono bufor synchronizacji Nightscout do 10 000 wpisów, zapewniając pełne pokrycie 35 dni pomiarów"
-    ]
-  },
-  {
-    version: "6.0.55",
-    date: "2026-10-01",
-    title: "Podwójne Strzałki CGM, Synchronizacja Leków i Powiadomienia Push",
-    changes: [
-      "Wdrożono czytelne podwójne strzałki trendu (↑↑ / ↓↓) na wykresie Canvas oraz ikony podwójnych strzałek na pulpicie przy gwałtownych skokach cukru (>= 3 mg/dL/min)",
-      "Dodano pełną synchronizację zażytych leków w czasie rzeczywistym między telefonem a komputerem przez chmurę Firestore",
-      "Wdrożono systemowe powiadomienia push w belce telefonu informujące o dostępności nowej wersji aplikacji",
-      "Zneutralizowano porady w modułach Diety oraz GlikoTrening zgodnie z wymogami MDR SaMD (brak narzucania dawek insuliny)",
-      "Zapewniono 100% dwujęzyczność (PL/EN) dla wszystkich nowych banerów medycznych i powiadomień"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.60",
+    date: "2026-10-09",
+    title: "Kolejność Kęsów, Wskaźnik Sytości i Skrobia Oporna",
+    changes: [
+      "Wdrożono asystenta kolejności spożywania produktów (sekwencjonowanie kęsów) tworzącego naturalny bufor żołądkowy",
+      "Dodano zasadę «Ubierania Węglowodanów» ostrzegającą przed posiłkami z samych węglowodanów bez tłuszczu i białka",
+      "Wprowadzono wskaźnik sytości posiłku (Satiety Score) szacujący czas trwania nasycenia energią",
+      "Dodano modyfikator schłodzonej skrobi (efekt retrogradacji ziemniaków, ryżu i makaronu) obniżający indeks glikemiczny",
+      "Wdrożono wykrywacz ukrytych cukrów w gotowych sosach i dressingach"
+    ]
+  },
+  {
     version: "6.0.59",
     date: "2026-10-06",
     title: "Styl Pixel & Material You oraz Usprawnienia Interfejsu",
     changes: [
       "Wdrożono inteligentny pasek «W skrócie» na pulpicie z dynamicznym statusem stopera, osprzętu i glikemii (z możliwością wyłączenia w Ustawieniach)",
-      "Dodano Material 3 Segmented Button na wykresie pełnoekranowym z płynną animacją sprężystą i tyknięciem haptycznym",
-      "Wprowadzono zwijający się przycisk akcji Expressive FAB w historii posiłków (kompaktowe koło przy scrollowaniu w dół)",
-      "Wdrożono mechaniczne steppery z haptyką oraz pigułki szybkiego wyboru (70, 100, 120, 150 mg/dL) w oknie wprowadzania cukru",
-      "Zaimplementowano okna dialogowe potwierdzeń w stylu Pixel Monet z pastelowymi ikonami i zaokrąglonymi przyciskami",
-      "Zreorganizowano sekcję wyglądu w Ustawieniach w zgrupowane karty Pixel Inset Group z wewnętrznymi separatorami"
+      "Dodano haptyczne suwaki precyzyjnego doboru dawek insuliny i wagi produktów na Talerzu z mechanicznym tyknięciem",
+      "Wprowadzono pigułki filtrów Material 3 Filter Chips w historii posiłków oraz elastyczne rozciąganie listy",
+      "Wdrożono ekspresowe pigułki szybkiego wyszukiwania w Bazie Produktów oraz inteligentny dymek punktu na wykresie glikemii",
+      "Dodano Material 3 Segmented Button na wykresie pełnoekranowym oraz zwijany przycisk Expressive FAB",
+      "Zaimplementowano okna dialogowe potwierdzeń Pixel Monet oraz klauzulę bezpieczeństwa medycznego przy analizie leków AI",
+      "Wdrożono klauzulę o wartościach poglądowych analizy AI ze zdjęcia oraz pamięć podręczną ostatniego posiłku z aparatu (zapobiegającą utracie)",
+      "Wdrożono Haptic Target Pulse na wykresie cukru, wskaźnik błonnika Fiber Shield na Talerzu oraz szybkie chipy przesunięcia czasu posiłku"
     ]
   },
   {
@@ -125,18 +141,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Rozszerzono dekodowanie dawek insuliny (bolusów) ze wszystkich formatów Nightscout (units, dose, combo bolus, amount)",
       "Wydłużono lokalne przechowywanie historii odczytów glukozy CGM w bazie SQLite na telefonie do 90 dni (pełny kwartał)",
       "Zwiększono bufor synchronizacji Nightscout do 10 000 wpisów, zapewniając pełne pokrycie 35 dni pomiarów"
-    ]
-  },
-  {
-    version: "6.0.55",
-    date: "2026-10-01",
-    title: "Podwójne Strzałki CGM, Synchronizacja Leków i Powiadomienia Push",
-    changes: [
-      "Wdrożono czytelne podwójne strzałki trendu (↑↑ / ↓↓) na wykresie Canvas oraz ikony podwójnych strzałek na pulpicie przy gwałtownych skokach cukru (>= 3 mg/dL/min)",
-      "Dodano pełną synchronizację zażytych leków w czasie rzeczywistym między telefonem a komputerem przez chmurę Firestore",
-      "Wdrożono systemowe powiadomienia push w belce telefonu informujące o dostępności nowej wersji aplikacji",
-      "Zneutralizowano porady w modułach Diety oraz GlikoTrening zgodnie z wymogami MDR SaMD (brak narzucania dawek insuliny)",
-      "Zapewniono 100% dwujęzyczność (PL/EN) dla wszystkich nowych banerów medycznych i powiadomień"
     ]
   }
 ];

@@ -385,6 +385,30 @@ export default function BolusCalculator({
           <span className="text-2xl font-black text-slate-400 dark:text-slate-500">j.</span>
         </div>
 
+        {/* Haptyczny suwak precyzyjnego doboru dawki (Material 3 Haptic Tick Slider) */}
+        <div className="w-full max-w-xs px-4 pt-1">
+          <input
+            type="range"
+            min="0"
+            max="20"
+            step="0.5"
+            value={parseFloat(doseInput) || 0}
+            onChange={(e) => {
+              const val = parseFloat(e.target.value);
+              Haptics.tick();
+              setDoseInput(val > 0 ? val.toFixed(1) : "");
+            }}
+            className="pixel-slider text-accent-500"
+          />
+          <div className="flex justify-between text-[9px] font-bold text-slate-400 mt-1 px-1">
+            <span>0j</span>
+            <span>5j</span>
+            <span>10j</span>
+            <span>15j</span>
+            <span>20j</span>
+          </div>
+        </div>
+
         {/* Szybkie przyciski dodawania jednostek */}
         <div className="flex items-center justify-center gap-1.5 flex-wrap w-full pt-1">
           <button

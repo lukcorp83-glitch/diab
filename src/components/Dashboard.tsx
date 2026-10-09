@@ -1524,6 +1524,7 @@ export default function Dashboard({
           logs={logs}
           setTab={setTab}
           isInsulinMode={isInsulinMode}
+          pumpStatus={pumpStatus}
         />
       )}
 

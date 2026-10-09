@@ -111,19 +111,22 @@ export class DatabaseService {
             console.error("Could not retrieve stale connection", retrieveErr);
           }
         } else {
-          // Likely migration from unencrypted DB – wipe and recreate
-          console.warn("DB Open failed – attempting recovery by wiping old database.", openError);
+          // Attempt graceful recovery without deleting user data!
+          console.warn("DB Open initial attempt failed, attempting to close stale connections and re-open safely:", openError);
           try {
-            await CapacitorSQLite.deleteDatabase({ database: dbName });
-            localStorage.removeItem("lastSafeTimestamp"); // Force full cloud sync
-          } catch (delError) {
-            console.error("Failed to delete database", delError);
-          }
+            await this.sqlite.closeConnection(dbName, false);
+          } catch { /* ignore */ }
           try {
-            this.db = await this.sqlite.createConnection(dbName, isEncrypted, mode, 1, false);
-            await this.db.open();
-          } catch (recreateErr) {
-            console.error("Failed to recreate database after wipe", recreateErr);
+            this.db = await this.sqlite.retrieveConnection(dbName, false);
+            if (this.db) await this.db.open();
+          } catch (retryConnErr) {
+            console.warn("Retrieve connection failed during recovery, retrying createConnection without wiping data:", retryConnErr);
+            try {
+              this.db = await this.sqlite.createConnection(dbName, isEncrypted, mode, 1, false);
+              if (this.db) await this.db.open();
+            } catch (createErr) {
+              console.error("Critical: Could not establish SQLite connection without wipe", createErr);
+            }
           }
         }
       }

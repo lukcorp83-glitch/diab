@@ -79,7 +79,7 @@ export default function TutorialView({ setTab, onComplete }: TutorialViewProps) 
  },
  {
  title: i18n.t('auto.hipoglikemia_niedocukrzenie', { defaultValue: 'Hipoglikemia (Niedocukrzenie)' }),
- content: i18n.t('auto.poziom_cukru_70_mg_dl_dla_pacj', { defaultValue: i18n.t('auto.poziom_cukru_70_mg_dl_dla', { defaultValue: "Poziom cukru < 70 mg/dL (dla pacjentów zdrowych normy są głębsze, dla diabetyków to granica alarmowa).\nObjawy: poty, drżenie rąk, przyspieszone bicie serca, zmieszanie, ogromny głód.\nLeczenie (Reguła 15/15): Zjedz/wypij 15g węglowodanów prostych (np. pół szklanki soku, 3 tabletki glukozy). Odczekaj 15 minut i zmierz cukier. Powtórz jeśli nadal < 70 mg/dL." }) }),
+ content: i18n.t('auto.poziom_cukru_70_mg_dl_dla_pacj', { defaultValue: i18n.t('auto.poziom_cukru_70_mg_dl_dla', { defaultValue: "Poziom cukru < 70 mg/dL (dla pacjentów zdrowych normy są głębsze, dla diabetyków to granica alarmowa).\nObjawy: poty, drżenie rąk, przyspieszone bicie serca, zmieszanie, ogromny głód.\nPostępowanie (Reguła 15/15): Zjedz/wypij 15g węglowodanów prostych (np. pół szklanki soku, 3 tabletki glukozy). Odczekaj 15 minut i zmierz cukier. Powtórz jeśli nadal < 70 mg/dL." }) }),
  },
  {
  title: i18n.t('auto.hiperglikemia_kwasica', { defaultValue: 'Hiperglikemia i Kwasica Ketonowa' }),

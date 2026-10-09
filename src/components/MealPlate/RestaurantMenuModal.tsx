@@ -103,8 +103,17 @@ export default function RestaurantMenuModal({
               </button>
             </div>
 
+            {/* Informacja o szacunkowym / poglądowym charakterze wartości dań */}
+            <div className="flex items-start gap-2 p-2.5 mt-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-[11px] leading-tight">
+              <AlertTriangle size={14} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                <strong className="font-bold">{t('camera.disclaimer_approximate_title', { defaultValue: 'Wartości poglądowe:' })}</strong>{' '}
+                {t('menu_advisor.approximate_note', { defaultValue: 'Wartości węglowodanów i wagi dań z karty menu są szacunkami poglądowymi i mogą różnić się w zależności od porcji kucharza.' })}
+              </span>
+            </div>
+
             {/* Filtry */}
-            <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-1 scrollbar-hide">
+            <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
               <button
                 onClick={() => { Haptics.selection(); setFilter('all'); }}
                 className={cn(

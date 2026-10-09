@@ -563,7 +563,7 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
   {pref.label}
   </span>
   <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
-  {isActive ? i18n.t('auto.glikosense_czuwa', { defaultValue: 'GlikoSense czuwa' }) : i18n.t('auto.regula_wylaczona', { defaultValue: i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) })}
+  {isActive ? i18n.t('auto.glikosense_aktywny', { defaultValue: 'GlikoSense aktywny' }) : i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" })}
   </span>
   </div>
   </button>
@@ -582,29 +582,29 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  {[
  {
  id: "dawnPhenomenonEnabled",
- label: t('auto.zjawisko_brzasku', { defaultValue: "Zjawisko Brzasku" }),
- desc: t('auto.wzrosty_poranne_opis', { defaultValue: "Poranne skoki glikemii" }),
+ label: t('auto.zjawisko_brzasku', { defaultValue: "Wzrost Poranny (Brzask)" }),
+ desc: t('auto.wzrosty_poranne_opis', { defaultValue: "Wzrosty odczytów rano przed posiłkiem" }),
  icon: <Sun size={14} className="text-orange-400" />,
  type: "boolean"
  },
  {
  id: "somogyiEnabled",
- label: t('auto.efekt_somogyi', { defaultValue: "Efekt Somogyi" }),
- desc: t('auto.odbicie_po_hipo_opis', { defaultValue: "Odbicie po hipoglikemii" }),
+ label: t('auto.efekt_somogyi', { defaultValue: "Wzrost po Spadku" }),
+ desc: t('auto.odbicie_po_hipo_opis', { defaultValue: "Odczyty po wcześniejszym dołku" }),
  icon: <Activity size={14} className="text-rose-400" />,
  type: "boolean"
  },
  {
  id: "insulinResistanceMultiplier",
- label: t('auto.zmienna_insulinoopornosc', { defaultValue: "Zmienna Insulinooporność" }),
- desc: t('auto.modyfikator_wrazliwosci_opis', { defaultValue: "Modyfikator wrażliwości" }),
+ label: t('auto.zmienna_insulinoopornosc', { defaultValue: "Wskaźnik Zapotrzebowania" }),
+ desc: t('auto.modyfikator_wrazliwosci_opis', { defaultValue: "Obliczony z historii dawek i posiłków" }),
  icon: <Shield size={14} className="text-purple-400" />,
  type: "multiplier"
  },
  {
  id: "pizzaEffectMultiplier",
- label: t('auto.efekt_pizzy', { defaultValue: "Efekt Pizzy" }),
- desc: t('auto.przedluzone_wchlanianie_opis', { defaultValue: "Przedłużone wchłanianie" }),
+ label: t('auto.efekt_pizzy', { defaultValue: "Tłuszcze i Białka (FPU)" }),
+ desc: t('auto.przedluzone_wchlanianie_opis', { defaultValue: "Opóźnione uwalnianie energii z posiłku" }),
  icon: <Pizza size={14} className="text-yellow-500" />,
  type: "multiplier"
  }

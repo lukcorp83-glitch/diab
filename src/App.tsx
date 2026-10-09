@@ -373,9 +373,11 @@ export default function App() {
 
     // Cichy zapis nowych danych z chmury i Nightscout do lokalnej bazy SQLite (Local-First)
     const lastSavedMaxTimestampRef = useRef<number>(0);
+    const isSavingDbRef = useRef<boolean>(false);
     useEffect(() => {
       if ((!fbLogs || fbLogs.length === 0) && (!nsLogs || nsLogs.length === 0)) return;
-      const timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(async () => {
+        if (isSavingDbRef.current) return;
         const recentCutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
         const toSave = [...(fbLogs || []), ...(nsLogs || [])].filter(l => {
           const ts = l.timestamp || l.createdAt || 0;
@@ -390,10 +392,25 @@ export default function App() {
           }
           return true;
         });
+
         if (toSave.length > 0) {
-          lastSavedMaxTimestampRef.current = Math.max(lastSavedMaxTimestampRef.current, ...toSave.map(x => x.timestamp || 0));
-          const batch = toSave.slice(0, 500); // do 500 wpisów na cykl
-          dbService.saveMultipleLogs(batch).catch(e => console.warn("Background DB save failed", e));
+          isSavingDbRef.current = true;
+          try {
+            lastSavedMaxTimestampRef.current = Math.max(lastSavedMaxTimestampRef.current, ...toSave.map(x => x.timestamp || 0));
+            // Zapisujemy wszystkie wpisy partiami (dbService.saveMultipleLogs sam dzieli na paczki po 100)
+            await dbService.saveMultipleLogs(toSave);
+            // Zaktualizuj pamięć podręczną sqliteLogs, by pełna historia była natychmiast trwała
+            setSqliteLogs(prev => {
+              const map = new Map();
+              prev.forEach(item => { if (item?.id) map.set(item.id, item); });
+              toSave.forEach(item => { if (item?.id) map.set(item.id, item); });
+              return Array.from(map.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            });
+          } catch (e) {
+            console.warn("Background DB save failed", e);
+          } finally {
+            isSavingDbRef.current = false;
+          }
         }
       }, 5000);
       return () => clearTimeout(timeoutId);

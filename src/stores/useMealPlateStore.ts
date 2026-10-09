@@ -2,12 +2,22 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Product, PlateItem } from '../types';
 
+export interface SavedAiMealScan {
+  photo: string | null;
+  result: any;
+  timestamp: number;
+}
+
 interface MealPlateState {
   plate: PlateItem[];
   setPlate: (plate: PlateItem[] | ((prev: PlateItem[]) => PlateItem[])) => void;
   addToPlate: (item: PlateItem) => void;
   removeFromPlate: (plateItemId: string) => void;
   clearPlate: () => void;
+  
+  lastAiMealScan: SavedAiMealScan | null;
+  setLastAiMealScan: (scan: SavedAiMealScan | null) => void;
+  clearLastAiMealScan: () => void;
   
   searchTerm: string;
   setSearchTerm: (term: string) => void;
@@ -36,6 +46,10 @@ export const useMealPlateStore = create<MealPlateState>()(
       removeFromPlate: (id) => set((state) => ({ plate: (Array.isArray(state.plate) ? state.plate : []).filter(i => i.plateItemId !== id) })),
       clearPlate: () => set({ plate: [] }),
       
+      lastAiMealScan: null,
+      setLastAiMealScan: (lastAiMealScan) => set({ lastAiMealScan }),
+      clearLastAiMealScan: () => set({ lastAiMealScan: null }),
+      
       searchTerm: "",
       setSearchTerm: (searchTerm) => set({ searchTerm }),
       
@@ -51,7 +65,10 @@ export const useMealPlateStore = create<MealPlateState>()(
     }),
     {
       name: 'diacontrol_shared_plate',
-      partialize: (state) => ({ plate: Array.isArray(state.plate) ? state.plate : [] }),
+      partialize: (state) => ({ 
+        plate: Array.isArray(state.plate) ? state.plate : [],
+        lastAiMealScan: state.lastAiMealScan || null
+      }),
       onRehydrateStorage: () => (state) => {
         if (state && (!state.plate || !Array.isArray(state.plate))) {
           state.plate = [];

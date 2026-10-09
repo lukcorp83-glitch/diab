@@ -1,10 +1,10 @@
 {
-    "version": "6.0.59",
+    "version": "6.0.60",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.59-beta_OTA.apk",
-    "buildNumber": 172,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.60-beta_OTA.apk",
+    "buildNumber": 173,
     "forceUpdate": false,
-    "whatsNew": "Wprowadzono pasek «W skrócie», przełączniki segmentowe, zwijany przycisk akcji FAB, haptyczne steppery oraz okna dialogowe Pixel.",
-    "whatsNewEn": "Introduced «At a Glance» header, segmented buttons, expressive collapsible FAB, haptic steppers and Pixel dialogs.",
-    "otaRevision": 332
+    "whatsNew": "Wprowadzono kolejność spożywania produktów (sekwencjonowanie kęsów), regułę ubierania węglowodanów, wskaźnik sytości posiłku oraz opcję schłodzonej skrobi.",
+    "whatsNewEn": "Introduced meal food sequencing courses, Dress Your Carbs guidelines, satiety duration score, and chilled resistant starch modifier.",
+    "otaRevision": 333
 }

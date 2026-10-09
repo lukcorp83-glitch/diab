@@ -22,6 +22,7 @@ import { cn } from '../../lib/utils';
 import { Haptics } from '../../lib/haptics';
 import { geminiService } from '../../services/gemini';
 import { toast } from 'react-hot-toast';
+import { useMealPlateStore } from '../../stores/useMealPlateStore';
 
 export interface AiMealIngredient {
   name: string;
@@ -68,6 +69,7 @@ export default function AiMealVerificationModal({
   settings
 }: AiMealVerificationModalProps) {
   const { t } = useTranslation();
+  const setLastAiMealScan = useMealPlateStore(state => state.setLastAiMealScan);
 
   const [mealName, setMealName] = useState<string>('');
   const [ingredients, setIngredients] = useState<AiMealIngredient[]>([]);
@@ -87,8 +89,15 @@ export default function AiMealVerificationModal({
       setBalanceAdvice(initialResult.balanceAdvice || '');
       setCorrectionHint('');
       setShowCorrectionBox(false);
+
+      // Zawsze zapamiętujemy ostatnią analizę w trwałym store, by nie stracić jej po zamknięciu modalu
+      setLastAiMealScan({
+        photo: imagePreview,
+        result: initialResult,
+        timestamp: Date.now()
+      });
     }
-  }, [initialResult, t]);
+  }, [initialResult, imagePreview, setLastAiMealScan, t]);
 
   if (!isOpen || !initialResult) return null;
 
@@ -292,6 +301,17 @@ export default function AiMealVerificationModal({
                 <span className="text-base font-black text-purple-700 dark:text-purple-300 leading-tight block">{totalKcal}</span>
                 <span className="text-[9px] font-mono font-bold text-purple-500">IG: {weightedGI}</span>
               </div>
+            </div>
+
+            {/* Informacja o szacunkowym / poglądowym charakterze analizy AI (MDR / SaMD) */}
+            <div className="flex items-start gap-2.5 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-[11px] leading-relaxed">
+              <AlertCircle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <span>
+                <strong className="font-bold">{t('camera.disclaimer_approximate_title', { defaultValue: 'Wartości poglądowe:' })}</strong>{' '}
+                {t('camera.disclaimer_approximate_body', { 
+                  defaultValue: 'Waga, węglowodany i makroskładniki rozpoznane ze zdjęcia mają charakter wyłącznie szacunkowy. Rzeczywiste wartości mogą różnić się w zależności od sposobu przygotowania i gramatury.' 
+                })}
+              </span>
             </div>
 
             {/* Sekcja Skoryguj i przeanalizuj ponownie (Kluczowa funkcja) */}

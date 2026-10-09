@@ -635,7 +635,7 @@ export default function Profile({
  },
  {
  id: "therapy",
- label: i18n.t('auto.terapia', { defaultValue: 'Terapia' }),
+ label: i18n.t('auto.terapia', { defaultValue: 'Cele i przeliczniki' }),
  sub: i18n.t('auto.cele_i_isf', { defaultValue: 'Cele & ISF' }),
  icon: <Activity size={24} />,
  color: "bg-emerald-500",
@@ -1862,7 +1862,7 @@ export default function Profile({
  { id: "account", label: i18n.t('auto.profil', { defaultValue: 'Profil' }), icon: <User size={14} />, color: "text-blue-500 bg-blue-500/10" },
  {
  id: "therapy",
- label: i18n.t('auto.terapia', { defaultValue: 'Terapia' }),
+ label: i18n.t('auto.terapia', { defaultValue: 'Cele i przeliczniki' }),
  icon: <Activity size={14} />,
  color: "text-emerald-500 bg-emerald-500/10",
  },
@@ -2651,7 +2651,7 @@ export default function Profile({
             ) : (
               <CheckCircle2 size={16} />
             )}
-            {t('auto.zapisz_parametry_terapii', { defaultValue: 'Zapisz parametry terapii' })}
+            {t('auto.zapisz_parametry_terapii', { defaultValue: 'Zapisz parametry profilu' })}
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -19,6 +19,7 @@ import { dbService } from "../services/databaseService";
 import { useAppStore } from "../stores/useAppStore";
 import ExpressiveFab from "./common/ExpressiveFab";
 import PixelAlertDialog from "./common/PixelAlertDialog";
+import FilterChips, { FilterChipOption } from "./common/FilterChips";
 
 interface MealHistoryProps {
   user?: any;
@@ -51,7 +52,9 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const mealLogs = useMemo(() => {
+  const [activeFilter, setActiveFilter] = useState<'all' | 'eaten' | 'pending' | 'bolus'>('all');
+
+  const allMealLogs = useMemo(() => {
     return logs.filter(log => {
       if (log.type === "meal") return true;
       if (log.type === "carbs") return true;
@@ -68,6 +71,22 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
       return timeB - timeA;
     });
   }, [logs]);
+
+  const mealLogs = useMemo(() => {
+    return allMealLogs.filter(log => {
+      if (activeFilter === 'eaten') return Boolean(log.eatenAt);
+      if (activeFilter === 'pending') return !log.eatenAt;
+      if (activeFilter === 'bolus') return Boolean((log as any).bolus || (log as any).units || (log.type === 'bolus'));
+      return true;
+    });
+  }, [allMealLogs, activeFilter]);
+
+  const filterOptions: FilterChipOption[] = useMemo(() => [
+    { id: 'all', label: t('auto.wszystkie', { defaultValue: 'Wszystkie' }), count: allMealLogs.length },
+    { id: 'eaten', label: t('auto.zjedzone', { defaultValue: 'Zjedzone' }), count: allMealLogs.filter(l => Boolean(l.eatenAt)).length },
+    { id: 'pending', label: t('auto.oczekujace', { defaultValue: 'Oczekujące' }), count: allMealLogs.filter(l => !l.eatenAt).length },
+    { id: 'bolus', label: t('auto.z_bolusem', { defaultValue: 'Z bolusem' }), count: allMealLogs.filter(l => Boolean((l as any).bolus || (l as any).units || l.type === 'bolus')).length },
+  ], [allMealLogs, t]);
 
   const confirmMarkAsEaten = async (logItem: LogEntry) => {
     Haptics.success();
@@ -217,9 +236,16 @@ export default function MealHistoryView({ user, onMergeToLog, hasItems }: MealHi
         )}
       </PixelAlertDialog>
 
-      <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-2">{t('meal_history.section_title', { defaultValue: 'Historia Twoich posiłków' })}</h3>
+      <div className="flex flex-col gap-2 mb-4 px-2">
+        <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400">{t('meal_history.section_title', { defaultValue: 'Historia Twoich posiłków' })}</h3>
+        <FilterChips
+          options={filterOptions}
+          selectedId={activeFilter}
+          onSelect={(id) => setActiveFilter(id as any)}
+        />
+      </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 pixel-stretch-scroll">
         <AnimatePresence>
           {mealLogs.map((log, idx) => (
             <motion.div

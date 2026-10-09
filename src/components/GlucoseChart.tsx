@@ -1493,9 +1493,16 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  }
  
  if (closestData) {
- // Haptic feedback when scrubbing over an event
+ // Haptic Target Pulse: mechaniczne tyknięcie w normie TIR oraz impuls przy hipo/hiper
  if (!crosshair || crosshair.data.timestamp !== closestData.timestamp) {
- if (closestData.bolusVal || closestData.mealVal || closestData.siteVal || closestData.sensorVal) {
+ if (closestData.glucose !== undefined && !isNaN(closestData.glucose)) {
+ const gVal = Number(closestData.glucose);
+ if (gVal < targetMin || gVal > targetMax) {
+ Haptics.light();
+ } else {
+ Haptics.tick();
+ }
+ } else if (closestData.bolusVal || closestData.mealVal || closestData.siteVal || closestData.sensorVal) {
  Haptics.selectionStart();
  }
  }
@@ -1586,28 +1593,47 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  left: `clamp(10px, ${20 + ((crosshair.data.timestamp - start) / (end - start)) * (containerRef.current?.clientWidth ? containerRef.current.clientWidth - 30 : 300)}px, calc(100% - 150px))`
  }}
  >
- <div className="bg-slate-800/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-xl border border-slate-700/50 min-w-[140px] -translate-x-1/2">
- <div className="text-[10px] font-bold text-slate-400 mb-1 text-center">
+ <div className="bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-xl text-white p-3.5 rounded-[1.75rem] shadow-2xl border border-slate-700/60 min-w-[150px] -translate-x-1/2 text-center space-y-1.5">
+ <div className="text-[10px] font-extrabold text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-full inline-block">
  {new Date(crosshair.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
  </div>
  {crosshair.data.glucose !== undefined && !isNaN(crosshair.data.glucose) && (
- <div className="flex items-center justify-center gap-2 mb-1">
- <Droplets size={14} className={crosshair.data.glucose < targetMin ? 'text-rose-400' : crosshair.data.glucose > targetMax ? 'text-amber-400' : 'text-emerald-400'} />
- <span className="text-xl font-black">{Math.round(crosshair.data.glucose)}</span>
+ <>
+ <div className="flex items-center justify-center gap-1.5 pt-0.5">
+ <Droplets size={16} className={crosshair.data.glucose < targetMin ? 'text-rose-400' : crosshair.data.glucose > targetMax ? 'text-amber-400' : 'text-emerald-400'} />
+ <span className="text-2xl font-black tracking-tight">{Math.round(crosshair.data.glucose)}</span>
+ <span className="text-[10px] font-bold text-slate-400">mg/dL</span>
  </div>
+ <div className="flex items-center justify-center">
+ <span className={cn(
+ "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-block",
+ crosshair.data.glucose < targetMin
+ ? "bg-rose-500/20 text-rose-300"
+ : crosshair.data.glucose > targetMax
+ ? "bg-amber-500/20 text-amber-300"
+ : "bg-emerald-500/20 text-emerald-300"
+ )}>
+ {crosshair.data.glucose < targetMin
+ ? t('chart.zone_hypo', { defaultValue: 'Poniżej normy' })
+ : crosshair.data.glucose > targetMax
+ ? t('chart.zone_hyper', { defaultValue: 'Powyżej normy' })
+ : t('chart.zone_tir', { defaultValue: 'W normie TIR' })}
+ </span>
+ </div>
+ </>
  )}
  {crosshair.data.originalB && (
- <div className="flex items-center justify-center gap-2 mt-1">
- <Syringe size={14} className="text-indigo-400" />
- <span className="text-indigo-400 font-bold text-xs">{t('auto.bolus', { defaultValue: 'Bolus:' })}</span>
- <span className="text-sm font-black">{Number(crosshair.data.originalB.value).toFixed(2).replace(/\.?0+$/, '') || '0'} {t('auto.j', { defaultValue: 'j.' })}</span>
+ <div className="flex items-center justify-center gap-1.5 px-2 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/20 text-indigo-300">
+ <Syringe size={12} className="text-indigo-400" />
+ <span className="text-[10px] font-bold">{t('auto.bolus', { defaultValue: 'Bolus' })}:</span>
+ <span className="text-xs font-black">{Number(crosshair.data.originalB.value).toFixed(2).replace(/\.?0+$/, '') || '0'} {t('auto.j', { defaultValue: 'j.' })}</span>
  </div>
  )}
  {crosshair.data.originalM && (
- <div className="flex items-center justify-center gap-2 mt-1">
- <Apple size={14} className="text-amber-400" />
- <span className="text-amber-400 font-bold text-xs">{t('auto.węgle', { defaultValue: i18n.t('auto.wegle', { defaultValue: "Węgle:" }) })}</span>
- <span className="text-sm font-black">{Number(crosshair.data.originalM.value).toFixed(1).replace(/\.0$/, '')} g</span>
+ <div className="flex items-center justify-center gap-1.5 px-2 py-1 rounded-xl bg-amber-500/15 border border-amber-500/20 text-amber-300">
+ <Apple size={12} className="text-amber-400" />
+ <span className="text-[10px] font-bold">{t('auto.węgle', { defaultValue: i18n.t('auto.wegle', { defaultValue: "Węgle" }) })}:</span>
+ <span className="text-xs font-black">{Number(crosshair.data.originalM.value).toFixed(1).replace(/\.0$/, '')} g</span>
  </div>
  )}
  </div>

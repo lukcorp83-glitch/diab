@@ -290,8 +290,8 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
   const cacheBust = `_t=${Date.now()}`;
   
   const entriesCount = count;
-  // Optymalizacja: dla małych/szybkich odświeżeń pobieramy tylko bieżące zabiegi (100), dla pełnej historii max 4000
-  const treatmentsCount = count <= 150 ? 100 : (count <= 1000 ? 500 : 4000);
+  // Optymalizacja: dla małych/szybkich odświeżeń pobieramy tylko bieżące zabiegi (100), dla pełnej historii do 8000 (obejmuje pełne 90+ dni)
+  const treatmentsCount = count <= 150 ? 100 : (count <= 1000 ? 500 : 8000);
   
   const entriesUrl = secret && secret.includes('-') 
     ? `${baseUrl}/api/v1/entries.json?count=${entriesCount}&${cacheBust}&token=${secret}` 

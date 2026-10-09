@@ -1038,7 +1038,7 @@ Odpowiedz TYLKO czystym JSON-em:
 
     const treatmentMode = settings?.treatmentMode;
     const dietRestriction = treatmentMode === "diet_only"
-      ? "\nBARDZO WAŻNE: Pacjent leczy cukrzycę wyłącznie dietą (lub tabletkami), BEZ INSULINY. Kategorycznie zabrania się sugerowania podawania bolusów, zmiany bazy czy wstrzyknięć. Odpowiadaj jako asystent dietetyczno-motywacyjny (skup się na ruchu, indeksie glikemicznym i wodzie).\n"
+      ? "\nBARDZO WAŻNE: Użytkownik prowadzi dziennik wyłącznie z dietą (lub tabletkami), BEZ INSULINY. Kategorycznie zabrania się sugerowania podawania bolusów, zmiany bazy czy wstrzyknięć. Odpowiadaj jako asystent dietetyczno-motywacyjny (skup się na ruchu, indeksie glikemicznym i wodzie).\n"
       : "";
 
     const insightsStr =
@@ -1054,7 +1054,7 @@ Odpowiedz TYLKO czystym JSON-em:
     const trendInfo = currentStatus?.trend ? ` (trend: ${currentStatus.trend})` : "";
 
     const currentDataStr = currentStatus
-      ? `\n    AKTUALNY STATUS PACJENTA (Stan na: ${now.toLocaleString("pl-PL")}):\n    - Bieżąca glikemia: ${currentStatus.glucose} mg/dL${trendInfo} (To jest najnowszy odczyt!)\n    - Aktywna insulina (IOB): ${currentStatus.iob.toFixed(2)} j.\n    - Aktywne węglowodany (COB): ${currentStatus.cob.toFixed(0)} g\n    ${insightsStr}${activeDietStr}\n    ` + pumpModelInfo
+      ? `\n    AKTUALNE DANE REJESTRATORA (Stan na: ${now.toLocaleString("pl-PL")}):\n    - Bieżąca glikemia: ${currentStatus.glucose} mg/dL${trendInfo} (To jest najnowszy odczyt!)\n    - Aktywna insulina (IOB): ${currentStatus.iob.toFixed(2)} j.\n    - Aktywne węglowodany (COB): ${currentStatus.cob.toFixed(0)} g\n    ${insightsStr}${activeDietStr}\n    ` + pumpModelInfo
       : `AKTUALNY CZAS: ${now.toLocaleString("pl-PL")}\n${insightsStr}${activeDietStr}${pumpModelInfo}`;
 
     let medicalRulesStr = "";

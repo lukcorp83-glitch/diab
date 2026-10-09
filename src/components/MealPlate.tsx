@@ -202,6 +202,9 @@ export default function MealPlate({
  const setSearchTerm = useMealPlateStore(state => state.setSearchTerm);
  const setIsSearching = useMealPlateStore(state => state.setIsSearching);
  const setOnlineResults = useMealPlateStore(state => state.setOnlineResults);
+ const lastAiMealScan = useMealPlateStore(state => state.lastAiMealScan);
+ const clearLastAiMealScan = useMealPlateStore(state => state.clearLastAiMealScan);
+ const setLastAiMealScan = useMealPlateStore(state => state.setLastAiMealScan);
 
  const [plateView, setPlateView] = useState<"composer" | "diets" | "history">("composer");
  const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -1051,6 +1054,11 @@ export default function MealPlate({
           setAiMealPhoto(image.dataUrl);
           setAiMealResult(result);
           setShowAiMealModal(true);
+          setLastAiMealScan({
+            photo: image.dataUrl,
+            result,
+            timestamp: Date.now()
+          });
           Haptics.success();
         } catch (err) {
           console.error("Camera vision analysis:", err);
@@ -1226,10 +1234,17 @@ export default function MealPlate({
             {t('auto.talerz', { defaultValue: "Centrum Żywieniowe" })}
           </h1>
           <div className="flex items-center gap-2">
-            {aiMealResult && aiMealPhoto && (
+            {(aiMealResult || lastAiMealScan) && (
               <button
                 type="button"
-                onClick={() => { Haptics.light(); setShowAiMealModal(true); }}
+                onClick={() => { 
+                  Haptics.light(); 
+                  if (!aiMealResult && lastAiMealScan) {
+                    setAiMealPhoto(lastAiMealScan.photo);
+                    setAiMealResult(lastAiMealScan.result);
+                  }
+                  setShowAiMealModal(true); 
+                }}
                 className="px-3 h-12 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shadow-sm flex items-center gap-1.5 text-xs font-black uppercase tracking-wider transition-all active:scale-95 shrink-0 cursor-pointer"
                 title="Popraw ostatnią analizę potrawy ze zdjęcia AI"
               >
@@ -1246,6 +1261,70 @@ export default function MealPlate({
             </button>
           </div>
         </div>
+
+        {/* Baner ostatnio przeanalizowanego posiłku z aparatu (Zapobieganie utracie po zamknięciu) */}
+        {lastAiMealScan && (
+          <div className="mx-2 mb-3 p-3.5 sm:p-4 rounded-3xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/5 border border-indigo-500/20 shadow-sm flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              {lastAiMealScan.photo ? (
+                <div className="relative w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-black/10 dark:border-white/10 shadow-sm bg-slate-900">
+                  <img src={lastAiMealScan.photo} alt="Posiłek" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center shrink-0 text-indigo-500">
+                  <Sparkles size={20} />
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                    {t('camera.last_scan_badge', { defaultValue: 'Ostatni skan z aparatu' })}
+                  </span>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                    • {t('camera.approximate_badge', { defaultValue: 'Wartość poglądowa' })}
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-slate-900 dark:text-white truncate mt-0.5">
+                  {lastAiMealScan.result?.mealName || t('auto.posilek_ai', { defaultValue: 'Danie z aparatu' })}
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  {lastAiMealScan.result?.weight ? `${Math.round(lastAiMealScan.result.weight)}g` : ''} 
+                  {lastAiMealScan.result?.carbs !== undefined ? ` • ${lastAiMealScan.result.carbs}g W` : ''}
+                  {lastAiMealScan.result?.ingredients?.length ? ` • ${lastAiMealScan.result.ingredients.length} ${t('camera.ingredients_count', { defaultValue: 'składników' })}` : ''}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  Haptics.light();
+                  setAiMealPhoto(lastAiMealScan.photo);
+                  setAiMealResult(lastAiMealScan.result);
+                  setShowAiMealModal(true);
+                }}
+                className="px-3.5 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer font-display"
+                title={t('camera.view_edit_tooltip', { defaultValue: 'Otwórz i edytuj ten posiłek' })}
+              >
+                <Sparkles size={13} />
+                <span>{t('camera.view_edit_btn', { defaultValue: 'Otwórz' })}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  Haptics.warning();
+                  clearLastAiMealScan();
+                }}
+                className="p-2 rounded-2xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
+                title={t('camera.dismiss_scan_tooltip', { defaultValue: 'Odrzuć ten skan' })}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
  </>
  )}
 
@@ -1273,6 +1352,13 @@ export default function MealPlate({
    isOpen={showCameraModeModal}
    onClose={() => setShowCameraModeModal(false)}
    onSelectMode={handleSelectCameraMode}
+   onResumeLastScan={() => {
+     if (lastAiMealScan) {
+       setAiMealPhoto(lastAiMealScan.photo);
+       setAiMealResult(lastAiMealScan.result);
+       setShowAiMealModal(true);
+     }
+   }}
    activeDiet={settings?.activeDiet || null}
  />
 
