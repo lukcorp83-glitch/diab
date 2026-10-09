@@ -11,7 +11,10 @@ import {
   ShieldCheck,
   AlertTriangle,
   BellOff,
-  BatteryMedium
+  BatteryMedium,
+  FileText,
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Haptics } from '../../lib/haptics';
@@ -32,6 +35,14 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
   const [preBolusState, setPreBolusState] = useState<PreBolusTimerState>(() => getPreBolusTimerState());
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [activeIndex, setActiveIndex] = useState(0);
+  const [dismissedReimbursementBanner, setDismissedReimbursementBanner] = useState<boolean>(() => {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      return localStorage.getItem(`reimbursement_pill_dismissed_${todayStr}`) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   // Zegar dla nagłówka daty
@@ -111,7 +122,28 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
       badgeColor: string;
     }> = [];
 
-    // 1. Aktywny stoper przedposiłkowy
+    // 1. Pilne wygaśnięcie zlecenia refundacji (<= 7 dni lub wygasłe) - najwyższy priorytet
+    if (userSettings?.reimbursementEndDate) {
+      const diffMs = new Date(userSettings.reimbursementEndDate).getTime() - Date.now();
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays <= 7) {
+        items.push({
+          id: 'reimbursement_urgent_expiry',
+          icon: <FileText size={16} className="text-rose-500 shrink-0 animate-pulse" />,
+          title: diffDays > 0 
+            ? t('at_a_glance.reimbursement_urgent_title', { defaultValue: 'Pilne: Zlecenie wygasa za {{days}} dni!', days: diffDays })
+            : t('at_a_glance.reimbursement_expired_title', { defaultValue: 'Zlecenie refundacji wygasło' }),
+          desc: userSettings.reimbursementNotes
+            ? `${userSettings.reimbursementNotes} • ${t('at_a_glance.reimbursement_urgent_desc', { defaultValue: 'Odnów zlecenie u lekarza' })}`
+            : t('at_a_glance.reimbursement_urgent_desc', { defaultValue: 'Odnów zlecenie u lekarza, by zachować ciągłość refundacji' }),
+          action: () => setTab('profile'),
+          badge: diffDays > 0 ? `${diffDays}d` : '!',
+          badgeColor: 'bg-rose-500/15 text-rose-500 dark:text-rose-400 border-rose-500/30'
+        });
+      }
+    }
+
+    // 2. Aktywny stoper przedposiłkowy
     if (preBolusState.active) {
       const mins = Math.floor(preBolusState.remainingSeconds / 60);
       const secs = preBolusState.remainingSeconds % 60;
@@ -142,7 +174,7 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
       }
     }
 
-    // 2. Niski poziom rezerwy zbiornika w pompie (< 20j)
+    // 3. Niski poziom rezerwy zbiornika w pompie (< 20j)
     const reservoirVal = typeof pumpStatus?.reservoir === 'number' ? pumpStatus.reservoir : undefined;
     if (isInsulinMode && reservoirVal !== undefined && reservoirVal > 0 && reservoirVal <= 20) {
       items.push({
@@ -159,7 +191,7 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
       });
     }
 
-    // 3. Zbliżająca się wymiana osprzętu
+    // 4. Zbliżająca się wymiana osprzętu
     if (equipmentStatus.sensorHoursLeft !== null && equipmentStatus.sensorHoursLeft <= 12 && equipmentStatus.sensorHoursLeft > 0) {
       items.push({
         id: 'sensor_expiry',
@@ -182,6 +214,49 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
         badge: `${equipmentStatus.cannulaHoursLeft}h`,
         badgeColor: 'bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/20'
       });
+    }
+
+    // 5. Standardowe zbliżające się zakończenie zlecenia (od 8 do 30 dni)
+    if (userSettings?.reimbursementEndDate) {
+      const diffMs = new Date(userSettings.reimbursementEndDate).getTime() - Date.now();
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays > 7 && diffDays <= 30) {
+        items.push({
+          id: 'reimbursement_global_expiry',
+          icon: <FileText size={16} className="text-indigo-400 shrink-0 animate-pulse" />,
+          title: t('at_a_glance.reimbursement_soon_title', { defaultValue: 'Refundacja: koniec za {{days}} dni', days: diffDays }),
+          desc: userSettings.reimbursementNotes
+            ? `${userSettings.reimbursementNotes} • ${t('at_a_glance.reimbursement_check_desc', { defaultValue: 'Warto zaplanować odnowienie zlecenia' })}`
+            : t('at_a_glance.reimbursement_check_desc', { defaultValue: 'Zbliża się koniec okresu zlecenia na zaopatrzenie' }),
+          action: () => setTab('profile'),
+          badge: `${diffDays}d`,
+          badgeColor: 'bg-indigo-500/15 text-indigo-500 dark:text-indigo-400 border-indigo-500/30'
+        });
+      }
+    }
+
+    // Dodatkowo: sprawdzenie poszczególnych pozycji sprzętu w apteczce ze zleceniem
+    if (userSettings?.inventory && userSettings.inventory.length > 0) {
+      for (const invItem of userSettings.inventory) {
+        if (invItem.isReimbursed && invItem.reimbursementEndDate) {
+          const itemDiffDays = Math.ceil((new Date(invItem.reimbursementEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          if (itemDiffDays <= 30) {
+            items.push({
+              id: `reimbursement_item_${invItem.id}`,
+              icon: <FileText size={16} className="text-indigo-400 shrink-0" />,
+              title: itemDiffDays > 0
+                ? `${invItem.name}: ${t('at_a_glance.reimbursement_item_days', { defaultValue: 'zlecenie za {{days}}d', days: itemDiffDays })}`
+                : `${invItem.name}: ${t('at_a_glance.reimbursement_expired', { defaultValue: 'zlecenie wygasło' })}`,
+              desc: t('at_a_glance.reimbursement_item_desc', { defaultValue: 'Zaplanuj wizytę lub kontakt w sprawie nowego zlecenia' }),
+              action: () => setTab('profile'),
+              badge: itemDiffDays > 0 ? `${itemDiffDays}d` : '!',
+              badgeColor: itemDiffDays <= 7
+                ? 'bg-rose-500/15 text-rose-500 dark:text-rose-400 border-rose-500/30'
+                : 'bg-indigo-500/15 text-indigo-500 dark:text-indigo-400 border-indigo-500/30'
+            });
+          }
+        }
+      }
     }
 
     // 4. Stan bieżący odczytu glukozy
@@ -354,6 +429,108 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
           </span>
         )}
       </div>
+
+      {/* Subtelny baner / Pigułka priorytetowa końca refundacji (<= 30 dni lub wygasłe) */}
+      {(() => {
+        if (dismissedReimbursementBanner) return null;
+
+        // 1. Sprawdź główne zlecenie
+        let urgentDate = userSettings?.reimbursementEndDate;
+        let urgentName = '';
+        let minDays: number | null = null;
+
+        if (urgentDate) {
+          const diffMs = new Date(urgentDate).getTime() - Date.now();
+          const d = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+          if (d <= 30) {
+            minDays = d;
+          }
+        }
+
+        // 2. Sprawdź pozycje w apteczce (jeśli mają bliższy termin)
+        if (userSettings?.inventory && userSettings.inventory.length > 0) {
+          for (const item of userSettings.inventory) {
+            if (item.isReimbursed && item.reimbursementEndDate) {
+              const diffMs = new Date(item.reimbursementEndDate).getTime() - Date.now();
+              const d = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+              if (d <= 30 && (minDays === null || d < minDays)) {
+                minDays = d;
+                urgentName = item.name;
+              }
+            }
+          }
+        }
+
+        if (minDays === null) return null;
+
+        const isExpired = minDays <= 0;
+        const isVeryUrgent = minDays <= 7;
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn(
+              "mb-2.5 px-3 py-2 rounded-2xl border flex items-center justify-between gap-2 shadow-xs transition-all",
+              isVeryUrgent
+                ? "bg-rose-500/10 dark:bg-rose-500/15 border-rose-500/30 text-rose-700 dark:text-rose-300"
+                : "bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/30 text-indigo-700 dark:text-indigo-300"
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                Haptics.light();
+                setTab('profile');
+              }}
+              className="flex items-center gap-2 min-w-0 text-left flex-1"
+            >
+              <div className={cn(
+                "w-6 h-6 rounded-xl flex items-center justify-center shrink-0",
+                isVeryUrgent ? "bg-rose-500/20 text-rose-500 animate-pulse" : "bg-indigo-500/20 text-indigo-500"
+              )}>
+                <AlertCircle size={13} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-black leading-tight truncate">
+                  {isExpired 
+                    ? (urgentName ? `${urgentName}: ${t('at_a_glance.pill_expired', { defaultValue: 'Zlecenie wygasło!' })}` : t('at_a_glance.pill_expired', { defaultValue: 'Zlecenie refundacji wygasło!' }))
+                    : (urgentName 
+                        ? `${urgentName}: ${t('at_a_glance.pill_days_left', { defaultValue: 'Koniec zlecenia za {{days}} dni!', days: minDays })}`
+                        : t('at_a_glance.pill_days_left', { defaultValue: 'Zlecenie NFZ kończy się za {{days}} dni!', days: minDays })
+                      )}
+                </p>
+                <p className="text-[9px] opacity-80 truncate font-semibold">
+                  {t('at_a_glance.pill_tap_action', { defaultValue: 'Dotknij, aby sprawdzić apteczkę i profil' })}
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                Haptics.light();
+                setDismissedReimbursementBanner(true);
+                try {
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  localStorage.setItem(`reimbursement_pill_dismissed_${todayStr}`, 'true');
+                  if (urgentDate) {
+                    localStorage.setItem(`reimbursement_pill_dismissed_date_${urgentDate}`, 'true');
+                  }
+                } catch (err) {
+                  console.warn('Failed to save dismissal:', err);
+                }
+              }}
+              aria-label="Zamknij powiadomienie"
+              className="p-2 -mr-1 rounded-xl opacity-70 hover:opacity-100 active:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 active:bg-black/15 dark:active:bg-white/15 shrink-0 transition-all flex items-center justify-center touch-manipulation cursor-pointer z-10"
+            >
+              <X size={15} className="shrink-0 pointer-events-none" />
+            </button>
+          </motion.div>
+        );
+      })()}
 
       {/* Karuzela z przesuwanymi kartami (Snap Carousel) */}
       <div

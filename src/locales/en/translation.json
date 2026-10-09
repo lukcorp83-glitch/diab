@@ -252,7 +252,41 @@
     "cannula_expiry_desc": "Infusion set change scheduled in profile is approaching",
     "glucose_in_range_desc": "Latest reading: {{val}} mg/dL • Target range {{min}}-{{max}} mg/dL",
     "badge_time": "TIME",
-    "badge_off": "OFF"
+    "badge_off": "OFF",
+    "reimbursement_soon_title": "Prescription/Reimbursement: ends in {{days}} days",
+    "reimbursement_expired_title": "Prescription / Reimbursement expired",
+    "reimbursement_check_desc": "Approaching end of official supply prescription period",
+    "reimbursement_urgent_title": "Urgent: Prescription ends in {{days}} days!",
+    "reimbursement_urgent_desc": "Renew your prescription to maintain continuous supply coverage",
+    "reimbursement_toast_30d": "📋 Prescription reminder: {{days}} days remaining. Schedule your doctor visit!",
+    "pill_expired": "Prescription / Reimbursement expired!",
+    "pill_days_left": "Supply prescription ends in {{days}} days!",
+    "pill_tap_action": "Tap to check inventory and profile",
+    "reimbursement_item_days": "prescription ends in {{days}}d",
+    "reimbursement_expired": "prescription expired",
+    "reimbursement_item_desc": "Plan visit or contact your provider for renewal"
+  },
+  "inventory": {
+    "reimbursement_global_title": "Prescription / Reimbursement Period",
+    "reimbursement_global_desc": "Early reminders in At a Glance before supply prescription period ends",
+    "reimbursement_end_date_label": "Reimbursement period end date:",
+    "reimbursement_notes_label": "Notes / Order #:",
+    "reimbursement_notes_ph": "e.g., CGM Sensors, Order valid until 12/2026",
+    "reimbursement_item_title": "Prescription / Reimbursed",
+    "reimbursement_item_desc": "Reminder before prescription validity expires",
+    "reimbursement_end_date": "Prescription expiry date:",
+    "reimbursement_badge": "Prescription until:",
+    "reimbursement_expired": "Expired",
+    "reimbursement_stock_warning": "Prescription ends ({{reim}}d) before home stock runs out ({{stock}}d) – pick up early!",
+    "reimbursement_quick_add": "Order cycle:",
+    "reimbursement_set_toast": "Prescription period set to +{{months}} mos. (until {{date}})",
+    "calendar_event_title": "Doctor Visit / Supply Prescription Renewal",
+    "calendar_event_desc": "Official medical supply prescription period ends. Contact your physician for renewal.",
+    "calendar_opened": "Opened Calendar!",
+    "add_to_calendar": "Add to Calendar",
+    "reimbursement_tranches_title": "Claimed pharmacy tranches:",
+    "reimbursement_tranches_desc": "Claimed {{claimed}} of {{total}} months",
+    "tranches_short": "Tranches:"
   },
   "bolus": {
     "title": "Log Insulin Dose",
@@ -2183,5 +2217,11 @@
     "notif_title_beta": "🚀 New Beta Version ({{version}})",
     "notif_title": "✨ New GlikoControl update available ({{version}})",
     "notif_body": "Tap to download and install the latest update."
+  },
+  "notifications": {
+    "reimbursement_30d_title": "Supply Prescription 📋",
+    "reimbursement_30d_body": "Approaching last month (30 days) of supply reimbursement validity!",
+    "reimbursement_7d_title": "Urgent: Prescription ends in 7 days ⚠️",
+    "reimbursement_7d_body": "Supply coverage expires in one week. Plan contact with your provider for renewal."
   }
 }

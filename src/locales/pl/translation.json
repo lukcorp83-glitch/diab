@@ -252,7 +252,41 @@
     "cannula_expiry_desc": "Zbliża się zaplanowany w profilu czas rotacji wkłucia",
     "glucose_in_range_desc": "Ostatni odczyt: {{val}} mg/dL • Zakres {{min}}-{{max}} mg/dL",
     "badge_time": "CZAS",
-    "badge_off": "WYŁ."
+    "badge_off": "WYŁ.",
+    "reimbursement_soon_title": "Refundacja: koniec za {{days}} dni",
+    "reimbursement_expired_title": "Zlecenie refundacji wygasło",
+    "reimbursement_check_desc": "Zbliża się koniec okresu zlecenia na zaopatrzenie",
+    "reimbursement_urgent_title": "Pilne: Zlecenie wygasa za {{days}} dni!",
+    "reimbursement_urgent_desc": "Odnów zlecenie u lekarza, by zachować ciągłość refundacji",
+    "reimbursement_toast_30d": "📋 Zlecenie refundacji: Pozostało {{days}} dni ważności. Zaplanuj wizytę u lekarza!",
+    "pill_expired": "Zlecenie refundacji wygasło!",
+    "pill_days_left": "Zlecenie NFZ kończy się za {{days}} dni!",
+    "pill_tap_action": "Dotknij, aby sprawdzić apteczkę i profil",
+    "reimbursement_item_days": "zlecenie za {{days}}d",
+    "reimbursement_expired": "zlecenie wygasło",
+    "reimbursement_item_desc": "Zaplanuj wizytę lub kontakt w sprawie nowego zlecenia"
+  },
+  "inventory": {
+    "reimbursement_global_title": "Zlecenie na zaopatrzenie (Refundacja)",
+    "reimbursement_global_desc": "Wcześniejsze przypomnienie w pasku «W skrócie» o końcu okresu",
+    "reimbursement_end_date_label": "Koniec okresu refundacji:",
+    "reimbursement_notes_label": "Notatka / Nr zlecenia:",
+    "reimbursement_notes_ph": "np. Sensory CGM, Zlecenie do 12.2026",
+    "reimbursement_item_title": "Zlecenie / Refundacja",
+    "reimbursement_item_desc": "Przypomnienie o wygaśnięciu okresu zlecenia",
+    "reimbursement_end_date": "Koniec ważności zlecenia / refundacji:",
+    "reimbursement_badge": "Zlecenie do:",
+    "reimbursement_expired": "Wygasło",
+    "reimbursement_stock_warning": "Zlecenie wygasa ({{reim}}d) przed zużyciem zapasów ({{stock}}d) – odbierz transzę wcześniej!",
+    "reimbursement_quick_add": "Cykl zlecenia:",
+    "reimbursement_set_toast": "Ustawiono zlecenie na +{{months}} mies. (do {{date}})",
+    "calendar_event_title": "Wizyta / Nowe Zlecenie NFZ (Koniec Refundacji)",
+    "calendar_event_desc": "Koniec okresu ważności zlecenia refundacyjnego na wyroby medyczne. Zgłoś się do lekarza po nowe zlecenie.",
+    "calendar_opened": "Otwarto Kalendarz!",
+    "add_to_calendar": "Dodaj do Kalendarza",
+    "reimbursement_tranches_title": "Odebrane transze w aptece:",
+    "reimbursement_tranches_desc": "Odebrano {{claimed}} z {{total}} miesięcy zlecenia",
+    "tranches_short": "Transze:"
   },
   "bolus": {
     "title": "Rejestracja Dawki Insuliny",
@@ -3908,5 +3942,11 @@
     "notif_title_beta": "🚀 Nowa wersja Beta ({{version}})",
     "notif_title": "✨ Dostępna nowa wersja GlikoControl ({{version}})",
     "notif_body": "Dotknij, aby pobrać i zainstalować najnowszą aktualizację."
+  },
+  "notifications": {
+    "reimbursement_30d_title": "Zlecenie na zaopatrzenie 📋",
+    "reimbursement_30d_body": "Zbliża się ostatni miesiąc (30 dni) ważności zlecenia na refundację!",
+    "reimbursement_7d_title": "Pilne: Zlecenie wygasa za 7 dni ⚠️",
+    "reimbursement_7d_body": "Za tydzień kończy się okres refundacji osprzętu. Zaplanuj kontakt w sprawie nowego zlecenia."
   }
 }

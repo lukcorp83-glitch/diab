@@ -7,7 +7,7 @@ import { healthService } from "../../services/healthService";
 import { toast } from "react-hot-toast";
 import { getEffectiveUid, cn, isNativeApp } from "../../lib/utils";
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { motion, Reorder } from "motion/react";
+import { motion, Reorder, AnimatePresence } from "motion/react";
 import {
  Settings,
  LogOut,
@@ -52,6 +52,7 @@ import {
  Play,
  Lock as LucideLock,
  BookOpen,
+ FileText,
  Edit2,
  GripVertical,
  HelpCircle,
@@ -78,6 +79,7 @@ import {
  Camera,
  Pizza,
  FileJson,
+ CalendarPlus,
 } from "lucide-react";
 import { db, auth, onConnectionChange } from "../../lib/firebase";
 import { deleteUser } from "firebase/auth";
@@ -351,6 +353,405 @@ const saveInventoryItem = async () => {
  }
  }
 
+ const renderInventoryFields = () => {
+   if (!newInventoryItem) return null;
+   return (
+     <div className="space-y-4">
+       <div className="flex items-center justify-between mb-2">
+         <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2">
+           <Box size={14} className="text-rose-500" />
+           {newInventoryItem.id
+             ? i18n.t('auto.edytuj_sprzet', { defaultValue: "Edytuj Sprzęt" })
+             : i18n.t('auto.nowy_sprzet', { defaultValue: "Nowy Sprzęt" })}
+         </h4>
+         <button
+           type="button"
+           onClick={() => setNewInventoryItem(null)}
+           className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-white dark:bg-slate-900 rounded-full shadow-sm cursor-pointer"
+         >
+           <X size={14} />
+         </button>
+       </div>
+
+       <div className="space-y-4">
+         <div className="space-y-1">
+           <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+             {t('auto.nazwa', { defaultValue: 'Nazwa' })}
+           </label>
+           <input
+             type="text"
+             placeholder={t('auto.np_sensor_dexcom_g6', { defaultValue: 'np. Sensor Dexcom G6' })}
+             value={newInventoryItem.name}
+             onChange={(e) =>
+               setNewInventoryItem({
+                 ...newInventoryItem,
+                 name: e.target.value,
+               })
+             }
+             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+           />
+         </div>
+
+         <div className="grid grid-cols-2 gap-4">
+           <div className="space-y-1">
+             <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+               {t('auto.ilość', { defaultValue: "Ilość" })}
+             </label>
+             <input
+               type="number"
+               value={newInventoryItem.quantity}
+               onChange={(e) =>
+                 setNewInventoryItem({
+                   ...newInventoryItem,
+                   quantity: Number(e.target.value),
+                 })
+               }
+               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+             />
+           </div>
+           <div className="space-y-1">
+             <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+               {t('auto.jednostka', { defaultValue: 'Jednostka' })}
+             </label>
+             <input
+               type="text"
+               placeholder={t('auto.np_szt_fiolki', { defaultValue: 'np. szt., fiolki' })}
+               value={newInventoryItem.unit}
+               onChange={(e) =>
+                 setNewInventoryItem({
+                   ...newInventoryItem,
+                   unit: e.target.value,
+                 })
+               }
+               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+             />
+           </div>
+         </div>
+
+         <div className="grid grid-cols-2 gap-4">
+           <div className="space-y-1 relative">
+             <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+               {t('auto.kategoria', { defaultValue: 'Kategoria' })}
+             </label>
+             <div className="relative">
+               <select
+                 value={newInventoryItem.category}
+                 onChange={(e) =>
+                   setNewInventoryItem({
+                     ...newInventoryItem,
+                     category: e.target.value as any,
+                   })
+                 }
+                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-3 pr-10 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all appearance-none cursor-pointer"
+               >
+                 <option value="sensors">{t('auto.sensory', { defaultValue: 'Sensory' })}</option>
+                 <option value="insulin">{t('auto.insulina', { defaultValue: 'Insulina' })}</option>
+                 <option value="pens">{t('auto.peny', { defaultValue: 'Wstrzykiwacze (Peny)' })}</option>
+                 {(!settings.treatmentMode || settings.treatmentMode === 'pump') && (
+                   <>
+                     <option value="reservoirs">{t('auto.zbiorniczki', { defaultValue: 'Zbiorniczki' })}</option>
+                     <option value="infusion_sets">{t('auto.wkłucia', { defaultValue: "Wkłucia" })}</option>
+                   </>
+                 )}
+                 <option value="strips">{t('auto.paski', { defaultValue: 'Paski' })}</option>
+                 <option value="other">{t('auto.inne', { defaultValue: 'Inne' })}</option>
+               </select>
+               <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+             </div>
+           </div>
+           <div className="space-y-1">
+             <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+               {t('auto.ostrzeżenie_poniżej_ilosc', { defaultValue: "Ostrzeżenie (poniżej ilosc)" })}
+             </label>
+             <input
+               type="number"
+               value={newInventoryItem.lowStockThreshold}
+               onChange={(e) =>
+                 setNewInventoryItem({
+                   ...newInventoryItem,
+                   lowStockThreshold: Number(e.target.value),
+                 })
+               }
+               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+             />
+           </div>
+         </div>
+
+         <div className="space-y-1">
+           <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+             {t('auto.kod_kreskowy_ean_upc', { defaultValue: 'Kod kreskowy (EAN/UPC)' })}
+           </label>
+           <div className="flex gap-2">
+             <input
+               type="text"
+               placeholder={t('auto.skorzystaj_ze_skanera', { defaultValue: 'Skorzystaj ze skanera...' })}
+               value={newInventoryItem.barcode || ""}
+               onChange={(e) =>
+                 setNewInventoryItem({
+                   ...newInventoryItem,
+                   barcode: e.target.value,
+                 })
+               }
+               className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+             />
+             <button
+               type="button"
+               onClick={() => setShowBarcodeScanner(true)}
+               className="p-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-200 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all flex items-center justify-center cursor-pointer"
+             >
+               <Camera size={16} />
+             </button>
+           </div>
+         </div>
+
+         {newInventoryItem.category === "insulin" && (
+           <div className="space-y-1">
+             <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+               {t('auto.dzienne_zapotrzebowanie_oczekiwane_', { defaultValue: "Dzienne zapotrzebowanie (oczekiwane spożycie, np. j.)" })}
+             </label>
+             <input
+               type="number"
+               placeholder={t('auto.np_45', { defaultValue: 'np. 45' })}
+               value={newInventoryItem.dailyDose || ""}
+               onChange={(e) =>
+                 setNewInventoryItem({
+                   ...newInventoryItem,
+                   dailyDose: e.target.value ? Number(e.target.value) : null,
+                 })
+               }
+               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+             />
+           </div>
+         )}
+
+         {newInventoryItem.category === "reservoirs" && (
+           <div className="space-y-1.5">
+             <div className="flex items-center justify-between">
+               <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                 {t('auto.pojemnosc_zbiorniczka_jednostki', { defaultValue: 'Pojemność zbiorniczka (Jednostki U)' })}
+               </label>
+               <div className="flex items-center gap-1">
+                 {[160, 180, 200, 300].map((preset) => (
+                   <button
+                     key={preset}
+                     type="button"
+                     onClick={() => {
+                       setNewInventoryItem({
+                         ...newInventoryItem,
+                         reservoirCapacity: preset,
+                       });
+                     }}
+                     className={cn(
+                       "px-2 py-0.5 rounded-lg text-[8px] font-black transition-all active:scale-95 cursor-pointer",
+                       (newInventoryItem.reservoirCapacity || 300) === preset
+                         ? "bg-purple-600 text-white shadow-sm"
+                         : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
+                     )}
+                   >
+                     {preset}U
+                   </button>
+                 ))}
+               </div>
+             </div>
+             <input
+               type="number"
+               placeholder="np. 180 lub 300"
+               value={newInventoryItem.reservoirCapacity || ""}
+               onChange={(e) =>
+                 setNewInventoryItem({
+                   ...newInventoryItem,
+                   reservoirCapacity: e.target.value ? Number(e.target.value) : null,
+                 })
+               }
+               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-purple-500/20 transition-all"
+             />
+           </div>
+         )}
+
+         {newInventoryItem.category === "pens" && (
+           <div className="space-y-1">
+             <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+               {t('auto.pojemnosc_pena_w_jednostkach', { defaultValue: 'Pojemność pojedynczego pena (w jednostkach)' })}
+             </label>
+             <input
+               type="number"
+               placeholder={t('auto.np_300', { defaultValue: 'np. 300' })}
+               value={newInventoryItem.penCapacity || ""}
+               onChange={(e) =>
+                 setNewInventoryItem({
+                   ...newInventoryItem,
+                   penCapacity: e.target.value ? Number(e.target.value) : null,
+                 })
+               }
+               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+             />
+           </div>
+         )}
+
+         <div className="space-y-1">
+           <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
+             {t('auto.krótka_data_ważności_opcjonalnie', { defaultValue: "Krótka data ważności (Opcjonalnie)" })}
+           </label>
+           <div className="relative">
+             <Calendar
+               size={12}
+               className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500"
+             />
+             <input
+               type="date"
+               value={newInventoryItem.expiryDate || ""}
+               onChange={(e) =>
+                 setNewInventoryItem({
+                   ...newInventoryItem,
+                   expiryDate: e.target.value,
+                 })
+               }
+               className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-9 pr-3 rounded-2xl font-bold text-[10px] outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
+             />
+           </div>
+         </div>
+
+         <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 space-y-2.5">
+           <div className="flex items-center justify-between">
+             <div className="flex items-center gap-2">
+               <FileText size={14} className="text-indigo-400" />
+               <div>
+                 <p className="text-[10px] font-black uppercase tracking-wider text-indigo-400">
+                   {t('inventory.reimbursement_item_title', { defaultValue: 'Zlecenie / Refundacja' })}
+                 </p>
+                 <p className="text-[8px] text-slate-400 font-medium">
+                   {t('inventory.reimbursement_item_desc', { defaultValue: 'Przypomnienie o wygaśnięciu okresu zlecenia' })}
+                 </p>
+               </div>
+             </div>
+             <input
+               type="checkbox"
+               checked={Boolean(newInventoryItem.isReimbursed)}
+               onChange={(e) =>
+                 setNewInventoryItem({
+                   ...newInventoryItem,
+                   isReimbursed: e.target.checked,
+                   reimbursementEndDate: e.target.checked ? (newInventoryItem.reimbursementEndDate || "") : undefined
+                 })
+               }
+               className="w-4 h-4 accent-indigo-500 rounded cursor-pointer"
+             />
+           </div>
+
+           {newInventoryItem.isReimbursed && (
+             <div className="space-y-2 pt-1 border-t border-indigo-500/10">
+               <div className="space-y-1">
+                 <label className="text-[7px] font-black text-indigo-300 uppercase tracking-widest ml-1">
+                   {t('inventory.reimbursement_end_date', { defaultValue: 'Koniec ważności zlecenia / refundacji:' })}
+                 </label>
+                 <div className="relative">
+                   <Calendar size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" />
+                   <input
+                     type="date"
+                     value={newInventoryItem.reimbursementEndDate || ""}
+                     onChange={(e) =>
+                       setNewInventoryItem({
+                         ...newInventoryItem,
+                         reimbursementEndDate: e.target.value,
+                       })
+                     }
+                     className="w-full bg-white dark:bg-slate-900 border border-indigo-500/30 py-2.5 pl-9 pr-3 rounded-xl font-bold text-[10px] outline-none dark:text-white focus:ring-2 ring-indigo-500/20 transition-all"
+                   />
+                 </div>
+               </div>
+
+               {/* Szybki wybór cyklu: +1m, +3m, +6m dla konkretnego sprzętu */}
+               <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                 <span className="text-[8px] font-black uppercase tracking-wider text-indigo-300">
+                   {t('inventory.reimbursement_quick_add', { defaultValue: 'Cykl zlecenia:' })}
+                 </span>
+                 {[1, 3, 6].map((months) => (
+                   <button
+                     key={months}
+                     type="button"
+                     onClick={() => {
+                       Haptics.light();
+                       const targetDate = new Date();
+                       targetDate.setMonth(targetDate.getMonth() + months);
+                       const dateStr = targetDate.toISOString().split('T')[0];
+                       setNewInventoryItem({
+                         ...newInventoryItem,
+                         reimbursementEndDate: dateStr,
+                         reimbursementTotalTranches: months,
+                         reimbursementClaimedTranches: 1
+                       });
+                     }}
+                     className="text-[8px] font-black px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 text-indigo-300 border border-indigo-500/20 transition-all cursor-pointer"
+                   >
+                     +{months} mies.
+                   </button>
+                 ))}
+               </div>
+
+               {/* Licznik transz dla tego przedmiotu w formularzu */}
+               <div className="pt-1.5 border-t border-indigo-500/10 flex items-center justify-between gap-2">
+                 <div>
+                   <p className="text-[8px] font-black uppercase tracking-wider text-indigo-300">
+                     {t('inventory.reimbursement_tranches_title', { defaultValue: 'Odebrane transze w aptece:' })}
+                   </p>
+                   <p className="text-[8px] text-slate-400">
+                     {t('inventory.reimbursement_tranches_desc', { 
+                       defaultValue: 'Odebrano {{claimed}} z {{total}} miesięcy zlecenia',
+                       claimed: newInventoryItem.reimbursementClaimedTranches || 1,
+                       total: newInventoryItem.reimbursementTotalTranches || 3
+                     })}
+                   </p>
+                 </div>
+                 <div className="flex items-center gap-1">
+                   {Array.from({ length: newInventoryItem.reimbursementTotalTranches || 3 }).map((_, idx) => {
+                     const trancheNum = idx + 1;
+                     const isClaimed = trancheNum <= (newInventoryItem.reimbursementClaimedTranches || 1);
+                     return (
+                       <button
+                         key={trancheNum}
+                         type="button"
+                         onClick={() => {
+                           Haptics.light();
+                           const newClaimed = isClaimed && trancheNum === (newInventoryItem.reimbursementClaimedTranches || 1)
+                             ? trancheNum - 1
+                             : trancheNum;
+                           setNewInventoryItem({
+                             ...newInventoryItem,
+                             reimbursementClaimedTranches: newClaimed
+                           });
+                         }}
+                         className={cn(
+                           "w-6 h-6 rounded-lg font-black text-[9px] flex items-center justify-center border transition-all active:scale-95 cursor-pointer",
+                           isClaimed
+                             ? "bg-indigo-500 text-white border-indigo-400 shadow-sm shadow-indigo-500/20"
+                             : "bg-white/5 text-slate-400 border-white/10 hover:border-indigo-500/40"
+                         )}
+                       >
+                         {isClaimed ? <Check size={10} strokeWidth={3} /> : trancheNum}
+                       </button>
+                     );
+                   })}
+                 </div>
+               </div>
+             </div>
+           )}
+         </div>
+       </div>
+
+       <button
+         type="button"
+         onClick={saveInventoryItem}
+         className="w-full bg-rose-600 hover:bg-rose-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-rose-600/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+       >
+         <CheckCircle2 size={14} />
+         {newInventoryItem.id
+           ? "Aktualizuj zapas"
+           : "Zapisz w apteczce"}
+       </button>
+     </div>
+   );
+ };
+
  return (
 
  <motion.div
@@ -423,6 +824,201 @@ const saveInventoryItem = async () => {
  </div>
  </div>
 
+ {/* Globalne zlecenie na zaopatrzenie / refundacja NFZ */}
+ <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 space-y-3">
+   <div className="flex items-center justify-between">
+     <div className="flex items-center gap-2.5">
+       <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl">
+         <FileText size={16} />
+       </div>
+       <div>
+         <h4 className="text-xs font-black dark:text-white uppercase tracking-wider">
+           {t('inventory.reimbursement_global_title', { defaultValue: 'Zlecenie na zaopatrzenie (Refundacja)' })}
+         </h4>
+         <p className="text-[10px] text-slate-400 font-medium">
+           {t('inventory.reimbursement_global_desc', { defaultValue: 'Wcześniejsze przypomnienie w pasku «W skrócie» o końcu okresu' })}
+         </p>
+       </div>
+     </div>
+     {settings.reimbursementEndDate && (() => {
+       const daysLeft = Math.ceil((new Date(settings.reimbursementEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+       return (
+         <span className={cn(
+           "text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border",
+           daysLeft <= 30
+             ? "bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse"
+             : "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+         )}>
+           {daysLeft > 0 ? `${daysLeft} dni` : t('inventory.reimbursement_expired', { defaultValue: 'Wygasło' })}
+         </span>
+       );
+     })()}
+   </div>
+
+   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-indigo-500/10">
+     <div>
+       <label className="text-[8px] font-black uppercase tracking-wider text-indigo-300 block mb-1">
+         {t('inventory.reimbursement_end_date_label', { defaultValue: 'Koniec okresu refundacji:' })}
+       </label>
+       <div className="relative">
+         <Calendar size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" />
+         <input
+           type="date"
+           value={settings.reimbursementEndDate || ""}
+           onChange={async (e) => {
+             const val = e.target.value;
+             const newSettings = { ...settings, reimbursementEndDate: val };
+             setSettings(newSettings);
+             if (user) {
+               await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { reimbursementEndDate: val }, { merge: true });
+               queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
+             }
+           }}
+           className="w-full bg-white dark:bg-slate-900 border border-indigo-500/30 py-2 pl-9 pr-3 rounded-xl font-bold text-[10px] outline-none dark:text-white"
+         />
+       </div>
+     </div>
+
+     <div>
+       <label className="text-[8px] font-black uppercase tracking-wider text-indigo-300 block mb-1">
+         {t('inventory.reimbursement_notes_label', { defaultValue: 'Notatka / Nr zlecenia:' })}
+       </label>
+       <input
+         type="text"
+         placeholder={t('inventory.reimbursement_notes_ph', { defaultValue: 'np. Sensory CGM, Zlecenie do 12.2026' })}
+         value={settings.reimbursementNotes || ""}
+         onChange={async (e) => {
+           const val = e.target.value;
+           const newSettings = { ...settings, reimbursementNotes: val };
+           setSettings(newSettings);
+           if (user) {
+             await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { reimbursementNotes: val }, { merge: true });
+             queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
+           }
+         }}
+         className="w-full bg-white dark:bg-slate-900 border border-indigo-500/30 py-2 px-3 rounded-xl font-bold text-[10px] outline-none dark:text-white"
+       />
+     </div>
+   </div>
+
+   {/* Szybki wybór cyklu: 1 mies., 3 mies., 6 mies. & Dodaj do kalendarza */}
+   <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-indigo-500/10">
+     <div className="flex items-center gap-1.5 flex-wrap">
+       <span className="text-[8px] font-black uppercase tracking-wider text-indigo-300">
+         {t('inventory.reimbursement_quick_add', { defaultValue: 'Cykl zlecenia:' })}
+       </span>
+       {[1, 3, 6].map((months) => (
+         <button
+           key={months}
+           type="button"
+           onClick={async () => {
+             Haptics.light();
+             const targetDate = new Date();
+             targetDate.setMonth(targetDate.getMonth() + months);
+             const dateStr = targetDate.toISOString().split('T')[0];
+             const newSettings = { 
+               ...settings, 
+               reimbursementEndDate: dateStr,
+               reimbursementTotalTranches: months,
+               reimbursementClaimedTranches: 1
+             };
+             setSettings(newSettings);
+             if (user) {
+               await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { 
+                 reimbursementEndDate: dateStr,
+                 reimbursementTotalTranches: months,
+                 reimbursementClaimedTranches: 1
+               }, { merge: true });
+               queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
+             }
+             toast.success(t('inventory.reimbursement_set_toast', { defaultValue: `Ustawiono zlecenie na +${months} mies. (do ${dateStr})`, months, date: dateStr }));
+           }}
+           className="text-[9px] font-black px-2 py-0.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 active:scale-95 text-indigo-300 border border-indigo-500/20 transition-all cursor-pointer"
+         >
+           +{months} {months === 1 ? 'mies.' : 'mies.'}
+         </button>
+       ))}
+     </div>
+
+     {/* Przycisk eksportu do kalendarza systemowego */}
+     {settings.reimbursementEndDate && (
+       <button
+         type="button"
+         onClick={() => {
+           Haptics.light();
+           try {
+             const endDate = new Date(settings.reimbursementEndDate);
+             const startStr = endDate.toISOString().replace(/-|:|\.\d\d\d/g, "").slice(0, 8);
+             const title = encodeURIComponent(t('inventory.calendar_event_title', { defaultValue: 'Wizyta / Nowe Zlecenie NFZ (Koniec Refundacji)' }));
+             const details = encodeURIComponent(settings.reimbursementNotes 
+               ? `${settings.reimbursementNotes} • ${t('inventory.calendar_event_desc', { defaultValue: 'Koniec okresu ważności zlecenia refundacyjnego na wyroby medyczne.' })}`
+               : t('inventory.calendar_event_desc', { defaultValue: 'Koniec okresu ważności zlecenia refundacyjnego na wyroby medyczne. Zgłoś się do lekarza po nowe zlecenie.' }));
+             
+             const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${startStr}&details=${details}`;
+             window.open(gcalUrl, '_blank');
+             toast.success(t('inventory.calendar_opened', { defaultValue: 'Otwarto Kalendarz!' }));
+           } catch (err) {
+             toast.error('Błąd eksportu do kalendarza');
+           }
+         }}
+         className="flex items-center gap-1 text-[9px] font-black px-2.5 py-1 rounded-lg bg-white/10 dark:bg-slate-900/40 hover:bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 transition-all cursor-pointer"
+       >
+         <CalendarPlus size={11} className="text-indigo-400" />
+         {t('inventory.add_to_calendar', { defaultValue: 'Dodaj do Kalendarza' })}
+       </button>
+     )}
+   </div>
+
+   {/* Licznik pobranych transz w aptece */}
+   <div className="pt-2 border-t border-indigo-500/10 flex flex-wrap items-center justify-between gap-2">
+     <div>
+       <p className="text-[8px] font-black uppercase tracking-wider text-indigo-300">
+         {t('inventory.reimbursement_tranches_title', { defaultValue: 'Odebrane transze w aptece:' })}
+       </p>
+       <p className="text-[9px] text-slate-400 font-medium">
+         {t('inventory.reimbursement_tranches_desc', { 
+           defaultValue: 'Odebrano {{claimed}} z {{total}} miesięcy zlecenia',
+           claimed: settings.reimbursementClaimedTranches || 1,
+           total: settings.reimbursementTotalTranches || 3
+         })}
+       </p>
+     </div>
+
+     <div className="flex items-center gap-1.5">
+       {Array.from({ length: settings.reimbursementTotalTranches || 3 }).map((_, idx) => {
+         const trancheNum = idx + 1;
+         const isClaimed = trancheNum <= (settings.reimbursementClaimedTranches || 1);
+         return (
+           <button
+             key={trancheNum}
+             type="button"
+             onClick={async () => {
+               Haptics.light();
+               const newClaimed = isClaimed && trancheNum === (settings.reimbursementClaimedTranches || 1)
+                 ? trancheNum - 1
+                 : trancheNum;
+               const newSettings = { ...settings, reimbursementClaimedTranches: newClaimed };
+               setSettings(newSettings);
+               if (user) {
+                 await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { reimbursementClaimedTranches: newClaimed }, { merge: true });
+                 queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
+               }
+             }}
+             className={cn(
+               "w-7 h-7 rounded-xl font-black text-[10px] flex items-center justify-center border transition-all active:scale-95 cursor-pointer",
+               isClaimed
+                 ? "bg-indigo-500 text-white border-indigo-400 shadow-sm shadow-indigo-500/20"
+                 : "bg-white/5 text-slate-400 border-white/10 hover:border-indigo-500/40"
+             )}
+           >
+             {isClaimed ? <Check size={12} strokeWidth={3} /> : trancheNum}
+           </button>
+         );
+       })}
+     </div>
+   </div>
+ </div>
+
  <div className="space-y-4">
 
 
@@ -432,6 +1028,9 @@ const saveInventoryItem = async () => {
  key={item.id}
  className={cn(
  "relative overflow-hidden p-5 rounded-[2rem] border transition-all flex flex-col group",
+ newInventoryItem?.id === item.id
+ ? "ring-2 ring-rose-500/50 border-rose-500/50 shadow-lg shadow-rose-500/5"
+ : "",
  settings.glassmorphismEnabled
  ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
  : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
@@ -515,6 +1114,87 @@ const saveInventoryItem = async () => {
  <Calendar size={10} /> {t('auto.data_ważn', { defaultValue: i18n.t('auto.data_wazn', { defaultValue: "Data ważn:" }) })} {item.expiryDate}
  </p>
  )}
+ {item.isReimbursed && item.reimbursementEndDate && (() => {
+   const diffDays = Math.ceil((new Date(item.reimbursementEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+   let stockDays = 0;
+   if (item.dailyDose && item.dailyDose > 0) {
+     stockDays = Math.floor(item.quantity / item.dailyDose);
+   } else if (item.category === 'sensors') {
+     stockDays = item.quantity * (Number(settings?.sensorDurationDays) || 10);
+   } else if (item.category === 'infusion_sets' || item.category === 'reservoirs') {
+     stockDays = item.quantity * (Number(settings?.infusionSetDurationDays) || 3);
+   }
+   const hasStockMismatch = diffDays > 0 && stockDays > 0 && diffDays <= 30 && diffDays < stockDays;
+
+   return (
+     <div className="mt-1 space-y-0.5">
+       <p className={cn(
+         "text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 flex-wrap",
+         diffDays <= 30 ? "text-indigo-600 dark:text-indigo-400 font-black animate-pulse" : "text-slate-400"
+       )}>
+       <FileText size={10} /> {t('inventory.reimbursement_badge', { defaultValue: 'Zlecenie do:' })} {item.reimbursementEndDate}
+       <span className={cn(
+         "text-[8px] px-1.5 py-0.2 rounded-full font-mono",
+         diffDays <= 7 ? "bg-rose-500/20 text-rose-500 font-black animate-pulse" : "bg-indigo-500/10 text-indigo-500"
+       )}>
+         {diffDays > 0 ? `${diffDays}d` : t('inventory.reimbursement_expired', { defaultValue: 'Wygasło' })}
+       </span>
+     </p>
+     {Boolean(item.reimbursementTotalTranches && item.reimbursementTotalTranches > 1) && (
+       <div className="flex items-center gap-1 mt-0.5">
+         <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mr-0.5">
+           {t('inventory.tranches_short', { defaultValue: 'Transze:' })}
+         </span>
+         {Array.from({ length: item.reimbursementTotalTranches || 3 }).map((_, idx) => {
+           const trancheNum = idx + 1;
+           const isClaimed = trancheNum <= (item.reimbursementClaimedTranches || 1);
+           return (
+             <button
+               key={trancheNum}
+               type="button"
+               onClick={async (e) => {
+                 e.stopPropagation();
+                 Haptics.light();
+                 const updatedInventory = [...settings.inventory!];
+                 const itemIdx = updatedInventory.findIndex((m) => m.id === item.id);
+                 if (itemIdx !== -1) {
+                   const newClaimed = isClaimed && trancheNum === (item.reimbursementClaimedTranches || 1)
+                     ? trancheNum - 1
+                     : trancheNum;
+                   updatedInventory[itemIdx].reimbursementClaimedTranches = newClaimed;
+                   setSettings((prev: any) => ({ ...prev, inventory: updatedInventory }));
+                   if (user) {
+                     await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { inventory: updatedInventory }, { merge: true });
+                     queryClient.invalidateQueries({ queryKey: ['userSettings', getEffectiveUid(user)] });
+                   }
+                 }
+               }}
+               title={`Transza ${trancheNum} z ${item.reimbursementTotalTranches}`}
+               className={cn(
+                 "w-4 h-4 rounded-md font-black text-[7px] flex items-center justify-center border transition-all active:scale-95 cursor-pointer",
+                 isClaimed
+                   ? "bg-indigo-500 text-white border-indigo-400 shadow-2xs"
+                   : "bg-white/10 dark:bg-slate-900 text-slate-400 border-slate-300 dark:border-slate-700"
+               )}
+             >
+               {isClaimed ? <Check size={8} strokeWidth={3} /> : trancheNum}
+             </button>
+           );
+         })}
+       </div>
+     )}
+     {hasStockMismatch && (
+       <p className="text-[8px] font-bold text-amber-500 dark:text-amber-400 flex items-center gap-1 leading-tight">
+         ⚠️ {t('inventory.reimbursement_stock_warning', { 
+           defaultValue: 'Zlecenie wygasa ({{reim}}d) przed zużyciem zapasów ({{stock}}d) – odbierz transzę wcześniej!',
+           reim: diffDays,
+           stock: stockDays
+         })}
+       </p>
+     )}
+   </div>
+   );
+ })()}
  </div>
  </div>
 
@@ -608,42 +1288,69 @@ const saveInventoryItem = async () => {
  </div>
  <div className="flex gap-2">
  <button
- onClick={() => setNewInventoryItem(item)}
- className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700"
+ onClick={() => {
+   Haptics.light();
+   setNewInventoryItem(newInventoryItem?.id === item.id ? null : { ...item });
+ }}
+ className={cn(
+   "p-2 rounded-2xl shadow-sm border transition-all cursor-pointer",
+   newInventoryItem?.id === item.id
+     ? "bg-rose-500 text-white border-rose-600 shadow-rose-500/20"
+     : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+ )}
+ title={newInventoryItem?.id === item.id ? "Zwiń edycję" : "Edytuj sprzęt"}
  >
  <Edit3 size={14} />
  </button>
  <button
  onClick={() => deleteInventoryItem(item.id)}
- className="p-2 text-slate-500 dark:text-slate-400 hover:text-rose-500 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700"
+ className="p-2 text-slate-500 dark:text-slate-400 hover:text-rose-500 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer"
  >
  <Trash size={14} />
  </button>
  </div>
  </div>
+
+ {/* Inline rozwijany formularz edycji */}
+ <AnimatePresence>
+   {newInventoryItem?.id === item.id && (
+     <motion.div
+       initial={{ opacity: 0, height: 0 }}
+       animate={{ opacity: 1, height: "auto" }}
+       exit={{ opacity: 0, height: 0 }}
+       transition={{ duration: 0.25, ease: "easeInOut" }}
+       className="overflow-hidden pt-4 mt-4 border-t border-slate-200/80 dark:border-slate-700/80 relative z-10"
+     >
+       <div className="bg-slate-100/70 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-800">
+         {renderInventoryFields()}
+       </div>
+     </motion.div>
+   )}
+ </AnimatePresence>
  </motion.div>
  ))}
 
- {!newInventoryItem && (
+ {(!newInventoryItem || Boolean(newInventoryItem.id)) && (
  <div className="flex gap-2">
  <button
- onClick={() =>
- setNewInventoryItem({
- id: "",
- name: "",
- quantity: 1,
- unit: "szt.",
- lowStockThreshold: 1,
- category: "other",
- })
- }
- className="flex-1 py-4 bg-rose-50 dark:bg-slate-800/50 text-rose-600 dark:text-rose-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-rose-200 dark:border-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-all flex items-center justify-center gap-2"
+ onClick={() => {
+   Haptics.light();
+   setNewInventoryItem({
+     id: "",
+     name: "",
+     quantity: 1,
+     unit: "szt.",
+     lowStockThreshold: 1,
+     category: "other",
+   });
+ }}
+ className="flex-1 py-4 bg-rose-50 dark:bg-slate-800/50 text-rose-600 dark:text-rose-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-rose-200 dark:border-rose-900/30 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
  >
  <Plus size={16} /> {t('auto.dodaj_ręcznie', { defaultValue: i18n.t('auto.dodaj_recznie', { defaultValue: "Dodaj ręcznie" }) })}
  </button>
  <button
  onClick={() => setShowBarcodeScanner(true)}
- className="flex-1 py-4 bg-indigo-50 dark:bg-slate-800/50 text-indigo-600 dark:text-indigo-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-indigo-200 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-all flex items-center justify-center gap-2"
+ className="flex-1 py-4 bg-indigo-50 dark:bg-slate-800/50 text-indigo-600 dark:text-indigo-400 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] border-2 border-dashed border-indigo-200 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
  >
  <Camera size={16} /> {t('auto.skanuj_kod', { defaultValue: 'Skanuj Kod' })}
  </button>
@@ -651,285 +1358,20 @@ const saveInventoryItem = async () => {
  )}
  </div>
 
- {/* Edit / Add Inventory Form */}
- {newInventoryItem && (
- <motion.div
- initial={{ opacity: 0, height: 0 }}
- animate={{ opacity: 1, height: "auto" }}
- exit={{ opacity: 0, height: 0 }}
- className="bg-slate-50 dark:bg-slate-800 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-700 space-y-4"
- >
- <div className="flex items-center justify-between mb-2">
- <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2">
- <Box size={14} className="text-rose-500" />
- {newInventoryItem.id ? i18n.t('auto.edytuj_sprzet', { defaultValue: i18n.t('auto.edytuj_sprzet', { defaultValue: "Edytuj Sprzęt" }) }) : i18n.t('auto.nowy_sprzet', { defaultValue: i18n.t('auto.nowy_sprzet', { defaultValue: "Nowy Sprzęt" }) })}
- </h4>
- <button
- onClick={() => setNewInventoryItem(null)}
- className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-white dark:bg-slate-900 rounded-full shadow-sm"
- >
- <X size={14} />
- </button>
- </div>
-
- <div className="space-y-4">
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.nazwa', { defaultValue: 'Nazwa' })}
- </label>
- <input
- type="text"
- placeholder={t('auto.np_sensor_dexcom_g6', { defaultValue: 'np. Sensor Dexcom G6' })}
- value={newInventoryItem.name}
- onChange={(e) =>
- setNewInventoryItem({
- ...newInventoryItem,
- name: e.target.value,
- })
- }
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
- />
- </div>
-
- <div className="grid grid-cols-2 gap-4">
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.ilość', { defaultValue: i18n.t('auto.ilosc', { defaultValue: "Ilość" }) })}
- </label>
- <input
- type="number"
- value={newInventoryItem.quantity}
- onChange={(e) =>
- setNewInventoryItem({
- ...newInventoryItem,
- quantity: Number(e.target.value),
- })
- }
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
- />
- </div>
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.jednostka', { defaultValue: 'Jednostka' })}
- </label>
- <input
- type="text"
- placeholder={t('auto.np_szt_fiolki', { defaultValue: 'np. szt., fiolki' })}
- value={newInventoryItem.unit}
- onChange={(e) =>
- setNewInventoryItem({
- ...newInventoryItem,
- unit: e.target.value,
- })
- }
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
- />
- </div>
- </div>
-
- <div className="grid grid-cols-2 gap-4">
- <div className="space-y-1 relative">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.kategoria', { defaultValue: 'Kategoria' })}
- </label>
- <div className="relative">
- <select
- value={newInventoryItem.category}
- onChange={(e) =>
- setNewInventoryItem({
- ...newInventoryItem,
- category: e.target.value as any,
- })
- }
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-3 pr-10 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all appearance-none cursor-pointer"
- >
- <option value="sensors">{t('auto.sensory', { defaultValue: 'Sensory' })}</option>
- <option value="insulin">{t('auto.insulina', { defaultValue: 'Insulina' })}</option>
- <option value="pens">{t('auto.peny', { defaultValue: 'Wstrzykiwacze (Peny)' })}</option>
- {(!settings.treatmentMode || settings.treatmentMode === 'pump') && (
- <>
- <option value="reservoirs">{t('auto.zbiorniczki', { defaultValue: 'Zbiorniczki' })}</option>
- <option value="infusion_sets">{t('auto.wkłucia', { defaultValue: i18n.t('auto.wklucia', { defaultValue: "Wkłucia" }) })}</option>
- </>
- )}
- <option value="strips">{t('auto.paski', { defaultValue: 'Paski' })}</option>
- <option value="other">{t('auto.inne', { defaultValue: 'Inne' })}</option>
- </select>
- <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
- </div>
- </div>
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.ostrzeżenie_poniżej_ilosc', { defaultValue: i18n.t('auto.ostrzezenie_ponizej_ilosc', { defaultValue: "Ostrzeżenie (poniżej ilosc)" }) })}
- </label>
- <input
- type="number"
- value={newInventoryItem.lowStockThreshold}
- onChange={(e) =>
- setNewInventoryItem({
- ...newInventoryItem,
- lowStockThreshold: Number(e.target.value),
- })
- }
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
- />
- </div>
- </div>
-
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.kod_kreskowy_ean_upc', { defaultValue: 'Kod kreskowy (EAN/UPC)' })}
- </label>
- <div className="flex gap-2">
- <input
- type="text"
- placeholder={t('auto.skorzystaj_ze_skanera', { defaultValue: 'Skorzystaj ze skanera...' })}
- value={newInventoryItem.barcode || ""}
- onChange={(e) =>
- setNewInventoryItem({
- ...newInventoryItem,
- barcode: e.target.value,
- })
- }
- className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
- />
- <button
- type="button"
- onClick={() => setShowBarcodeScanner(true)}
- className="p-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-200 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all flex items-center justify-center"
- >
- <Camera size={16} />
- </button>
- </div>
- </div>
-
- {newInventoryItem.category === "insulin" && (
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.dzienne_zapotrzebowanie_oczekiwane_', { defaultValue: i18n.t('auto.dzienne_zapotrzebowanie_o', { defaultValue: "Dzienne zapotrzebowanie (oczekiwane spożycie, np. j.)" }) })}
- </label>
- <input
- type="number"
- placeholder={t('auto.np_45', { defaultValue: 'np. 45' })}
- value={newInventoryItem.dailyDose || ""}
- onChange={(e) =>
- setNewInventoryItem({
- ...newInventoryItem,
- dailyDose: e.target.value ? Number(e.target.value) : null,
- })
- }
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
- />
- </div>
- )}
-
- {newInventoryItem.category === "reservoirs" && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      {t('auto.pojemnosc_zbiorniczka_jednostki', { defaultValue: 'Pojemność zbiorniczka (Jednostki U)' })}
-                    </label>
-                    <div className="flex items-center gap-1">
-                      {[160, 180, 200, 300].map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => {
-                            setNewInventoryItem({
-                              ...newInventoryItem,
-                              reservoirCapacity: preset,
-                            });
-                          }}
-                          className={cn(
-                            "px-2 py-0.5 rounded-lg text-[8px] font-black transition-all active:scale-95",
-                            (newInventoryItem.reservoirCapacity || 300) === preset
-                              ? "bg-purple-600 text-white shadow-sm"
-                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
-                          )}
-                        >
-                          {preset}U
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <input
-                    type="number"
-                    placeholder="np. 180 lub 300"
-                    value={newInventoryItem.reservoirCapacity || ""}
-                    onChange={(e) =>
-                      setNewInventoryItem({
-                        ...newInventoryItem,
-                        reservoirCapacity: e.target.value ? Number(e.target.value) : null,
-                      })
-                    }
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-purple-500/20 transition-all"
-                  />
-                </div>
-              )}
-
-              {newInventoryItem.category === "pens" && (
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- {t('auto.pojemnosc_pena_w_jednostkach', { defaultValue: 'Pojemność pojedynczego pena (w jednostkach)' })}
- </label>
- <input
- type="number"
- placeholder={t('auto.np_300', { defaultValue: 'np. 300' })}
- value={newInventoryItem.penCapacity || ""}
- onChange={(e) =>
- setNewInventoryItem({
- ...newInventoryItem,
- penCapacity: e.target.value ? Number(e.target.value) : null,
- })
- }
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-3 rounded-2xl font-bold text-xs outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
- />
- </div>
- )}
-
- <div className="space-y-1">
- <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">
- 
- {t('auto.krótka_data_ważności_opcjonalnie', { defaultValue: i18n.t('auto.krotka_data_waznosci_opcj', { defaultValue: "Krótka data ważności (Opcjonalnie)" }) })}
- </label>
- <div className="relative">
- <Calendar
- size={12}
- className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500"
- />
- <input
- type="date"
- value={newInventoryItem.expiryDate || ""}
- onChange={(e) =>
- setNewInventoryItem({
- ...newInventoryItem,
- expiryDate: e.target.value,
- })
- }
- className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 py-3 pl-9 pr-3 rounded-2xl font-bold text-[10px] outline-none dark:text-white focus:ring-2 ring-rose-500/20 transition-all"
- />
- </div>
- </div>
- </div>
-
- <button
- onClick={saveInventoryItem}
- className="w-full bg-rose-600 hover:bg-rose-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-rose-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
- >
- <CheckCircle2 size={14} />
- {newInventoryItem.id
- ? "Aktualizuj zapas"
- : "Zapisz w apteczce"}
- </button>
- </motion.div>
- )}
+ {/* Formularz tworzenia nowego sprzętu */}
+ <AnimatePresence>
+   {newInventoryItem && !newInventoryItem.id && (
+     <motion.div
+       initial={{ opacity: 0, height: 0 }}
+       animate={{ opacity: 1, height: "auto" }}
+       exit={{ opacity: 0, height: 0 }}
+       transition={{ duration: 0.25, ease: "easeInOut" }}
+       className="bg-slate-50 dark:bg-slate-800 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-700"
+     >
+       {renderInventoryFields()}
+     </motion.div>
+   )}
+ </AnimatePresence>
  </div>
  
  {showBarcodeScanner && (

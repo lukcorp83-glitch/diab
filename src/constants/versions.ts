@@ -14,13 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.61';
+export const CURRENT_VERSION = '6.0.62';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.62",
+    date: "2026-10-09",
+    title: "Harmonijkowa Edycja Apteczki i Zlecenie na Zaopatrzenie NFZ",
+    changes: [
+      "Wdrożono płynne, harmonijkowe rozwijanie edycji sprzętu (inline accordion) bezpośrednio w klikniętym kafelku Apteczki",
+      "Wprowadzono moduł zlecenia na zaopatrzenie i refundacji NFZ z szybkim wyborem cyklu (+1m, +3m, +6m)",
+      "Dodano interaktywne pigułki zliczania odebranych transz w aptece oraz eksport do Kalendarza systemowego",
+      "Zaimplementowano inteligentny bilans zapasów vs zlecenia ostrzegający przed przepadnięciem transzy",
+      "Dodano priorytetowe powiadomienia i alerty w pasku «W skrócie» o zbliżającym się końcu ważności zlecenia"
+    ]
+  },
+  {
     version: "6.0.61",
     date: "2026-10-09",
     title: "Poprawka Wykresu Glikemii i Responsywności Talerza",
@@ -68,22 +80,24 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Dodano cykliczny monitor dostępności wydań w usłudze tła Androida (GlikoForegroundService) powiadamiający o nowościach",
       "Ulepszono animacje i płynność interfejsu (dolna belka, menu boczne, okna dialogowe)",
       "Wdrożono ścisłe wykluczenia indeksowania plików tymczasowych Androida, redukując zużycie pamięci RAM"
-    ]
-  },
-  {
-    version: "6.0.57",
-    date: "2026-10-05",
-    title: "Poprawka Widżetu Aparatu AI i Stabilność Talerza",
-    changes: [
-      "Wyeliminowano błąd krytyczny (Cannot read properties of undefined reading length) przy uruchamianiu aplikacji z poziomu natywnego widżetu aparatu AI",
-      "Wdrożono pancerne bezpieczniki stanu Talerza (sharedPlate) w Centrum Żywienia, pasku akcji oraz kreatorze dań",
-      "Dodano automatyczną rehydratację i walidację pamięci podręcznej składników posiłku w magazynie lokalnym"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.62",
+    date: "2026-10-09",
+    title: "Harmonijkowa Edycja Apteczki i Zlecenie na Zaopatrzenie NFZ",
+    changes: [
+      "Wdrożono płynne, harmonijkowe rozwijanie edycji sprzętu (inline accordion) bezpośrednio w klikniętym kafelku Apteczki",
+      "Wprowadzono moduł zlecenia na zaopatrzenie i refundacji NFZ z szybkim wyborem cyklu (+1m, +3m, +6m)",
+      "Dodano interaktywne pigułki zliczania odebranych transz w aptece oraz eksport do Kalendarza systemowego",
+      "Zaimplementowano inteligentny bilans zapasów vs zlecenia ostrzegający przed przepadnięciem transzy",
+      "Dodano priorytetowe powiadomienia i alerty w pasku «W skrócie» o zbliżającym się końcu ważności zlecenia"
+    ]
+  },
+  {
     version: "6.0.61",
     date: "2026-10-09",
     title: "Poprawka Wykresu Glikemii i Responsywności Talerza",
@@ -131,16 +145,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Dodano cykliczny monitor dostępności wydań w usłudze tła Androida (GlikoForegroundService) powiadamiający o nowościach",
       "Ulepszono animacje i płynność interfejsu (dolna belka, menu boczne, okna dialogowe)",
       "Wdrożono ścisłe wykluczenia indeksowania plików tymczasowych Androida, redukując zużycie pamięci RAM"
-    ]
-  },
-  {
-    version: "6.0.57",
-    date: "2026-10-05",
-    title: "Poprawka Widżetu Aparatu AI i Stabilność Talerza",
-    changes: [
-      "Wyeliminowano błąd krytyczny (Cannot read properties of undefined reading length) przy uruchamianiu aplikacji z poziomu natywnego widżetu aparatu AI",
-      "Wdrożono pancerne bezpieczniki stanu Talerza (sharedPlate) w Centrum Żywienia, pasku akcji oraz kreatorze dań",
-      "Dodano automatyczną rehydratację i walidację pamięci podręcznej składników posiłku w magazynie lokalnym"
     ]
   }
 ];

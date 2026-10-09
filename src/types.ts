@@ -116,8 +116,11 @@ export interface InventoryItem {
   barcode?: string;
   penCapacity?: number; // Pojemność pojedynczego pena (dla category === 'pens')
   currentPenUnits?: number; // Jednostki w aktualnie rozpoczętym penie
-  capacity?: number; // Pojemność zbiorniczka (dla category === 'reservoirs', w U lub ml)
   reservoirCapacity?: number; // Pojemność zbiorniczka w jednostkach (np. 160, 180, 200, 300 U)
+  isReimbursed?: boolean; // Czy sprzęt/lek korzysta ze zlecenia/refundacji
+  reimbursementEndDate?: string; // Data końca okresu zlecenia/refundacji "YYYY-MM-DD"
+  reimbursementTotalTranches?: number; // Liczba transz/miesięcy dla tej pozycji
+  reimbursementClaimedTranches?: number; // Liczba odebranych transz
 }
 
 export interface ChildPermissions {
@@ -215,6 +218,10 @@ export interface UserSettings {
   floatingChatEnabled?: boolean; // Pływająca pigułka asystenta AI
   customNavSlot?: string; // Identyfikator wybranej zakładki na 4. pozycji dolnego paska
   atAGlanceEnabled?: boolean; // Pasek «W skrócie» (Pixel At a Glance) na pulpicie
+  reimbursementEndDate?: string; // Globalna data końca zlecenia / refundacji (np. NFZ) "YYYY-MM-DD"
+  reimbursementNotes?: string; // Dodatkowe notatki do zlecenia (np. numer zlecenia, ilość sztuk)
+  reimbursementTotalTranches?: number; // Całkowita liczba transz/miesięcy zlecenia (np. 1, 3, 6)
+  reimbursementClaimedTranches?: number; // Liczba odebranych transz w aptece
 }
 
 export interface AssistantMessage {

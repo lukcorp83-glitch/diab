@@ -518,6 +518,63 @@ export const notificationService = {
         }
       }
 
+      // 3. Zlecenie na zaopatrzenie / Refundacja (30 dni i 7 dni przed końcem okresu)
+      if (settings?.reimbursementEndDate) {
+        const reimDateMs = new Date(settings.reimbursementEndDate).getTime();
+        if (!isNaN(reimDateMs)) {
+          const reminder30d = new Date(reimDateMs - (30 * 24 * 60 * 60 * 1000));
+          const reminder7d = new Date(reimDateMs - (7 * 24 * 60 * 60 * 1000));
+
+          // 30 dni wcześniej
+          if (reminder30d.getTime() > now) {
+            notificationsToSchedule.push({
+              id: 996,
+              title: i18n.t('notifications.reimbursement_30d_title', { defaultValue: 'Zlecenie na zaopatrzenie 📋' }),
+              body: i18n.t('notifications.reimbursement_30d_body', { defaultValue: 'Zbliża się ostatni miesiąc (30 dni) ważności zlecenia na refundację!' }),
+              schedule: { at: reminder30d },
+              channelId: 'glikocontrol_reminders_v1',
+              attachments: null,
+              actionTypeId: '',
+              extra: null
+            });
+          } else if (now >= reminder30d.getTime() && now < reminder7d.getTime()) {
+            const notifKey = `notif_reimbursement_30d_${settings.reimbursementEndDate}`;
+            if (!localStorage.getItem(notifKey)) {
+              localStorage.setItem(notifKey, 'true');
+              this.scheduleDeviceReminder(
+                i18n.t('notifications.reimbursement_30d_title', { defaultValue: 'Zlecenie na zaopatrzenie 📋' }),
+                i18n.t('notifications.reimbursement_30d_body', { defaultValue: 'Zbliża się ostatni miesiąc (30 dni) ważności zlecenia na refundację!' }),
+                996
+              );
+            }
+          }
+
+          // 7 dni wcześniej (pilne)
+          if (reminder7d.getTime() > now) {
+            notificationsToSchedule.push({
+              id: 997,
+              title: i18n.t('notifications.reimbursement_7d_title', { defaultValue: 'Pilne: Zlecenie wygasa za 7 dni ⚠️' }),
+              body: i18n.t('notifications.reimbursement_7d_body', { defaultValue: 'Za tydzień kończy się okres refundacji osprzętu. Zaplanuj kontakt w sprawie nowego zlecenia.' }),
+              schedule: { at: reminder7d },
+              channelId: 'glikocontrol_reminders_v1',
+              attachments: null,
+              actionTypeId: '',
+              extra: null
+            });
+          } else if (now >= reminder7d.getTime() && now < reimDateMs) {
+            const notifKey = `notif_reimbursement_7d_${settings.reimbursementEndDate}`;
+            if (!localStorage.getItem(notifKey)) {
+              localStorage.setItem(notifKey, 'true');
+              this.scheduleDeviceReminder(
+                i18n.t('notifications.reimbursement_7d_title', { defaultValue: 'Pilne: Zlecenie wygasa za 7 dni ⚠️' }),
+                i18n.t('notifications.reimbursement_7d_body', { defaultValue: 'Za tydzień kończy się okres refundacji osprzętu. Zaplanuj kontakt w sprawie nowego zlecenia.' }),
+                997
+              );
+            }
+          }
+        }
+      }
+
       if (Capacitor.isNativePlatform()) {
         await this.initChannels();
         let perms = await LocalNotifications.checkPermissions();
@@ -525,10 +582,10 @@ export const notificationService = {
           perms = await LocalNotifications.requestPermissions();
         }
         if (perms.display === 'granted') {
-          await LocalNotifications.cancel({ notifications: [{ id: 998 }, { id: 999 }] }).catch(() => {});
+          await LocalNotifications.cancel({ notifications: [{ id: 996 }, { id: 997 }, { id: 998 }, { id: 999 }] }).catch(() => {});
           if (notificationsToSchedule.length > 0) {
             await LocalNotifications.schedule({ notifications: notificationsToSchedule });
-            console.log('[NotificationService] Zaplanowano natywne powiadomienia 12h o sprzęcie:', notificationsToSchedule);
+            console.log('[NotificationService] Zaplanowano natywne powiadomienia o sprzęcie i refundacji:', notificationsToSchedule);
           }
         }
       }

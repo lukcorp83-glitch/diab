@@ -1,10 +1,10 @@
 {
-    "version": "6.0.61",
+    "version": "6.0.62",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.61-beta_OTA.apk",
-    "buildNumber": 174,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.62-beta_OTA.apk",
+    "buildNumber": 175,
     "forceUpdate": false,
-    "whatsNew": "Naprawiono błąd wyświetlania dymka szczegółów na wykresie cukru oraz zoptymalizowano responsywność wskaźnika sytości i błonnika na Talerzu.",
-    "whatsNewEn": "Fixed glucose chart point tooltip display error and optimized satiety and fiber score card responsiveness on small screens.",
-    "otaRevision": 334
+    "whatsNew": "Wdrożono harmonijkowe rozwijanie edycji sprzętu (inline) bezpośrednio w kafelku Apteczki oraz dodano moduł zarządzania zleceniem na zaopatrzenie i refundacją NFZ.",
+    "whatsNewEn": "Implemented inline accordion equipment editing directly inside inventory cards and added supply order and NFZ reimbursement tracking.",
+    "otaRevision": 335
 }

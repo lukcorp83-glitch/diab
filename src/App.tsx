@@ -592,6 +592,33 @@ export default function App() {
     }
   }, [user, userSettings, logs, queryClient]);
 
+  // Cykliczna aktualizacja przypomnień o osprzęcie i refundacji oraz jednorazowy toast na 30 dni przed końcem zlecenia
+  useEffect(() => {
+    if (!userSettings) return;
+    try {
+      notificationService.updateDeviceReminders(userSettings);
+
+      // Pomysł 5: Dedykowany toast/dymek informacyjny w dniu, gdy do końca zlecenia zostało dokładnie <= 30 dni
+      if (userSettings.reimbursementEndDate) {
+        const diffMs = new Date(userSettings.reimbursementEndDate).getTime() - Date.now();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays > 0 && diffDays <= 30) {
+          const toastKey = `reimbursement_30d_toast_${userSettings.reimbursementEndDate}`;
+          if (!localStorage.getItem(toastKey)) {
+            localStorage.setItem(toastKey, 'true');
+            toast(
+              i18n.t('at_a_glance.reimbursement_toast_30d', { 
+                defaultValue: '📋 Zlecenie refundacji: Pozostało {{days}} dni ważności. Zaplanuj wizytę u lekarza!',
+                days: diffDays
+              }),
+              { icon: '📋', duration: 7000 }
+            );
+          }
+        }
+      }
+    } catch (e) {}
+  }, [userSettings?.reimbursementEndDate, userSettings?.sensorChangeDate, userSettings?.infusionSetChangeDate]);
+
   // Automatyczny monitor i sygnał dźwiękowy MP3 dla niskiego i wysokiego cukru
   useGlucoseAlerts(logs, userSettings);
 
