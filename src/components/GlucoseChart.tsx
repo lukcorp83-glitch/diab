@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
-import { getTs } from '../lib/utils';
+import { getTs, cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 
 import { Plus, Minus, Maximize2, Move, Droplets, Signal, Apple, Syringe, Activity, Zap } from 'lucide-react';
@@ -1588,9 +1588,9 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  initial={{ opacity: 0, y: 5 }}
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95 }}
- className="absolute top-2 pointer-events-none z-10 flex flex-col items-center"
+ className="absolute top-2 pointer-events-none z-30 flex flex-col items-center"
  style={{
- left: `clamp(10px, ${20 + ((crosshair.data.timestamp - start) / (end - start)) * (containerRef.current?.clientWidth ? containerRef.current.clientWidth - 30 : 300)}px, calc(100% - 150px))`
+ left: `clamp(105px, ${20 + ((crosshair.data.timestamp - start) / (end - start)) * (containerRef.current?.clientWidth ? containerRef.current.clientWidth - 30 : 300)}px, calc(100% - 95px))`
  }}
  >
  <div className="bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-xl text-white p-3.5 rounded-[1.75rem] shadow-2xl border border-slate-700/60 min-w-[150px] -translate-x-1/2 text-center space-y-1.5">

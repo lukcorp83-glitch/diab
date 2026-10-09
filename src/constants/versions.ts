@@ -14,13 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.60';
+export const CURRENT_VERSION = '6.0.61';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.61",
+    date: "2026-10-09",
+    title: "Poprawka Wykresu Glikemii i Responsywności Talerza",
+    changes: [
+      "Naprawiono błąd wyświetlania dymka szczegółów punktu pomiaru na wykresie cukru (brakujący import cn)",
+      "Zoptymalizowano responsywność karty wskaźnika sytości i błonnika na Talerzu, eliminując nakładanie się etykiet na małych ekranach",
+      "Wdrożono asystenta kolejności spożywania produktów (sekwencjonowanie kęsów) tworzącego naturalny bufor żołądkowy",
+      "Wprowadzono zasadę «Ubierania Węglowodanów» oraz modyfikator schłodzonej skrobi (retrogradacja)",
+      "Dodano wykrywacz ukrytych cukrów w gotowych sosach i dressingach"
+    ]
+  },
+  {
     version: "6.0.60",
     date: "2026-10-09",
     title: "Kolejność Kęsów, Wskaźnik Sytości i Skrobia Oporna",
@@ -66,24 +78,24 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Wyeliminowano błąd krytyczny (Cannot read properties of undefined reading length) przy uruchamianiu aplikacji z poziomu natywnego widżetu aparatu AI",
       "Wdrożono pancerne bezpieczniki stanu Talerza (sharedPlate) w Centrum Żywienia, pasku akcji oraz kreatorze dań",
       "Dodano automatyczną rehydratację i walidację pamięci podręcznej składników posiłku w magazynie lokalnym"
-    ]
-  },
-  {
-    version: "6.0.56",
-    date: "2026-10-02",
-    title: "Kompletne Statystyki Dzienne, Średnia Glikemia i Pełna Insulina",
-    changes: [
-      "Wdrożono wyświetlanie średniej glikemii (mg/dL) oraz wskaźnika TIR na kafelkach kalendarza dziennego, eliminując puste komórki",
-      "Dodano pełne podsumowanie miesiąca o średnią glikemię i procent czasu w normie (TIR)",
-      "Rozszerzono dekodowanie dawek insuliny (bolusów) ze wszystkich formatów Nightscout (units, dose, combo bolus, amount)",
-      "Wydłużono lokalne przechowywanie historii odczytów glukozy CGM w bazie SQLite na telefonie do 90 dni (pełny kwartał)",
-      "Zwiększono bufor synchronizacji Nightscout do 10 000 wpisów, zapewniając pełne pokrycie 35 dni pomiarów"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.61",
+    date: "2026-10-09",
+    title: "Poprawka Wykresu Glikemii i Responsywności Talerza",
+    changes: [
+      "Naprawiono błąd wyświetlania dymka szczegółów punktu pomiaru na wykresie cukru (brakujący import cn)",
+      "Zoptymalizowano responsywność karty wskaźnika sytości i błonnika na Talerzu, eliminując nakładanie się etykiet na małych ekranach",
+      "Wdrożono asystenta kolejności spożywania produktów (sekwencjonowanie kęsów) tworzącego naturalny bufor żołądkowy",
+      "Wprowadzono zasadę «Ubierania Węglowodanów» oraz modyfikator schłodzonej skrobi (retrogradacja)",
+      "Dodano wykrywacz ukrytych cukrów w gotowych sosach i dressingach"
+    ]
+  },
+  {
     version: "6.0.60",
     date: "2026-10-09",
     title: "Kolejność Kęsów, Wskaźnik Sytości i Skrobia Oporna",
@@ -129,18 +141,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Wyeliminowano błąd krytyczny (Cannot read properties of undefined reading length) przy uruchamianiu aplikacji z poziomu natywnego widżetu aparatu AI",
       "Wdrożono pancerne bezpieczniki stanu Talerza (sharedPlate) w Centrum Żywienia, pasku akcji oraz kreatorze dań",
       "Dodano automatyczną rehydratację i walidację pamięci podręcznej składników posiłku w magazynie lokalnym"
-    ]
-  },
-  {
-    version: "6.0.56",
-    date: "2026-10-02",
-    title: "Kompletne Statystyki Dzienne, Średnia Glikemia i Pełna Insulina",
-    changes: [
-      "Wdrożono wyświetlanie średniej glikemii (mg/dL) oraz wskaźnika TIR na kafelkach kalendarza dziennego, eliminując puste komórki",
-      "Dodano pełne podsumowanie miesiąca o średnią glikemię i procent czasu w normie (TIR)",
-      "Rozszerzono dekodowanie dawek insuliny (bolusów) ze wszystkich formatów Nightscout (units, dose, combo bolus, amount)",
-      "Wydłużono lokalne przechowywanie historii odczytów glukozy CGM w bazie SQLite na telefonie do 90 dni (pełny kwartał)",
-      "Zwiększono bufor synchronizacji Nightscout do 10 000 wpisów, zapewniając pełne pokrycie 35 dni pomiarów"
     ]
   }
 ];

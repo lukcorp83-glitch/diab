@@ -1,10 +1,10 @@
 {
-    "version": "6.0.60",
+    "version": "6.0.61",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.60-beta_OTA.apk",
-    "buildNumber": 173,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.61-beta_OTA.apk",
+    "buildNumber": 174,
     "forceUpdate": false,
-    "whatsNew": "Wprowadzono kolejność spożywania produktów (sekwencjonowanie kęsów), regułę ubierania węglowodanów, wskaźnik sytości posiłku oraz opcję schłodzonej skrobi.",
-    "whatsNewEn": "Introduced meal food sequencing courses, Dress Your Carbs guidelines, satiety duration score, and chilled resistant starch modifier.",
-    "otaRevision": 333
+    "whatsNew": "Naprawiono błąd wyświetlania dymka szczegółów na wykresie cukru oraz zoptymalizowano responsywność wskaźnika sytości i błonnika na Talerzu.",
+    "whatsNewEn": "Fixed glucose chart point tooltip display error and optimized satiety and fiber score card responsiveness on small screens.",
+    "otaRevision": 334
 }
