@@ -76,7 +76,33 @@ export const SEQUENCE_STEPS: Record<FoodSequenceStep, SequenceStepInfo> = {
   }
 };
 
-const VEG_KEYWORDS = [
+export const COMPOSITE_STEP_INFO: SequenceStepInfo = {
+  step: 2,
+  key: 'composite',
+  nameKey: 'meal.sequence_composite_name',
+  defaultName: 'Danie złożone (np. Hot-dog / Kanapka / Burger)',
+  descKey: 'meal.sequence_composite_desc',
+  defaultDesc: 'Spożywaj jako całość – nie rozdzielaj składników. Białko i tłuszcz naturalnie spowalniają tempo wchłaniania węglowodanów z pieczywa.',
+  color: 'indigo',
+  bgColor: 'bg-indigo-500/10',
+  borderColor: 'border-indigo-500/30',
+  textColor: 'text-indigo-400',
+  badge: 'CAŁOŚĆ',
+  iconName: 'Utensils'
+};
+
+export const UNIFIED_DISH_KEYWORDS = [
+  'hot dog', 'hot-dog', 'hotdog', 'parówk', 'parowk', 
+  'burger', 'hamburger', 'cheeseburger',
+  'kanapk', 'sandwich', 'tost', 'zapiekank', 'grzank',
+  'pizza', 'kebab', 'kebap', 'shawarma', 'szawarma', 'gyros',
+  'tortilla', 'wrap', 'burrito', 'taco', 'quesadilla',
+  'pierog', 'dumpling', 'uszka', 'ravioli', 'knedl',
+  'naleśnik', 'pancake', 'lasagn', 'lazani', 'casserole',
+  'sushi', 'roll', 'krokiet'
+];
+
+export const VEG_KEYWORDS = [
   'sałat', 'ogór', 'pomidor', 'brokuł', 'kapust', 'kalafior', 'marchew', 'szpinak', 
   'cukinia', 'papryk', 'seler', 'por', 'rzodkiew', 'szparag', 'kiszon', 'rukola', 
   'roszponka', 'pieczark', 'grzyb', 'cukini', 'bakłażan', 'dyni', 'brukselk', 
@@ -84,20 +110,82 @@ const VEG_KEYWORDS = [
   'zucchini', 'pepper', 'celery', 'mushroom', 'lettuce'
 ];
 
-const SWEET_KEYWORDS = [
+export const SWEET_KEYWORDS = [
   'jabłk', 'banan', 'pomarańcz', 'truskawk', 'malin', 'borówk', 'czekolad', 'ciast', 
   'lody', 'deser', 'słodycz', 'miód', 'dżem', 'cukier', 'baton', 'arbuz', 'winogron', 
   'gruszk', 'brzoskwini', 'śliwk', 'mandarynk', 'apple', 'banana', 'orange', 'strawberry', 
   'chocolate', 'cake', 'ice cream', 'dessert', 'sweet', 'honey', 'jam', 'grape', 'watermelon'
 ];
 
-const PROTEIN_KEYWORDS = [
+export const PROTEIN_KEYWORDS = [
   'kurczak', 'indyk', 'wołowin', 'wieprzowin', 'mięs', 'ryb', 'łosoś', 'dorsz', 'tuńczyk', 
   'jaj', 'jajk', 'twaróg', 'ser', 'tofu', 'orzech', 'migdał', 'oliwa', 'olej', 'masło', 
   'boczek', 'szynk', 'krewetk', 'schab', 'polędwic', 'kiełbas', 'kabanos', 'parówk',
   'chicken', 'turkey', 'beef', 'pork', 'meat', 'fish', 'salmon', 'tuna', 'egg', 'cheese', 
   'cottage cheese', 'nuts', 'almonds', 'olive oil', 'oil', 'butter', 'bacon', 'ham', 'shrimp'
 ];
+
+export function isBreadOrBun(item: any): boolean {
+  if (!item) return false;
+  const name = (item.name || '').toLowerCase();
+  const category = (item.category || '').toLowerCase();
+  return category.includes('pieczyw') || 
+    category.includes('bread') || 
+    name.includes('bułk') || 
+    name.includes('buleczk') || 
+    name.includes('chleb') || 
+    name.includes('bagietk') || 
+    name.includes('tost') || 
+    name.includes('pita') || 
+    name.includes('tortilla') || 
+    name.includes('croissant') || 
+    name.includes('chałk');
+}
+
+export function isFillingOrProtein(item: any): boolean {
+  if (!item) return false;
+  const name = (item.name || '').toLowerCase();
+  const category = (item.category || '').toLowerCase();
+  return category.includes('mięs') || 
+    category.includes('wędlin') || 
+    category.includes('nabiał') || 
+    name.includes('parówk') || 
+    name.includes('parowk') ||
+    name.includes('kiełbas') || 
+    name.includes('kabanos') || 
+    name.includes('szynk') || 
+    name.includes('ser') || 
+    name.includes('pasztet') || 
+    name.includes('kotlet') || 
+    name.includes('burger') || 
+    name.includes('tofu');
+}
+
+/**
+ * Sprawdza, czy produkt jest częścią dania złożonego (np. bułka lub parówka w hot-dogu).
+ */
+export function isCompositeMealItem(item: any, plate?: any[]): boolean {
+  if (!item) return false;
+  const name = (item.name || '').toLowerCase();
+  const category = (item.category || '').toLowerCase();
+
+  // 1. Bezpośrednia nazwa dania złożonego (np. "Hot dog francuski", "Burger")
+  if (UNIFIED_DISH_KEYWORDS.some(k => name.includes(k))) return true;
+
+  // 2. Jeśli mamy listę składników talerza (np. bułka + parówka)
+  if (Array.isArray(plate) && plate.length >= 2 && plate.length <= 5) {
+    const hasBread = plate.some(p => isBreadOrBun(p));
+    const hasFilling = plate.some(p => isFillingOrProtein(p));
+    if (hasBread && hasFilling) {
+      if (isBreadOrBun(item) || isFillingOrProtein(item)) return true;
+      if (name.includes('ketchup') || name.includes('musztard') || name.includes('majonez') || name.includes('sos')) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
 
 /**
  * Klasyfikuje pojedynczy produkt/składnik do jednego z 4 etapów sekwencji posiłku.
@@ -165,11 +253,75 @@ export interface GroupedPlateStep {
 }
 
 /**
- * Grupuje składniki talerza w uporządkowaną sekwencję 1 -> 2 -> 3 -> 4.
+ * Grupuje składniki talerza w uporządkowaną sekwencję, uwzględniając dania złożone (np. hot dog, burger).
  */
 export function getPlateGroupedSequence(plate: any[]): GroupedPlateStep[] {
   if (!Array.isArray(plate) || plate.length === 0) return [];
 
+  // Wykryj czy na talerzu znajdują się składniki tworzące danie złożone
+  const compositeIndices = new Set<number>();
+  plate.forEach((item, index) => {
+    if (isCompositeMealItem(item, plate)) {
+      compositeIndices.add(index);
+    }
+  });
+
+  const isCompositeActive = compositeIndices.size > 0;
+
+  if (isCompositeActive) {
+    const result: GroupedPlateStep[] = [];
+    const fiberItems: Array<{ item: any; originalIndex: number }> = [];
+    const compositeItems: Array<{ item: any; originalIndex: number }> = [];
+    const dessertItems: Array<{ item: any; originalIndex: number }> = [];
+    const otherItems: Array<{ item: any; originalIndex: number }> = [];
+
+    plate.forEach((item, originalIndex) => {
+      if (compositeIndices.has(originalIndex)) {
+        compositeItems.push({ item, originalIndex });
+      } else {
+        const step = classifyIngredientStep(item);
+        if (step === 1) fiberItems.push({ item, originalIndex });
+        else if (step === 4) dessertItems.push({ item, originalIndex });
+        else otherItems.push({ item, originalIndex });
+      }
+    });
+
+    // 1. Warzywa / Surówka (jeśli dodane obok hot-doga)
+    if (fiberItems.length > 0) {
+      result.push({
+        stepInfo: SEQUENCE_STEPS[1],
+        items: fiberItems
+      });
+    }
+
+    // 2. Danie złożone (Hot-dog / Kanapka / Burger – zjedz w całości)
+    if (compositeItems.length > 0) {
+      result.push({
+        stepInfo: COMPOSITE_STEP_INFO,
+        items: compositeItems
+      });
+    }
+
+    // Inne ewentualne dodatki
+    if (otherItems.length > 0) {
+      result.push({
+        stepInfo: SEQUENCE_STEPS[3],
+        items: otherItems
+      });
+    }
+
+    // 3. Deser / Owoc
+    if (dessertItems.length > 0) {
+      result.push({
+        stepInfo: SEQUENCE_STEPS[4],
+        items: dessertItems
+      });
+    }
+
+    return result;
+  }
+
+  // Standardowa sekwencja dla posiłków rozdzielnych (np. obiad klasyczny)
   const groups: Record<FoodSequenceStep, Array<{ item: any; originalIndex: number }>> = {
     1: [],
     2: [],

@@ -36,20 +36,24 @@ export const getProductName = (p: Product, lang: string) => {
  return p.name;
 };
 
+export type NutrientFilter = 'all' | 'snack_free' | 'high_protein' | 'high_fiber' | 'fast_carbs';
+
 export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Product) => void }) {
   const user = useAuthStore(state => state.user);
 
- const { t } = useTranslation();
- const [searchTerm, setSearchTerm] = useState("");
- const [isSearchingOnline, setIsSearchingOnline] = useState(false);
- const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
- const [isListening, setIsListening] = useState(false);
- const [aiSearchResults, setAiSearchResults] = useState<Product[]>([]);
+  const { t } = useTranslation();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchingOnline, setIsSearchingOnline] = useState(false);
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [aiSearchResults, setAiSearchResults] = useState<Product[]>([]);
 
- const { data: customProductsData } = useCustomProducts(user);
- const { data: communityProductsData } = useCommunityProducts();
- const customProducts = customProductsData || [];
- const communityProducts = communityProductsData || [];
+  const { data: customProductsData } = useCustomProducts(user);
+  const { data: communityProductsData } = useCommunityProducts();
+  const customProducts = customProductsData || [];
+  const communityProducts = communityProductsData || [];
+  const [activeNutrientFilter, setActiveNutrientFilter] = useState<NutrientFilter>('all');
+  const [sortBy, setSortBy] = useState<'date_desc' | 'name_asc' | 'carbs_desc' | 'carbs_asc'>('name_asc');
 
  const handleOnlineSearch = async () => {
    if (!searchTerm.trim()) return;
@@ -252,11 +256,18 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
   const isCommunity = Boolean(p.isCommunity);
  const isSystem = !p.author && !isCommunity;
 
- if (activeSource === 'own') matchesSource = isOwn;
- else if (activeSource === 'community') matchesSource = isCommunity && !isOwn;
- else if (activeSource === 'system') matchesSource = isSystem;
+  let matchesNutrient = true;
+  if (activeNutrientFilter === 'snack_free') {
+    matchesNutrient = (p.carbs || 0) <= 5;
+  } else if (activeNutrientFilter === 'high_protein') {
+    matchesNutrient = (p.protein || 0) >= 15;
+  } else if (activeNutrientFilter === 'high_fiber') {
+    matchesNutrient = ((p as any).fiber || 0) >= 5;
+  } else if (activeNutrientFilter === 'fast_carbs') {
+    matchesNutrient = ((p.gi || 0) >= 65) || ((p.carbs || 0) >= 20) || p.category === 'Owoce' || p.category === 'Napoje';
+  }
 
- return matchesSearch && matchesCategory && matchesSource;
+  return matchesSearch && matchesCategory && matchesSource && matchesNutrient;
  }).sort((a, b) => {
     if (sortBy === 'date_desc') return (b.createdAt || b.timestamp || 0) - (a.createdAt || a.timestamp || 0);
     if (sortBy === 'carbs_desc') return (b.carbs || 0) - (a.carbs || 0);
@@ -604,6 +615,34 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  {cat}
  </button>
  ))}
+ </div>
+
+ {/* Szybkie filtry kulinarne makroskładników */}
+ <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none items-center">
+   {[
+     { id: 'all', label: t('food.filter_all', { defaultValue: 'Wszystkie' }), icon: null },
+     { id: 'snack_free', label: t('food.filter_snack_free', { defaultValue: 'Lekkie (<5g W)' }), icon: '🌱' },
+     { id: 'high_protein', label: t('food.filter_high_protein', { defaultValue: 'Wysokobiałkowe (≥15g B)' }), icon: '🍗' },
+     { id: 'high_fiber', label: t('food.filter_high_fiber', { defaultValue: 'Bogate w błonnik (≥5g Bł)' }), icon: '🌾' },
+     { id: 'fast_carbs', label: t('food.filter_fast_carbs', { defaultValue: 'Szybka energia' }), icon: '⚡' },
+   ].map((f) => (
+     <button
+       key={f.id}
+       onClick={() => {
+         Haptics.selectionStart();
+         setActiveNutrientFilter(f.id as NutrientFilter);
+       }}
+       className={cn(
+         "shrink-0 px-3.5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border active:scale-95",
+         activeNutrientFilter === f.id
+           ? "bg-accent-500 text-white border-accent-600 shadow-md shadow-accent-500/20"
+           : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
+       )}
+     >
+       {f.icon && <span className="text-xs">{f.icon}</span>}
+       <span>{f.label}</span>
+     </button>
+   ))}
  </div>
  </div>
 

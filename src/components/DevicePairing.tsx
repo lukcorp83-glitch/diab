@@ -39,6 +39,7 @@ import { useBackButton } from "../hooks/useBackButton";
 import { requireParentalAuth } from "../lib/childPermissions";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
+import PixelSwitch from "./common/PixelSwitch";
 
 export default function DevicePairing({
  user,
@@ -539,19 +540,15 @@ export default function DevicePairing({
  </p>
  </div>
  </div>
- <button
- onClick={() =>
- onUpdateSettings({
- groupTherapyLock: !settings.groupTherapyLock,
- })
- }
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.groupTherapyLock && "bg-indigo-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={Boolean(settings.groupTherapyLock)}
+   activeColor="bg-accent-500"
+   onChange={(val) =>
+     onUpdateSettings({
+       groupTherapyLock: val,
+     })
+   }
+ />
  </label>
  </div>
  )}
@@ -691,56 +688,38 @@ export default function DevicePairing({
  const currentPerms = settings.childPermissions || {};
  const isAllowed = (currentPerms as any)[perm.key] !== false;
 
- return (
- <label
- key={perm.key}
- className="flex items-center justify-between py-2.5 cursor-pointer group"
- >
- <div className="flex items-center gap-2.5 pr-2">
- <div className="p-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl group-hover:bg-slate-100 dark:group-hover:bg-slate-700/60 transition-colors">
- {perm.icon}
- </div>
- <div className="text-left">
- <span className="text-[11px] font-bold dark:text-slate-200 block leading-tight">
- {perm.title}
- </span>
- <span className="text-[9px] text-slate-400 font-medium leading-tight block">
- {perm.desc}
- </span>
- </div>
- </div>
+                const toggleAction = () => {
+                  const newPerms = { ...currentPerms, [perm.key]: !isAllowed };
+                  onUpdateSettings({ ...settings, childPermissions: newPerms });
+                };
 
- <button
- type="button"
- onClick={() => {
- const toggleAction = () => {
- const updatedChildPermissions: ChildPermissions = {
- ...currentPerms,
- [perm.key]: !isAllowed
- };
- onUpdateSettings({ childPermissions: updatedChildPermissions });
- };
+                return (
+                  <label
+                    key={perm.key}
+                    className="flex items-center justify-between py-2.5 cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5 pr-2">
+                      <div className="p-1.5 bg-slate-50 dark:bg-slate-800 rounded-xl group-hover:bg-slate-100 dark:group-hover:bg-slate-700/60 transition-colors">
+                        {perm.icon}
+                      </div>
+                      <div className="text-left">
+                        <span className="text-[11px] font-bold dark:text-slate-200 block leading-tight">
+                          {perm.title}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium leading-tight block">
+                          {perm.desc}
+                        </span>
+                      </div>
+                    </div>
 
- if (localRole === 'master' && (settings.parentalPin || localStorage.getItem('parental_pin_code'))) {
- requireParentalAuth(settings, 'canEditTherapySettings', {
- title: 'Modyfikacja Uprawnień 🛡️',
- description: 'Zmiana uprawnień kontroli rodzicielskiej wymaga Kodu PIN Rodzica.',
- onSuccess: toggleAction
- });
- } else {
- toggleAction();
- }
- }}
- className={cn(
- "w-9 h-5 pl-0.5 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- isAllowed && "bg-indigo-500 pl-4.5"
- )}
- >
- <div className="w-3.5 h-3.5 rounded-full bg-white shadow-sm" />
- </button>
- </label>
- );
- })}
+                    <PixelSwitch
+                      checked={isAllowed}
+                      activeColor="bg-accent-500"
+                      onChange={toggleAction}
+                    />
+                  </label>
+                );
+              })}
  </div>
  </div>
 

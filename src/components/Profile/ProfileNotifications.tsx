@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot, Utensils, Battery, BatteryCharging } from 'lucide-react';
+import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot, Utensils, Battery, BatteryCharging, Headphones } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -12,6 +12,8 @@ import i18n from '../../i18n';
 import { Capacitor } from '@capacitor/core';
 import { notificationService } from '../../services/notificationService';
 import { NotificationBridge } from '../../lib/notificationBridge';
+import { voiceReadoutService } from '../../services/voiceReadoutService';
+import { useLogsStore } from '../../stores/useLogsStore';
 // import { enableNotifications, registerServiceWorker } from '../../lib/firebase';
 
 const DEFAULT_NOTIFICATION_PREFS = {
@@ -38,8 +40,11 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
   });
 
   const [isBatteryIgnored, setIsBatteryIgnored] = useState<boolean>(true);
+  const [voiceReadoutEnabled, setVoiceReadoutEnabled] = useState<boolean>(() => voiceReadoutService.isVoiceReadoutEnabled());
+  const [isHeadphones, setIsHeadphones] = useState<boolean>(false);
 
   React.useEffect(() => {
+    voiceReadoutService.isHeadphonesConnected().then(setIsHeadphones).catch(() => {});
     if (Capacitor.isNativePlatform()) {
       NotificationBridge.isBatteryOptimizationIgnored()
         .then((res: any) => {
@@ -292,6 +297,63 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
     >
       Graj MP3
     </button>
+  </div>
+
+  <div className="p-3.5 bg-sky-50/50 dark:bg-slate-800/60 rounded-2xl border border-sky-100 dark:border-slate-700 space-y-3 my-3">
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2.5">
+        <Headphones className="text-sky-500" size={18} />
+        <div>
+          <p className="text-xs font-black dark:text-white leading-tight">
+            Głosowy asystent słuchawkowy (TTS)
+          </p>
+          <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+            Dwuklik włącznika telefonu czyta glikemię do podłączonych słuchawek
+          </p>
+        </div>
+      </div>
+      <PixelSwitch
+        checked={voiceReadoutEnabled}
+        activeColor="bg-sky-500"
+        onChange={async () => {
+          const next = !voiceReadoutEnabled;
+          setVoiceReadoutEnabled(next);
+          await voiceReadoutService.setVoiceReadoutEnabled(next);
+          toast.success(next ? 'Włączono lektora słuchawkowego' : 'Wyłączono lektora słuchawkowego');
+        }}
+      />
+    </div>
+
+    <div className="flex items-center justify-between pt-1 border-t border-sky-100/60 dark:border-slate-700/60">
+      <div className="text-[9px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+        <span className={cn("w-2 h-2 rounded-full", isHeadphones ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-600")} />
+        <span>{isHeadphones ? "Słuchawki wykryte" : "Brak słuchawek (wymagane)"}</span>
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          const allLogs = useLogsStore.getState().logs || [];
+          const latestGLog = allLogs.find((l: any) => l.type === 'glucose' || l.type === 'sgv');
+          const hasRealVal = latestGLog && latestGLog.value;
+          const testVal = hasRealVal ? latestGLog.value : 124;
+          const testTrend = hasRealVal ? (latestGLog.trend || 'Flat') : 'Flat';
+          const testDelta = hasRealVal ? (latestGLog.delta !== undefined ? latestGLog.delta : '+1') : '+1';
+
+          const isEn = i18n.language && i18n.language.startsWith('en');
+          voiceReadoutService.speakGlucose(testVal, testTrend, testDelta, true, i18n.language);
+          toast.success(
+            hasRealVal 
+              ? (isEn ? `Playing current reading (${testVal} mg/dL)` : `Odtwarzam bieżący odczyt (${testVal} mg/dL)`)
+              : (isEn ? 'Playing demo reading (124 mg/dL)' : 'Odtwarzam odczyt demonstracyjny (124 mg/dL)'),
+            { icon: '🎧' }
+          );
+        }}
+        className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider shadow-sm transition-all active:scale-95 flex items-center gap-1"
+      >
+        <Volume2 size={12} />
+        {i18n.language && i18n.language.startsWith('en') ? 'Test voice' : 'Przetestuj głos'}
+      </button>
+    </div>
   </div>
 
   {Capacitor.isNativePlatform() && (

@@ -24,12 +24,14 @@ import {
   Check,
   ChevronRight,
   Info,
-  Calendar
+  Calendar,
+  Swords
 } from "lucide-react";
 import { LogEntry, PlateItem } from "../../types";
 import { cn } from "../../lib/utils";
 import { Haptics } from "../../lib/haptics";
 import GlikoSenseIcon from "../GlikoSenseIcon";
+import MealBattleModal from "./MealBattleModal";
 
 const getPluralForm = (count: number, one: string, few: string, many: string): string => {
   const abs = Math.abs(count);
@@ -102,6 +104,8 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [showAllGolden, setShowAllGolden] = useState(false);
   const [showAllTricky, setShowAllTricky] = useState(false);
+  const [battleModalOpen, setBattleModalOpen] = useState(false);
+  const [selectedBattleMeal, setSelectedBattleMeal] = useState<NutriMealEntry | null>(null);
 
   useEffect(() => {
     const handleUpdate = (e: any) => {
@@ -546,17 +550,33 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
             )}
           </div>
 
-          {onAddToPlate && (
+          <div className="flex items-center gap-2 ml-auto">
             <button
-              onClick={() => handleAddMealToPlate(meal)}
-              className={cn(
-                "px-3 py-1.5 rounded-xl text-white text-[11px] font-black tracking-tight flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer ml-auto",
-                isGolden ? "bg-emerald-500 hover:bg-emerald-600" : "bg-amber-500 hover:bg-amber-600"
-              )}
+              type="button"
+              onClick={() => {
+                Haptics.selection();
+                setSelectedBattleMeal(meal);
+                setBattleModalOpen(true);
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-violet-500/20 text-[10.5px] font-black tracking-tight flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+              title="Porównaj w pojedynku z innym posiłkiem"
             >
-              <Plus size={13} strokeWidth={3} /> Wrzuć na Talerz
+              <Swords size={12} />
+              <span>Porównaj</span>
             </button>
-          )}
+
+            {onAddToPlate && (
+              <button
+                onClick={() => handleAddMealToPlate(meal)}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-white text-[11px] font-black tracking-tight flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer",
+                  isGolden ? "bg-emerald-500 hover:bg-emerald-600" : "bg-amber-500 hover:bg-amber-600"
+                )}
+              >
+                <Plus size={13} strokeWidth={3} /> Wrzuć na Talerz
+              </button>
+            )}
+          </div>
         </div>
       </motion.div>
     );
@@ -716,6 +736,27 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Pasek Szybkiej Akcji: Pojedynek Posiłków A vs B */}
+        <div className="mt-3.5 pt-3 border-t border-white/20 dark:border-slate-800/80 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
+            <Swords size={15} className="text-violet-500" />
+            <span>Porównywarka Dynamiczna: Zestaw ze sobą dwa dania i sprawdź profil glikemii</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              Haptics.light();
+              setSelectedBattleMeal(null);
+              setBattleModalOpen(true);
+            }}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-violet-700 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black tracking-tight flex items-center justify-center gap-2 shadow-md shadow-violet-500/25 active:scale-95 transition-all cursor-pointer ml-auto"
+          >
+            <Swords size={14} />
+            <span>Pojedynek Posiłków (A vs B)</span>
+          </button>
         </div>
       </motion.div>
 
@@ -939,6 +980,15 @@ export default function GlikoSenseNutriView({ logs, onAddToPlate }: GlikoSenseNu
           </p>
         </div>
       )}
+
+      {/* Modal Pojedynku Posiłków A vs B */}
+      <MealBattleModal
+        isOpen={battleModalOpen}
+        onClose={() => setBattleModalOpen(false)}
+        availableMeals={allMeals}
+        initialMealA={selectedBattleMeal}
+        onAddToPlate={onAddToPlate}
+      />
     </div>
   );
 }

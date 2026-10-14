@@ -21,10 +21,9 @@
   --color-accent-950: var(--app-accent-950);
 }
 
-:root {
-  background-color: var(--app-bg-light, #f8fafc);
-  color: #0f172a;
-  
+:root,
+:root[data-accent="indigo"],
+:root[data-accent="blue"] {
   --app-accent-50: #eef2ff;
   --app-accent-100: #e0e7ff;
   --app-accent-200: #c7d2fe;

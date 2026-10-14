@@ -19,6 +19,7 @@ import {
   Utensils,
   HelpCircle,
   Settings,
+  MoonStar,
 } from 'lucide-react';
 
 export interface NavSlotOption {
@@ -183,10 +184,19 @@ export const NAV_SLOT_OPTIONS: NavSlotOption[] = [
     iconName: 'ShoppingBag',
     childOnly: true,
   },
+  {
+    id: 'bedside_clock',
+    tab: 'dashboard',
+    labelKey: 'nightstand.btn_label',
+    defaultLabel: 'Zegar nocny',
+    iconName: 'MoonStar',
+  },
 ];
 
 export function getNavSlotIcon(iconName: string, size = 20) {
   switch (iconName) {
+    case 'MoonStar':
+      return <MoonStar size={size} />;
     case 'MessageSquare':
       return <MessageSquare size={size} />;
     case 'History':

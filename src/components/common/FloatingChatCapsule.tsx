@@ -114,7 +114,7 @@ export default function FloatingChatCapsule({
           setIsOpen(true);
         }}
         className={cn(
-          "gpu-layer will-change-transform fixed bottom-28 right-5 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none",
+          "gpu-layer will-change-transform fixed bottom-[max(7rem,calc(env(safe-area-inset-bottom,0px)+6.5rem))] right-5 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none",
           "border transition-colors duration-200",
           isChild
             ? "bg-gradient-to-tr from-amber-400 to-orange-500 text-white border-white/40 shadow-orange-500/40"

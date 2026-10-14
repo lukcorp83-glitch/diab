@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Product, PlateItem } from '../types';
+import { Haptics } from '../lib/haptics';
+import { toast } from 'react-hot-toast';
 
 export interface SavedAiMealScan {
   photo: string | null;
@@ -107,13 +109,11 @@ export function addAiItemToPlate(actionData: any) {
 
   useMealPlateStore.getState().addToPlate(plateItem);
   try {
-    import('../lib/haptics').then(({ Haptics }) => Haptics.success()).catch(() => {});
-    import('react-hot-toast').then(({ toast }) => {
-      toast.success(`🍽️ Dodano do Talerza: ${plateItem.name} (${plateItem.weight}g)`, {
-        icon: '🍽️',
-        duration: 4000,
-      });
-    }).catch(() => {});
+    Haptics.success();
+    toast.success(`🍽️ Dodano do Talerza: ${plateItem.name} (${plateItem.weight}g)`, {
+      icon: '🍽️',
+      duration: 4000,
+    });
   } catch (e) {}
 }
 

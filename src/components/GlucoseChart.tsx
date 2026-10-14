@@ -1449,68 +1449,102 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  };
  }, [chartData, start, end, chartMinY, chartMaxY, targetMin, targetMax, now, isDark, showLoopSimulation, showMLPrediction, xAxisTicks, lastMlTimestamp]);
 
- const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
- e.stopPropagation();
- const canvas = canvasRef.current;
- if (!canvas) return;
- const rect = canvas.getBoundingClientRect();
- const clickX = e.clientX - rect.left;
- const clickY = e.clientY - rect.top;
- 
- const pL = 20, pR = 10;
- const cw = rect.width - pL - pR;
- const tClick = start + ((clickX - pL) / cw) * (end - start);
- 
- // Sprawdzamy czy kliknięto w dolną sekcję wykresu (gdzie są ikony bolusa i posiłku)
- const isBottomTap = clickY > rect.height - 60;
- 
- let closestTimeDiff = Infinity;
- let closestData: any = null;
- 
- // Najpierw szukamy zdarzeń (bolus/posiłek), jeśli kliknięto na dole, 
- // dając znacznie szerszy promień poszukiwań (do 90 minut, by łatwo trafić palcem)
- if (isBottomTap) {
- for (const d of chartData) {
- if (!d.bolusVal && !d.mealVal) continue;
- const diff = Math.abs(d.timestamp - tClick);
- if (diff < closestTimeDiff && diff < 90 * 60000) { 
- closestTimeDiff = diff;
- closestData = d;
- }
- }
- }
- 
- // Jeśli nie znaleziono zdarzenia lub nie kliknięto na dole, szukamy czegokolwiek (np. glukozy)
- if (!closestData) {
- closestTimeDiff = Infinity;
- for (const d of chartData) {
- const diff = Math.abs(d.timestamp - tClick);
- if (diff < closestTimeDiff && diff < 45 * 60000) { 
- closestTimeDiff = diff;
- closestData = d;
- }
- }
- }
- 
- if (closestData) {
- // Haptic Target Pulse: mechaniczne tyknięcie w normie TIR oraz impuls przy hipo/hiper
- if (!crosshair || crosshair.data.timestamp !== closestData.timestamp) {
- if (closestData.glucose !== undefined && !isNaN(closestData.glucose)) {
- const gVal = Number(closestData.glucose);
- if (gVal < targetMin || gVal > targetMax) {
- Haptics.light();
- } else {
- Haptics.tick();
- }
- } else if (closestData.bolusVal || closestData.mealVal || closestData.siteVal || closestData.sensorVal) {
- Haptics.selectionStart();
- }
- }
- setCrosshair({ x: clickX, data: closestData, tClick });
- } else {
- setCrosshair(null);
- }
- };
+  const lastHapticPointRef = React.useRef<number | null>(null);
+  const lastHapticZoneRef = React.useRef<'hypo' | 'hyper' | 'tir' | null>(null);
+  const isScrubbingRef = React.useRef<boolean>(false);
+
+  const performScrubAt = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = clientX - rect.left;
+    const clickY = clientY - rect.top;
+    
+    const pL = 20, pR = 10;
+    const cw = rect.width - pL - pR;
+    if (cw <= 0) return;
+    const tClick = start + ((clickX - pL) / cw) * (end - start);
+    
+    // Sprawdzamy czy dotknięto w dolną sekcję wykresu (gdzie są ikony bolusa i posiłku)
+    const isBottomTap = clickY > rect.height - 60;
+    
+    let closestTimeDiff = Infinity;
+    let closestData: any = null;
+    
+    // Najpierw szukamy zdarzeń (bolus/posiłek), jeśli dotknięto na dole (do 90 minut)
+    if (isBottomTap) {
+      for (const d of chartData) {
+        if (!d.bolusVal && !d.mealVal) continue;
+        const diff = Math.abs(d.timestamp - tClick);
+        if (diff < closestTimeDiff && diff < 90 * 60000) { 
+          closestTimeDiff = diff;
+          closestData = d;
+        }
+      }
+    }
+    
+    // W przeciwnym razie szukamy najbliższego punktu glukozy
+    if (!closestData) {
+      closestTimeDiff = Infinity;
+      for (const d of chartData) {
+        const diff = Math.abs(d.timestamp - tClick);
+        if (diff < closestTimeDiff && diff < 45 * 60000) { 
+          closestTimeDiff = diff;
+          closestData = d;
+        }
+      }
+    }
+    
+    if (closestData) {
+      if (lastHapticPointRef.current !== closestData.timestamp) {
+        if (closestData.glucose !== undefined && !isNaN(closestData.glucose)) {
+          const gVal = Number(closestData.glucose);
+          const currentZone: 'hypo' | 'hyper' | 'tir' = gVal < targetMin ? 'hypo' : gVal > targetMax ? 'hyper' : 'tir';
+          if (lastHapticZoneRef.current && lastHapticZoneRef.current !== currentZone) {
+            // Przejście między strefami glikemii (norma TIR vs hipo/hiper)
+            Haptics.light();
+          } else {
+            // Tyknięcie na kolejnym punkcie CGM
+            Haptics.tick();
+          }
+          lastHapticZoneRef.current = currentZone;
+        } else if (closestData.bolusVal || closestData.mealVal || closestData.siteVal || closestData.sensorVal) {
+          Haptics.selectionStart();
+        }
+        lastHapticPointRef.current = closestData.timestamp;
+      }
+      setCrosshair({ x: clickX, data: closestData, tClick });
+    }
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.stopPropagation();
+    performScrubAt(e.clientX, e.clientY);
+  };
+
+  const handleCanvasPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.stopPropagation();
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch (_) {}
+    isScrubbingRef.current = true;
+    performScrubAt(e.clientX, e.clientY);
+  };
+
+  const handleCanvasPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isScrubbingRef.current) return;
+    e.stopPropagation();
+    performScrubAt(e.clientX, e.clientY);
+  };
+
+  const handleCanvasPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (isScrubbingRef.current) {
+      isScrubbingRef.current = false;
+      try {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch (_) {}
+    }
+  };
 
  return (
  <div 
@@ -1577,6 +1611,10 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  ref={canvasRef}
  className="w-full h-full outline-none select-none touch-none" 
  onClick={handleCanvasClick}
+ onPointerDown={handleCanvasPointerDown}
+ onPointerMove={handleCanvasPointerMove}
+ onPointerUp={handleCanvasPointerUp}
+ onPointerCancel={handleCanvasPointerUp}
  style={{ cursor: "pointer", touchAction: "none" }} 
  />
  </div>

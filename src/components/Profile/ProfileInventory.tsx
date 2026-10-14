@@ -113,6 +113,7 @@ import DevicePairing from "../DevicePairing";
 import RemoteAlertSender from "../RemoteAlertSender";
 import BarcodeScannerModal from "../BarcodeScannerModal";
 import SettingsTransfer from "../SettingsTransfer";
+import PixelSwitch from "../common/PixelSwitch";
 import LocalSync from "../LocalSync";
 import CloudPackageSync from "../CloudPackageSync";
 import ApiIntegration from "../ApiIntegration";
@@ -775,23 +776,17 @@ const saveInventoryItem = async () => {
               </p>
             </div>
           </div>
-          <button
-            onClick={async () => {
-              const val = !settings.smartEquipmentDetection;
+          <PixelSwitch
+            checked={Boolean(settings.smartEquipmentDetection)}
+            activeColor="bg-accent-500"
+            onChange={async (val) => {
               setSettings({ ...settings, smartEquipmentDetection: val });
-              Haptics.medium();
               if (val) toast.success(i18n.t('auto.inteligentne_wykrywanie_wlaczone', { defaultValue: 'Inteligentne wykrywanie włączone!' }));
               
               const { doc, setDoc } = await import('firebase/firestore');
               await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { smartEquipmentDetection: val }, { merge: true });
             }}
-            className={cn(
-              "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
-              settings.smartEquipmentDetection && "bg-indigo-500 pl-5",
-            )}
-          >
-            <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
-          </button>
+          />
         </div>
       </div>
  <div

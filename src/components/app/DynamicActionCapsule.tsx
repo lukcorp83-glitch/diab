@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Utensils, AlertTriangle, Plus, X, Signal, Droplet, Merge, Sparkles, Clock, Check, CheckCircle2 } from 'lucide-react';
+import { Utensils, AlertTriangle, Plus, X, Signal, Droplet, Merge, Sparkles, Clock, Check, CheckCircle2, TrendingDown } from 'lucide-react';
 import { cn, getEffectiveUid } from '../../lib/utils';
 import { Haptics } from '../../lib/haptics';
 import { useTranslation } from 'react-i18next';
 import { useLogsStore } from '../../stores/useLogsStore';
 import UnlinkedCarbsWidget from '../UnlinkedCarbsWidget';
-import { getPreBolusTimerState, cancelPreBolusTimer, PreBolusTimerState } from '../../services/preBolusService';
+import { getPreBolusTimerState, cancelPreBolusTimer, PreBolusTimerState, normalizeTrendToArrow } from '../../services/preBolusService';
 import { dbService } from '../../services/databaseService';
 import { db } from '../../lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -289,7 +289,9 @@ export function DynamicActionCapsule({
             ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-xl shadow-red-500/30" 
             : capsuleState === 'prebolus'
             ? (preBolusState.remainingSeconds > 0 && !preBolusState.isReady)
-              ? "bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 shadow-2xl shadow-orange-500/40 border border-orange-300/30"
+              ? preBolusState.trendDropDetected
+                ? "bg-gradient-to-r from-sky-600 via-teal-600 to-emerald-600 shadow-2xl shadow-sky-500/40 border border-sky-300/30"
+                : "bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 shadow-2xl shadow-orange-500/40 border border-orange-300/30"
               : "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 shadow-2xl shadow-emerald-500/40 border border-emerald-300/30"
             : capsuleState === 'unlinked'
             ? "bg-gradient-to-r from-indigo-600 via-purple-600 to-violet-700 shadow-2xl shadow-indigo-500/40 border border-indigo-300/30"
@@ -412,20 +414,31 @@ export function DynamicActionCapsule({
                   preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? "bg-white/20" : "bg-white/30"
                 )}>
                   {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? (
-                    <Clock size={14} className="text-amber-200 animate-pulse" />
+                    preBolusState.trendDropDetected ? (
+                      <TrendingDown size={14} className="text-sky-200 animate-pulse" />
+                    ) : (
+                      <Clock size={14} className="text-amber-200 animate-pulse" />
+                    )
                   ) : (
-                    <Utensils size={14} className="text-emerald-200 animate-bounce" />
+                    <CheckCircle2 size={14} className="text-emerald-200 animate-bounce" />
                   )}
                 </div>
                 <div className="flex flex-col justify-center min-w-0">
                   <span className="text-[8px] font-black text-white/90 uppercase tracking-widest leading-none mb-0.5 truncate">
-                    {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? 'Sugerowany czas' : 'Czas na posiłek'}
+                    {preBolusState.remainingSeconds > 0 && !preBolusState.isReady
+                      ? (preBolusState.trendDropDetected ? t('at_a_glance.timer_trend_drop_short', { defaultValue: 'Spadek odczytów' }) : t('at_a_glance.timer_countdown_label', { defaultValue: 'Zaplanowany czas' }))
+                      : t('at_a_glance.timer_ready_label', { defaultValue: 'Odliczanie zakończone' })}
                   </span>
-                  <span className="text-[11px] text-white uppercase font-black tracking-tight leading-none truncate font-mono">
+                  <span className="text-[11px] text-white uppercase font-black tracking-tight leading-none truncate font-mono flex items-center gap-1">
                     {preBolusState.remainingSeconds > 0 && !preBolusState.isReady ? (
-                      <span className="text-amber-200">{formattedTimer}</span>
+                      <span className={preBolusState.trendDropDetected ? "text-sky-200" : "text-amber-200"}>{formattedTimer}</span>
                     ) : (
-                      <span className="text-emerald-100">Gotowe</span>
+                      <span className="text-emerald-100">{t('at_a_glance.timer_done', { defaultValue: 'Koniec' })}</span>
+                    )}
+                    {preBolusState.currentGlucose && (
+                      <span className="text-white/90 text-[9.5px] font-sans font-bold">
+                        • {Math.round(preBolusState.currentGlucose)}{preBolusState.currentTrend ? ` ${normalizeTrendToArrow(preBolusState.currentTrend)}` : ''}
+                      </span>
                     )}
                     <span className="text-white/80 text-[10px]">{formattedUnits}</span>
                   </span>
@@ -436,10 +449,10 @@ export function DynamicActionCapsule({
                 <button
                   onClick={handleMarkEatenFromCapsule}
                   className="bg-white text-emerald-700 hover:bg-emerald-50 active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-2 rounded-full shadow-md transition-all flex items-center gap-0.5 cursor-pointer"
-                  title="Oznacz, że posiłek został zjedzony"
+                  title={t('at_a_glance.mark_eaten_title', { defaultValue: 'Oznacz zakończenie odliczania' })}
                 >
                   <CheckCircle2 size={10} className="text-emerald-600" />
-                  <span>Zjadłem</span>
+                  <span>{t('at_a_glance.mark_eaten_btn', { defaultValue: 'Zrobione' })}</span>
                 </button>
                 <button
                   onClick={(e) => {
@@ -449,10 +462,10 @@ export function DynamicActionCapsule({
                     onClickMain();
                   }}
                   className="bg-white/20 hover:bg-white/30 text-white active:scale-95 font-black text-[9px] uppercase tracking-wider py-1 px-1.5 rounded-full transition-all flex items-center gap-0.5 cursor-pointer relative"
-                  title="Przejdź do Talerza"
+                  title={t('nav.plate', { defaultValue: 'Przejdź do Talerza' })}
                 >
                   <Utensils size={10} />
-                  <span>Talerz</span>
+                  <span className="hidden sm:inline">{t('at_a_glance.plate_btn', { defaultValue: 'Talerz' })}</span>
                   {plateCount > 0 && (
                     <span className="ml-0.5 bg-rose-500 text-white text-[8px] font-black px-1 rounded-full leading-tight">
                       {plateCount}
@@ -462,9 +475,9 @@ export function DynamicActionCapsule({
                 <button
                   onClick={handleCancelPreBolus}
                   className="bg-rose-500/20 hover:bg-rose-500/40 text-rose-100 active:scale-95 font-black text-[8.5px] uppercase tracking-wider py-1 px-1.5 rounded-full border border-rose-400/30 transition-all flex items-center gap-0.5 cursor-pointer"
-                  title="Całkowicie anuluj stoper"
+                  title={t('common.cancel', { defaultValue: 'Całkowicie anuluj stoper' })}
                 >
-                  <span>Anuluj</span>
+                  <span>{t('common.cancel', { defaultValue: 'Anuluj' })}</span>
                 </button>
                 <button
                   onClick={handleMinimizePreBolus}

@@ -5,6 +5,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.view.Window;
+import androidx.core.view.WindowInsetsControllerCompat;
 import android.provider.Settings;
 import android.content.ComponentName;
 import android.os.PowerManager;
@@ -397,8 +400,8 @@ public class NotificationBridgePlugin extends Plugin {
                         } catch (Exception ignored) {}
 
                         androidx.core.app.NotificationCompat.Builder readyBuilder = new androidx.core.app.NotificationCompat.Builder(appContext, "gliko_meal_timer_v1")
-                                .setContentTitle("Czas na posiłek! 🍽️")
-                                .setContentText("Odliczanie zakończone. Możesz już zjeść posiłek!")
+                                .setContentTitle("Odliczanie zakończone ⏱️")
+                                .setContentText("Upłynął zaplanowany czas odliczania.")
                                 .setUsesChronometer(false)
                                 .setShowWhen(false)
                                 .setOngoing(false)
@@ -419,7 +422,7 @@ public class NotificationBridgePlugin extends Plugin {
                             readyBuilder.setSmallIcon(R.drawable.ic_stat_name);
                         }
 
-                        android.graphics.Bitmap doneIcon = NightscoutFetcher.createPillBadgeBitmap(appContext, "JEŚĆ!", true);
+                        android.graphics.Bitmap doneIcon = NightscoutFetcher.createPillBadgeBitmap(appContext, "OK", true);
                         if (doneIcon != null) {
                             readyBuilder.setLargeIcon(doneIcon);
                         }
@@ -737,6 +740,88 @@ public class NotificationBridgePlugin extends Plugin {
             } catch (Exception ex) {
                 call.reject("Nie udało się otworzyć ustawień baterii: " + ex.getMessage());
             }
+        }
+    }
+
+    @PluginMethod
+    public void setSystemBarColors(PluginCall call) {
+        String statusBarColorHex = call.getString("statusBarColor");
+        String navigationBarColorHex = call.getString("navigationBarColor");
+        Boolean isDark = call.getBoolean("isDark", true);
+
+        if (getActivity() == null) {
+            call.reject("Activity is null");
+            return;
+        }
+
+        getActivity().runOnUiThread(() -> {
+            try {
+                Window window = getActivity().getWindow();
+                WindowInsetsControllerCompat controller =
+                    new WindowInsetsControllerCompat(window, window.getDecorView());
+
+                if (statusBarColorHex != null && !statusBarColorHex.isEmpty()) {
+                    int color = Color.parseColor(statusBarColorHex);
+                    window.setStatusBarColor(color);
+                }
+
+                if (navigationBarColorHex != null && !navigationBarColorHex.isEmpty()) {
+                    int color = Color.parseColor(navigationBarColorHex);
+                    window.setNavigationBarColor(color);
+                }
+
+                boolean lightIcons = isDark != null && isDark;
+                // If lightIcons is true (dark theme), appearanceLight should be false (white icons)
+                controller.setAppearanceLightStatusBars(!lightIcons);
+                controller.setAppearanceLightNavigationBars(!lightIcons);
+
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Failed to set bar colors: " + e.getMessage());
+            }
+        });
+    }
+
+    @PluginMethod
+    public void speakGlucose(PluginCall call) {
+        try {
+            boolean force = call.getBoolean("force", true);
+            String glucose = call.getString("glucose", null);
+            String trend = call.getString("trend", null);
+            String delta = call.getString("delta", null);
+            String lang = call.getString("lang", null);
+            if (lang != null && !lang.trim().isEmpty()) {
+                android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+                prefs.edit().putString("app_language", lang.trim()).apply();
+            }
+            VoiceReadoutHelper.speakGlucose(getContext(), force, glucose, trend, delta, lang);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to speak glucose: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void isHeadphonesConnected(PluginCall call) {
+        try {
+            boolean connected = VoiceReadoutHelper.isHeadphonesConnected(getContext());
+            JSObject ret = new JSObject();
+            ret.put("connected", connected);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to check headphones: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void setVoiceReadoutEnabled(PluginCall call) {
+        try {
+            boolean enabled = call.getBoolean("enabled", true);
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+            prefs.edit().putBoolean("voice_readout_enabled", enabled).apply();
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to set voice readout preference: " + e.getMessage());
         }
     }
 }

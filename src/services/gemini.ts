@@ -436,10 +436,11 @@ export const geminiService = {
 ${langInstruction}
 ${userCorrectionPrompt}
 1. Podaj DOKŁADNĄ, ROZPOZNAWALNĄ NAZWĘ GŁÓWNĄ CAŁEGO POSIŁKU (pole "mealName", np. "Pizza Pepperoni", "Kanapka z szynką i serem", "Spaghetti Bolognese", "Jajecznica na maśle z pieczywem", "Kotlet schabowy z ziemniakami i surówką").
-2. Rozbij ten posiłek na WSZYSTKIE WIDOCZNE POJEDYNCZE SKŁADNIKI (tablica "ingredients", np. ser mozzarella, ciasto do pizzy, sos pomidorowy, szynka, oliwki) i oszacuj orientacyjną wagę każdego składnika (w gramach) oraz wartości odżywcze NA 100g każdego składnika (węglowodany, białko, tłuszcz, IG).
+2. Rozbij ten posiłek na WSZYSTKIE WIDOCZNE POJEDYNCZE SKŁADNIKI (tablica "ingredients", np. ser mozzarella, ciasto do pizzy, sos pomidorowy, szynka, oliwki) i oszacuj orientacyjną wagę każdego składnika (w gramach) oraz wartości odżywcze NA 100g każdego składnika (węglowodany, białko, tłuszcz, błonnik jako "fiberPer100g", IG).
 3. Oszacuj CAŁKOWITĄ sumaryczną wagę całego dania oraz CAŁKOWITĄ ilość węglowodanów, białek, tłuszczy i wypadkowe IG.
 4. Podaj wniosek diabetologiczny o wpływie na glikemię ("glycemicImpact") - np. czy cukier wzrośnie szybko, wolno, czy dwufazowo.
 5. Podaj konkretną wskazówkę bilansowania ("balanceAdvice") - co warto dodać lub zmienić, aby lepiej zbilansować posiłek pod kątem cukrzycy.
+6. Oceń matrycę kulinarną: "hasAcidicBuffer" (true jeśli są kiszonki, cytryna, ocet, winegret), "hasGelFiber" (true jeśli nasiona chia, owies, siemię lniane), "textureForm" ("solid" | "mashed_puree" | "liquid_smoothie").
 ${dietInfo}
 
 Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania markdown):
@@ -450,6 +451,9 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
   "protein": 20,
   "fat": 15,
   "ig": 55,
+  "hasAcidicBuffer": false,
+  "hasGelFiber": false,
+  "textureForm": "solid",
   "analysis": "Pyszna pizza na cienkim cieście...",
   "glycemicImpact": "Spodziewany przedłużony wzrost glikemii ze względu na zawartość białka i tłuszczu...",
   "balanceAdvice": "Warto dodać świeżą rukolę lub sałatkę ze świeżych warzyw...",
@@ -460,6 +464,7 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
       "carbsPer100g": 48,
       "proteinPer100g": 7,
       "fatPer100g": 2.5,
+      "fiberPer100g": 2.2,
       "ig": 70
     },
     {

@@ -40,6 +40,7 @@ import {
   Edit3,
   Cpu,
   Zap,
+  MoonStar,
   X,
   Info,
   Calendar,
@@ -623,6 +624,10 @@ export default function Dashboard({
       useAppStore.getState().setInitialAction(null);
     } else if (initialAction === "training") {
       setIsTrainingModalOpen(true);
+      onClearInitialAction?.();
+      useAppStore.getState().setInitialAction(null);
+    } else if (initialAction === "bedside_clock" || initialAction === "dash_bedside") {
+      useAppStore.getState().setShowBedsideClock(true);
       onClearInitialAction?.();
       useAppStore.getState().setInitialAction(null);
     }
@@ -1525,11 +1530,25 @@ export default function Dashboard({
           setTab={setTab}
           isInsulinMode={isInsulinMode}
           pumpStatus={pumpStatus}
+          onOpenBedsideClock={() => useAppStore.getState().setShowBedsideClock(true)}
         />
       )}
 
       {/* Pasek Pigułek - Linia 1 (Hydratacja, Pogoda, Bateria, Zbiornik) */}
       <div className="px-2 flex gap-2 overflow-x-auto scrollbar-none pb-1 mt-2">
+         {!(settings.atAGlanceEnabled ?? true) && (
+            <button
+              onClick={() => {
+                Haptics.light();
+                useAppStore.getState().setShowBedsideClock(true);
+              }}
+              className="px-3 py-1.5 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shrink-0 transition-all active:scale-95 cursor-pointer shadow-xs"
+              title={t('nightstand.open_title', { defaultValue: 'Włącz zegar nocny' })}
+            >
+              <MoonStar size={12} className="fill-indigo-500/20" />
+              <span>{t('nightstand.btn_label', { defaultValue: 'Zegar nocny' })}</span>
+            </button>
+         )}
          {widgets.find(w => w.id === 'hydration')?.visible && (
             <TopPillHydration />
          )}
@@ -1652,22 +1671,33 @@ export default function Dashboard({
                 ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/10"
                 : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10"
             )}
-            title={t('auto.kustonizuj_kafelki_pulpitu', { defaultValue: 'Kustonizuj kafelki pulpitu' })}
+            title={t('dashboard.customize_tiles', { defaultValue: 'Dostosuj kafelki pulpitu' })}
           >
             <Sliders size={11} />
-            
-                                  {t('auto.dostosuj', { defaultValue: 'Dostosuj' })}
-                                </button>
+            {t('auto.dostosuj', { defaultValue: 'Dostosuj' })}
+          </button>
           {nsUrl && (
             <a 
               href={nsUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 active:scale-95 transition-all glass-target"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 active:scale-95 transition-all glass-target relative"
             >
-              
-                                        {t('auto.nightscout', { defaultValue: 'Nightscout' })}
-                                      </a>
+              {syncStatus && (
+                <span className="relative flex h-2 w-2">
+                  {syncStatus.status === 'syncing' && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                  )}
+                  <span className={cn(
+                    "relative inline-flex rounded-full h-2 w-2",
+                    syncStatus.status === 'syncing' ? 'bg-indigo-500' : 
+                    syncStatus.status === 'success' ? 'bg-emerald-500' : 
+                    syncStatus.status === 'error' ? 'bg-rose-500' : 'bg-slate-400'
+                  )} />
+                </span>
+              )}
+              {t('auto.nightscout', { defaultValue: 'Nightscout' })}
+            </a>
           )}
           <button 
             onClick={() => { Haptics.light(); setTab('chart'); }}
@@ -2263,30 +2293,10 @@ export default function Dashboard({
         </div>
       )}
       
-      {/* 9. Floating Status Center */}
-      <div className="fixed bottom-24 right-4 z-[45]">
-         {nsUrl && syncStatus && (
-           <motion.div 
-             initial={{ opacity: 0, scale: 0.8 }}
-             animate={{ opacity: 1, scale: 1 }}
-             className={cn(
-               "glass w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl border-white/50 dark:border-white/10",
-             )}
-           >
-              <div className={cn(
-                "w-3 h-3 rounded-full border-2 border-white dark:border-slate-900",
-                syncStatus.status === 'syncing' ? 'bg-indigo-500 animate-pulse' : 
-                syncStatus.status === 'success' ? 'bg-emerald-500' : 
-                syncStatus.status === 'error' ? 'bg-rose-500' : 'bg-slate-400'
-              )} />
-              {syncStatus.status === 'syncing' && <div className="absolute inset-0 border-2 border-indigo-500/30 rounded-2xl animate-ping" />}
-           </motion.div>
-         )}
-      </div>
+
 
       {editingLog && (editingLog.type === "meal" ? <MealEditModal log={editingLog} user={user} onClose={() => setEditingLog(null)} /> : <DoseEditModal log={editingLog} user={user} onClose={() => setEditingLog(null)} />)}
       
-      {/* Footer Info */}
       <div className="pt-8 pb-4 text-center space-y-2 opacity-30">
         <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">
           

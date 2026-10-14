@@ -327,7 +327,7 @@ export default function BolusCalculator({
       <div className="grid grid-cols-2 gap-3">
         <div className="glass-card !p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[9px] font-black uppercase tracking-wider">Aktualny cukier</span>
+            <span className="text-[9px] font-black uppercase tracking-wider">{t('bolus.current_sugar', { defaultValue: 'Aktualny cukier' })}</span>
             <Droplets size={14} className="text-rose-500" />
           </div>
           <div className="flex items-baseline gap-1 mt-2">
@@ -341,13 +341,13 @@ export default function BolusCalculator({
             <span className="text-[10px] font-bold text-slate-400">mg/dL</span>
           </div>
           <span className="text-[8px] text-slate-400 font-medium mt-1">
-            {bgNum > 0 ? (trend === 'up' ? '↗ Rosnący' : trend === 'down' ? '↘ Spadający' : '→ Stabilny') : 'Wpisz lub z CGM'}
+            {bgNum > 0 ? (trend === 'up' ? t('bolus.trend_rising', { defaultValue: '↗ Rosnący' }) : trend === 'down' ? t('bolus.trend_falling', { defaultValue: '↘ Spadający' }) : t('bolus.trend_stable', { defaultValue: '→ Stabilny' })) : t('bolus.enter_or_cgm', { defaultValue: 'Wpisz lub z CGM' })}
           </span>
         </div>
 
         <div className="glass-card !p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[9px] font-black uppercase tracking-wider">Aktywna insulina</span>
+            <span className="text-[9px] font-black uppercase tracking-wider">{t('bolus.active_insulin', { defaultValue: 'Aktywna insulina' })}</span>
             <Clock size={14} className="text-indigo-500" />
           </div>
           <div className="flex items-baseline gap-1 mt-2">
@@ -357,7 +357,7 @@ export default function BolusCalculator({
             <span className="text-[10px] font-bold text-slate-400">j. IOB</span>
           </div>
           <span className="text-[8px] text-slate-400 font-medium mt-1">
-            {currentIOB > 0.5 ? '⚠️ Dawki wciąż działają' : 'Bezpieczny poziom'}
+            {currentIOB > 0.5 ? t('bolus.iob_still_active', { defaultValue: '⚠️ Dawki wciąż działają' }) : t('bolus.iob_safe_level', { defaultValue: 'Bezpieczny poziom' })}
           </span>
         </div>
       </div>
@@ -452,14 +452,14 @@ export default function BolusCalculator({
         </div>
 
         <p className="text-[9px] text-slate-400 italic max-w-xs">
-          Wpisz dokładnie taką dawkę, jaką podałeś w penie lub pompie. Aplikacja nie narzuca ani nie wylicza jednostek leku.
+          {t('bolus.dose_disclaimer', { defaultValue: 'Wpisz dokładnie taką dawkę, jaką podałeś w penie lub pompie. Aplikacja nie narzuca ani nie wylicza jednostek leku.' })}
         </p>
       </div>
 
       {/* Typ / Kategoria bolusa */}
       <div className="glass-card !p-4 space-y-3">
         <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block text-left">
-          Rodzaj podania
+          {t('bolus.entry_type', { defaultValue: 'Rodzaj podania' })}
         </label>
         <div className="grid grid-cols-3 gap-2">
           <button
@@ -476,7 +476,7 @@ export default function BolusCalculator({
             )}
           >
             <span>🍽️</span>
-            <span className="text-[10px] uppercase tracking-tight">Posiłkowy</span>
+            <span className="text-[10px] uppercase tracking-tight">{t('bolus.type_meal', { defaultValue: 'Posiłkowy' })}</span>
           </button>
 
           <button
@@ -493,7 +493,7 @@ export default function BolusCalculator({
             )}
           >
             <span>⚡</span>
-            <span className="text-[10px] uppercase tracking-tight">Korekta</span>
+            <span className="text-[10px] uppercase tracking-tight">{t('bolus.type_correction', { defaultValue: 'Korekta' })}</span>
           </button>
 
           <button
@@ -510,14 +510,14 @@ export default function BolusCalculator({
             )}
           >
             <span>🌙</span>
-            <span className="text-[10px] uppercase tracking-tight">Baza</span>
+            <span className="text-[10px] uppercase tracking-tight">{t('bolus.type_basal', { defaultValue: 'Baza' })}</span>
           </button>
         </div>
 
         {bolusType === "inne" && (
           <input
             type="text"
-            placeholder="Dodatkowa notatka (opcjonalnie)..."
+            placeholder={t('bolus.custom_note_placeholder', { defaultValue: 'Dodatkowa notatka (opcjonalnie)...' })}
             value={customNote}
             onChange={(e) => setCustomNote(e.target.value)}
             className="w-full mt-2 px-3 py-2 bg-slate-100 dark:bg-white/5 rounded-xl text-xs font-bold outline-none border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200"
@@ -530,7 +530,7 @@ export default function BolusCalculator({
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
             <Calendar size={13} />
-            Data i godzina podania
+            {t('bolus.entry_date_time', { defaultValue: 'Data i godzina podania' })}
           </label>
           <input
             type="datetime-local"
@@ -547,10 +547,10 @@ export default function BolusCalculator({
               <Clock size={16} className="text-amber-500 shrink-0 mt-0.5" />
               <div className="text-left">
                 <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 block">
-                  Sugerowany odstęp: ~{timingInfo.waitMinutes} min
+                  {t('bolus.suggested_interval', { defaultValue: 'Sugerowany odstęp' })}: ~{timingInfo.waitMinutes} min
                 </span>
                 <span className="text-[9px] text-slate-400 leading-tight block">
-                  Orientacyjny czas wchłaniania na podstawie aktualnej glikemii.
+                  {t('bolus.suggested_interval_desc', { defaultValue: 'Orientacyjny czas wchłaniania na podstawie aktualnej glikemii.' })}
                 </span>
               </div>
             </div>
@@ -562,7 +562,7 @@ export default function BolusCalculator({
                 onChange={(e) => setLaunchTimer(e.target.checked)}
                 className="w-4 h-4 rounded text-accent-500 accent-accent-500 cursor-pointer"
               />
-              <span className="text-[10px] font-bold text-slate-500">Stoper</span>
+              <span className="text-[10px] font-bold text-slate-500">{t('bolus.timer', { defaultValue: 'Stoper' })}</span>
             </label>
           </div>
         )}
@@ -577,7 +577,7 @@ export default function BolusCalculator({
         {saving ? (
           <>
             <Loader2 size={18} className="animate-spin" />
-            <span>Zapisywanie...</span>
+            <span>{t('bolus.saving', { defaultValue: 'Zapisywanie...' })}</span>
           </>
         ) : (
           <>
@@ -590,7 +590,7 @@ export default function BolusCalculator({
       {/* Dyskretna informacja o posiłkach na Talerzu */}
       <div className="text-center pt-2">
         <p className="text-[10px] text-slate-400 leading-relaxed">
-          Posiłki, węglowodany i wymienniki (WW / WBT) komponuj w sekcji{" "}
+          {t('bolus.meal_hint_prefix', { defaultValue: 'Posiłki, węglowodany i wymienniki (WW / WBT) komponuj w sekcji' })}{" "}
           <button
             type="button"
             onClick={() => {
@@ -599,7 +599,7 @@ export default function BolusCalculator({
             }}
             className="text-accent-500 font-bold underline cursor-pointer"
           >
-            Talerz Posiłków
+            {t('bolus.meal_plate_link', { defaultValue: 'Talerz Posiłków' })}
           </button>
           .
         </p>

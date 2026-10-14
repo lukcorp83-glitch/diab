@@ -34,10 +34,63 @@ public class GlikoForegroundService extends Service implements SensorEventListen
 
     public static WebView headlessWebView;
 
+    private android.content.BroadcastReceiver screenToggleReceiver;
+    private long lastScreenToggleTime = 0;
+    private int screenToggleCount = 0;
+    private final Handler screenToggleHandler = new Handler(Looper.getMainLooper());
+    private final Runnable resetToggleRunnable = new Runnable() {
+        @Override
+        public void run() {
+            screenToggleCount = 0;
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
+
+        // Inicjalizacja VoiceReadoutHelper (TTS)
+        VoiceReadoutHelper.init(this);
+
+        // Rejestracja nasłuchiwania włącznika / ekranu (Screen Toggle Receiver)
+        try {
+            screenToggleReceiver = new android.content.BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (intent != null && (Intent.ACTION_SCREEN_OFF.equals(intent.getAction()) || Intent.ACTION_SCREEN_ON.equals(intent.getAction()))) {
+                        android.content.SharedPreferences prefs = getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+                        boolean voiceEnabled = prefs.getBoolean("voice_readout_enabled", true);
+                        if (!voiceEnabled) return;
+
+                        long now = System.currentTimeMillis();
+                        if (now - lastScreenToggleTime < 1500) {
+                            screenToggleCount++;
+                            if (screenToggleCount >= 2) {
+                                screenToggleCount = 0;
+                                screenToggleHandler.removeCallbacks(resetToggleRunnable);
+                                if (VoiceReadoutHelper.isHeadphonesConnected(GlikoForegroundService.this)) {
+                                    android.util.Log.i("GlikoForegroundService", "Wykryto dwuklik włącznika przy podłączonych słuchawkach -> uruchamiam lektora!");
+                                    VoiceReadoutHelper.speakGlucose(GlikoForegroundService.this, false);
+                                }
+                            }
+                        } else {
+                            screenToggleCount = 1;
+                            screenToggleHandler.removeCallbacks(resetToggleRunnable);
+                            screenToggleHandler.postDelayed(resetToggleRunnable, 1500);
+                        }
+                        lastScreenToggleTime = now;
+                    }
+                }
+            };
+            android.content.IntentFilter screenFilter = new android.content.IntentFilter();
+            screenFilter.addAction(Intent.ACTION_SCREEN_OFF);
+            screenFilter.addAction(Intent.ACTION_SCREEN_ON);
+            registerReceiver(screenToggleReceiver, screenFilter);
+            android.util.Log.i("GlikoForegroundService", "Zarejestrowano screenToggleReceiver dla odczytu słuchawkowego");
+        } catch (Exception e) {
+            android.util.Log.e("GlikoForegroundService", "Błąd rejestracji screenToggleReceiver", e);
+        }
 
         // Inicjalizacja sensora kroków w tle dla ciągłego zliczania
         try {
@@ -433,5 +486,16 @@ public class GlikoForegroundService extends Service implements SensorEventListen
             }
         } catch (Exception ignored) {}
         return false;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        try {
+            if (screenToggleReceiver != null) {
+                unregisterReceiver(screenToggleReceiver);
+                screenToggleReceiver = null;
+            }
+        } catch (Exception ignored) {}
     }
 }

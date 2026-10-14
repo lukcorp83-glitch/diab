@@ -414,7 +414,10 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
                       </div>
                       
                       <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center mb-1">
-                        {['Pn', 'Wt', i18n.t('auto.sr', { defaultValue: i18n.t('auto.sr', { defaultValue: "Śr" }) }), 'Cz', 'Pt', 'Sb', 'Nd'].map(day => (
+                        {(i18n.language?.startsWith('en') 
+                          ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+                          : ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd']
+                        ).map(day => (
                           <div key={day} className="text-[9px] font-black uppercase text-slate-400">{day}</div>
                         ))}
                       </div>

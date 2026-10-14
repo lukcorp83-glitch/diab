@@ -14,11 +14,15 @@ import {
   BatteryMedium,
   FileText,
   X,
-  AlertCircle
+  AlertCircle,
+  MoonStar,
+  TrendingDown,
+  Volume2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Haptics } from '../../lib/haptics';
-import { getPreBolusTimerState, PreBolusTimerState } from '../../services/preBolusService';
+import { getPreBolusTimerState, PreBolusTimerState, normalizeTrendToArrow } from '../../services/preBolusService';
+import { voiceReadoutService } from '../../services/voiceReadoutService';
 import { LogEntry, UserSettings } from '../../types';
 import { cn } from '../../lib/utils';
 
@@ -28,9 +32,10 @@ interface AtAGlanceProps {
   setTab: (tab: string) => void;
   isInsulinMode?: boolean;
   pumpStatus?: any;
+  onOpenBedsideClock?: () => void;
 }
 
-export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMode = true, pumpStatus }: AtAGlanceProps) {
+export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMode = true, pumpStatus, onOpenBedsideClock }: AtAGlanceProps) {
   const { t, i18n } = useTranslation();
   const [preBolusState, setPreBolusState] = useState<PreBolusTimerState>(() => getPreBolusTimerState());
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -159,11 +164,25 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
           badge: t('at_a_glance.badge_time', { defaultValue: 'CZAS' }),
           badgeColor: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
         });
+      } else if (preBolusState.trendDropDetected) {
+        const arrow = normalizeTrendToArrow(preBolusState.currentTrend);
+        const bgStr = preBolusState.currentGlucose ? ` (${Math.round(preBolusState.currentGlucose)}${arrow ? ` ${arrow}` : ''})` : '';
+        items.push({
+          id: 'prebolus_timer_drop',
+          icon: <TrendingDown size={16} className="text-sky-500 animate-pulse shrink-0" />,
+          title: `${t('bolus.timer_trend_drop_title', { defaultValue: 'Spadek odczytów' })}${bgStr}: ${timeStr}`,
+          desc: t('at_a_glance.timer_trend_drop', { defaultValue: 'Zarejestrowano spadek glikemii • Odliczanie dobiega końca' }),
+          action: () => setTab('plate'),
+          badge: timeStr,
+          badgeColor: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/20'
+        });
       } else {
+        const arrow = normalizeTrendToArrow(preBolusState.currentTrend);
+        const bgStr = preBolusState.currentGlucose ? ` (${Math.round(preBolusState.currentGlucose)}${arrow ? ` ${arrow}` : ''})` : '';
         items.push({
           id: 'prebolus_timer',
           icon: <Clock size={16} className="text-accent-500 animate-pulse shrink-0" />,
-          title: `${t('bolus.timer_active', { defaultValue: 'Stoper:' })} ${timeStr}`,
+          title: `${t('bolus.timer_active', { defaultValue: 'Stoper:' })} ${timeStr}${bgStr}`,
           desc: preBolusState.bolusUnits 
             ? t('at_a_glance.timer_bolus_logged', { defaultValue: 'Zarejestrowano {{units}}j • Odliczanie czasu', units: preBolusState.bolusUnits })
             : t('at_a_glance.timer_countdown', { defaultValue: 'Odliczanie zaplanowanego odstępu czasowego' }),
@@ -416,18 +435,45 @@ export default function AtAGlance({ userSettings, logs = [], setTab, isInsulinMo
       transition={{ duration: 0.25, ease: "easeOut" }}
       className="px-2 pt-1 pb-1 select-none"
     >
-      {/* Górna linia: Data oraz opcjonalny licznik stron */}
+      {/* Górna linia: Data oraz przycisk trybu nocnego i opcjonalny licznik stron */}
       <div className="flex items-center justify-between text-xs font-black dark:text-white px-1 mb-2 tracking-tight">
         <div className="flex items-center gap-2">
           <Calendar size={13} className="text-slate-400 dark:text-slate-500" />
           <span className="capitalize">{formattedDate}</span>
         </div>
 
-        {contextItems.length > 1 && (
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
-            {activeIndex + 1} / {contextItems.length}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              Haptics.light();
+              voiceReadoutService.speakGlucose(latestGlucose?.value, latestGlucose?.direction, latestGlucose?.delta, true, i18n.language);
+            }}
+            className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-700/90 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 transition-all active:scale-95 cursor-pointer shadow-xs"
+            title={t('auto.odsluchaj_biezacy_odczyt', { defaultValue: 'Odsłuchaj bieżący odczyt na głos' })}
+          >
+            <Volume2 size={12} className="text-sky-500" />
+          </button>
+
+          {onOpenBedsideClock && (
+            <button
+              onClick={() => {
+                Haptics.light();
+                onOpenBedsideClock();
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/90 dark:hover:bg-slate-700/90 text-slate-600 dark:text-slate-300 text-[10px] font-bold border border-slate-200/60 dark:border-slate-700/60 transition-all active:scale-95 cursor-pointer shadow-xs"
+              title={t('nightstand.open_title', { defaultValue: 'Włącz zegar nocny' })}
+            >
+              <MoonStar size={11} className="text-indigo-500 dark:text-indigo-400 fill-indigo-500/20" />
+              <span>{t('nightstand.btn_label', { defaultValue: 'Zegar nocny' })}</span>
+            </button>
+          )}
+
+          {contextItems.length > 1 && (
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+              {activeIndex + 1} / {contextItems.length}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Subtelny baner / Pigułka priorytetowa końca refundacji (<= 30 dni lub wygasłe) */}

@@ -388,10 +388,11 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
-   onClick={async () => {
-   const newVal = !settings.childMode;
-   setSettings((prev) => ({ ...prev, childMode: newVal }));
+ <PixelSwitch
+   checked={Boolean(settings.childMode)}
+   activeColor="bg-amber-500"
+   onChange={async (newVal) => {
+     setSettings((prev: any) => ({ ...prev, childMode: newVal }));
      if (user) {
        try {
          await setDoc(
@@ -405,13 +406,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
        queryClient.invalidateQueries({ queryKey: ['userSettings'] });
      }
    }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.childMode && "bg-amber-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ />
  </div>
 
  <div
@@ -437,34 +432,28 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- const newVal =
- settings.showPumpWidget === false ? true : false;
- setSettings((prev) => ({
- ...prev,
- showPumpWidget: newVal,
- }));
- if (user)
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { showPumpWidget: newVal },
- { merge: true },
- );
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.showPumpWidget !== false && "bg-indigo-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={settings.showPumpWidget !== false}
+   activeColor="bg-accent-500"
+   onChange={async (newVal) => {
+     setSettings((prev: any) => ({
+       ...prev,
+       showPumpWidget: newVal,
+     }));
+     if (user)
+       await setDoc(
+         doc(
+           db,
+           "users",
+           getEffectiveUid(user),
+           "settings",
+           "profile",
+         ),
+         { showPumpWidget: newVal },
+         { merge: true },
+       );
+   }}
+ />
  </div>
 
  {/* Informacje o cukrach na pasku powiadomień Androida */}
@@ -489,43 +478,36 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- const currentState = settings.apkSystemNotificationsEnabled ?? true;
- const targetState = !currentState;
+ <PixelSwitch
+   checked={settings.apkSystemNotificationsEnabled ?? true}
+   activeColor="bg-emerald-500"
+   onChange={async (targetState) => {
+     setSettings((prev: any) => ({
+       ...prev,
+       apkSystemNotificationsEnabled: targetState,
+     }));
+     localStorage.setItem("apkSystemNotificationsEnabled", targetState ? "true" : "false");
 
- setSettings((prev: any) => ({
- ...prev,
- apkSystemNotificationsEnabled: targetState,
- }));
- localStorage.setItem("apkSystemNotificationsEnabled", targetState ? "true" : "false");
+     if (user) {
+       await setDoc(
+         doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+         { apkSystemNotificationsEnabled: targetState },
+         { merge: true },
+       );
+     }
 
- if (user) {
- await setDoc(
- doc(db, "users", getEffectiveUid(user), "settings", "profile"),
- { apkSystemNotificationsEnabled: targetState },
- { merge: true },
- );
- }
+     if (Capacitor.isNativePlatform()) {
+       try {
+         const { NotificationBridge } = await import('../../lib/notificationBridge');
+         await NotificationBridge.setOngoingNotificationEnabled({ enabled: targetState });
+       } catch (e) {
+         console.warn("Failed setting ongoing notification on Android:", e);
+       }
+     }
 
- if (Capacitor.isNativePlatform()) {
- try {
- const { NotificationBridge } = await import('../../lib/notificationBridge');
- await NotificationBridge.setOngoingNotificationEnabled({ enabled: targetState });
- } catch (e) {
- console.warn("Failed setting ongoing notification on Android:", e);
- }
- }
-
- toast.success(targetState ? 'Włączono informacje o cukrach na pasku powiadomień' : 'Wyłączono informacje o cukrach na pasku powiadomień');
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- (settings.apkSystemNotificationsEnabled ?? true) && "bg-emerald-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+     toast.success(targetState ? 'Włączono informacje o cukrach na pasku powiadomień' : 'Wyłączono informacje o cukrach na pasku powiadomień');
+   }}
+ />
  </div>
 
  <div
@@ -551,33 +533,28 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- const newVal = !settings.showMealWidget;
- setSettings((prev) => ({
- ...prev,
- showMealWidget: newVal,
- }));
- if (user)
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { showMealWidget: newVal },
- { merge: true },
- );
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.showMealWidget && "bg-amber-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={Boolean(settings.showMealWidget)}
+   activeColor="bg-amber-500"
+   onChange={async (newVal) => {
+     setSettings((prev: any) => ({
+       ...prev,
+       showMealWidget: newVal,
+     }));
+     if (user)
+       await setDoc(
+         doc(
+           db,
+           "users",
+           getEffectiveUid(user),
+           "settings",
+           "profile",
+         ),
+         { showMealWidget: newVal },
+         { merge: true },
+       );
+   }}
+ />
  </div>
 
  {/* Pływająca Pigułka Czatu */}
@@ -602,33 +579,28 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- const newVal = settings.floatingChatEnabled === false ? true : false;
- setSettings((prev: any) => ({
- ...prev,
- floatingChatEnabled: newVal,
- }));
- if (user)
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { floatingChatEnabled: newVal },
- { merge: true },
- );
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.floatingChatEnabled !== false && "bg-indigo-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={settings.floatingChatEnabled !== false}
+   activeColor="bg-accent-500"
+   onChange={async (newVal) => {
+     setSettings((prev: any) => ({
+       ...prev,
+       floatingChatEnabled: newVal,
+     }));
+     if (user)
+       await setDoc(
+         doc(
+           db,
+           "users",
+           getEffectiveUid(user),
+           "settings",
+           "profile",
+         ),
+         { floatingChatEnabled: newVal },
+         { merge: true },
+       );
+   }}
+ />
  </div>
 
  {/* Czwarty przycisk dolnego paska */}
@@ -688,31 +660,15 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={() => {
- const current =
- localStorage.getItem("gliko_haptics_enabled") !==
- "false";
- localStorage.setItem(
- "gliko_haptics_enabled",
- String(!current),
- );
- // Force a re-render
- window.dispatchEvent(new Event("storage"));
- // We need to trigger a local state update to show visual toggle change
- // but since we don't have local state here easily without refactoring,
- // we'll just use the fact that buttons re-render on parent render.
- // Actually, let's use a small trick: update a settings field that doesn't matter much or just trigger a parent update.
- setSettings({ ...settings });
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- localStorage.getItem("gliko_haptics_enabled") !==
- "false" && "bg-accent-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={localStorage.getItem("gliko_haptics_enabled") !== "false"}
+   activeColor="bg-accent-500"
+   onChange={(newVal) => {
+     localStorage.setItem("gliko_haptics_enabled", String(newVal));
+     window.dispatchEvent(new Event("storage"));
+     setSettings({ ...settings });
+   }}
+ />
  </div>
 
  {/* GlikoSense & Pogoda */}
@@ -739,33 +695,28 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- const newVal = !settings.weatherNeuralEnabled;
- setSettings((prev) => ({
- ...prev,
- weatherNeuralEnabled: newVal,
- }));
- if (user)
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { weatherNeuralEnabled: newVal },
- { merge: true },
- );
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.weatherNeuralEnabled && "bg-teal-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={Boolean(settings.weatherNeuralEnabled)}
+   activeColor="bg-teal-500"
+   onChange={async (newVal) => {
+     setSettings((prev: any) => ({
+       ...prev,
+       weatherNeuralEnabled: newVal,
+     }));
+     if (user)
+       await setDoc(
+         doc(
+           db,
+           "users",
+           getEffectiveUid(user),
+           "settings",
+           "profile",
+         ),
+         { weatherNeuralEnabled: newVal },
+         { merge: true },
+       );
+   }}
+ />
  </div>
  </div>
 

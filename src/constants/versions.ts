@@ -14,13 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.62';
+export const CURRENT_VERSION = '6.0.63';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.63",
+    date: "2026-10-14",
+    title: "Fizykochemia Posiłku i Dania Złożone",
+    changes: [
+      "Wdrożono Matrycę Fizykochemiczną Posiłku: detekcja bufora kwasowego (kiszonki/octy), błonnika żelującego (chia/owies), wolumetryki i estymacji pasażu żołądkowego",
+      "Wprowadzono wskaźnik odstępu trawiennego (okno MMC) monitorujący czas od poprzedniego posiłku",
+      "Zaimplementowano inteligentne sekwencjonowanie dań złożonych (hot dog, burger, kanapka, zapiekanka itp.) z oznaczeniem całości",
+      "Wzbogacono analizę AI ze zdjęcia o detekcję matrycy fizykochemicznej i zawartości błonnika",
+      "Usunięto zablokowany protokół Android Auto oraz zoptymalizowano wagę aplikacji (lazy chunking samouczka)"
+    ]
+  },
+  {
     version: "6.0.62",
     date: "2026-10-09",
     title: "Harmonijkowa Edycja Apteczki i Zlecenie na Zaopatrzenie NFZ",
@@ -69,23 +81,24 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Zaimplementowano okna dialogowe potwierdzeń Pixel Monet oraz klauzulę bezpieczeństwa medycznego przy analizie leków AI",
       "Wdrożono klauzulę o wartościach poglądowych analizy AI ze zdjęcia oraz pamięć podręczną ostatniego posiłku z aparatu (zapobiegającą utracie)",
       "Wdrożono Haptic Target Pulse na wykresie cukru, wskaźnik błonnika Fiber Shield na Talerzu oraz szybkie chipy przesunięcia czasu posiłku"
-    ]
-  },
-  {
-    version: "6.0.58",
-    date: "2026-10-05",
-    title: "Powiadomienia Aktualizacji, Monitor Tła i Ulepszone Animacje",
-    changes: [
-      "Wyeliminowano błąd blokujący powiadomienia o aktualizacjach (w tym wersji Beta) w Androidzie i naprawiono zasób ikony powiadomień",
-      "Dodano cykliczny monitor dostępności wydań w usłudze tła Androida (GlikoForegroundService) powiadamiający o nowościach",
-      "Ulepszono animacje i płynność interfejsu (dolna belka, menu boczne, okna dialogowe)",
-      "Wdrożono ścisłe wykluczenia indeksowania plików tymczasowych Androida, redukując zużycie pamięci RAM"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.63",
+    date: "2026-10-14",
+    title: "Fizykochemia Posiłku i Dania Złożone",
+    changes: [
+      "Wdrożono Matrycę Fizykochemiczną Posiłku: detekcja bufora kwasowego (kiszonki/octy), błonnika żelującego (chia/owies), wolumetryki i estymacji pasażu żołądkowego",
+      "Wprowadzono wskaźnik odstępu trawiennego (okno MMC) monitorujący czas od poprzedniego posiłku",
+      "Zaimplementowano inteligentne sekwencjonowanie dań złożonych (hot dog, burger, kanapka, zapiekanka itp.) z oznaczeniem całości",
+      "Wzbogacono analizę AI ze zdjęcia o detekcję matrycy fizykochemicznej i zawartości błonnika",
+      "Usunięto zablokowany protokół Android Auto oraz zoptymalizowano wagę aplikacji (lazy chunking samouczka)"
+    ]
+  },
+  {
     version: "6.0.62",
     date: "2026-10-09",
     title: "Harmonijkowa Edycja Apteczki i Zlecenie na Zaopatrzenie NFZ",
@@ -134,17 +147,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Zaimplementowano okna dialogowe potwierdzeń Pixel Monet oraz klauzulę bezpieczeństwa medycznego przy analizie leków AI",
       "Wdrożono klauzulę o wartościach poglądowych analizy AI ze zdjęcia oraz pamięć podręczną ostatniego posiłku z aparatu (zapobiegającą utracie)",
       "Wdrożono Haptic Target Pulse na wykresie cukru, wskaźnik błonnika Fiber Shield na Talerzu oraz szybkie chipy przesunięcia czasu posiłku"
-    ]
-  },
-  {
-    version: "6.0.58",
-    date: "2026-10-05",
-    title: "Powiadomienia Aktualizacji, Monitor Tła i Ulepszone Animacje",
-    changes: [
-      "Wyeliminowano błąd blokujący powiadomienia o aktualizacjach (w tym wersji Beta) w Androidzie i naprawiono zasób ikony powiadomień",
-      "Dodano cykliczny monitor dostępności wydań w usłudze tła Androida (GlikoForegroundService) powiadamiający o nowościach",
-      "Ulepszono animacje i płynność interfejsu (dolna belka, menu boczne, okna dialogowe)",
-      "Wdrożono ścisłe wykluczenia indeksowania plików tymczasowych Androida, redukując zużycie pamięci RAM"
     ]
   }
 ];

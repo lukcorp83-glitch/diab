@@ -4,7 +4,7 @@ import { Search, Loader2, Globe, Mic, Plus, Info, Scale, Share2, BookMarked, Tag
 import { Haptics } from "../../lib/haptics";
 import { useMealPlateStore } from "../../stores/useMealPlateStore";
 import { Product } from "../../types";
-import { getProductName } from "../FoodDatabase";
+import { getProductName, NutrientFilter } from "../FoodDatabase";
 import { geminiService } from "../../services/gemini";
 import { motion, AnimatePresence } from "motion/react";
 import i18n from "../../i18n";
@@ -61,6 +61,7 @@ export const ProductSearch = ({
 
  const [isListening, setIsListening] = useState(false);
  const [activeCategory, setActiveCategory] = useState("all");
+ const [activeNutrientFilter, setActiveNutrientFilter] = useState<NutrientFilter>('all');
  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
 
  useEffect(() => {
@@ -173,6 +174,16 @@ export const ProductSearch = ({
     } else if (activeCategory !== "all") {
       base = base.filter((p: Product) => (p.category || "").toLowerCase().includes(activeCategory.toLowerCase()));
     }
+
+    if (activeNutrientFilter === 'snack_free') {
+      base = base.filter((p: Product) => (p.carbs || 0) <= 5);
+    } else if (activeNutrientFilter === 'high_protein') {
+      base = base.filter((p: Product) => (p.protein || 0) >= 15);
+    } else if (activeNutrientFilter === 'high_fiber') {
+      base = base.filter((p: Product) => (p.fiber || 0) >= 5);
+    } else if (activeNutrientFilter === 'fast_carbs') {
+      base = base.filter((p: Product) => ((p.gi || 0) >= 65) || ((p.carbs || 0) >= 20) || (p.category || '').toLowerCase().includes('owoce') || (p.category || '').toLowerCase().includes('napoje'));
+    }
   
     const rawTerm = searchTerm.trim();
     if (!rawTerm) {
@@ -218,7 +229,7 @@ export const ProductSearch = ({
       // 3. Alfabetycznie
       return (a.nameNorm || '').localeCompare(b.nameNorm || '', 'pl');
     }).map(item => item.product);
-  }, [allLocal, activeCategory, searchTerm]);
+  }, [allLocal, activeCategory, searchTerm, activeNutrientFilter]);
 
   return (
   <>
@@ -308,6 +319,34 @@ export const ProductSearch = ({
   {cat.label}
   </button>
   ))}
+  </div>
+
+  {/* Szybkie filtry kulinarne makroskładników */}
+  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-2.5 scrollbar-none">
+    {[
+      { id: 'all', label: t('food.filter_all', { defaultValue: 'Wszystkie' }), icon: null },
+      { id: 'snack_free', label: t('food.filter_snack_free', { defaultValue: 'Lekkie (<5g W)' }), icon: '🌱' },
+      { id: 'high_protein', label: t('food.filter_high_protein', { defaultValue: 'Wysokobiałkowe (≥15g B)' }), icon: '🍗' },
+      { id: 'high_fiber', label: t('food.filter_high_fiber', { defaultValue: 'Bogate w błonnik (≥5g Bł)' }), icon: '🌾' },
+      { id: 'fast_carbs', label: t('food.filter_fast_carbs', { defaultValue: 'Szybka energia' }), icon: '⚡' },
+    ].map((f) => (
+      <button
+        key={f.id}
+        onClick={() => {
+          Haptics.selectionStart();
+          setActiveNutrientFilter(f.id as NutrientFilter);
+        }}
+        className={cn(
+          "shrink-0 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border active:scale-95 cursor-pointer",
+          activeNutrientFilter === f.id
+            ? "bg-accent-500 text-white border-accent-600 shadow-sm"
+            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700/60"
+        )}
+      >
+        {f.icon && <span className="text-xs">{f.icon}</span>}
+        <span>{f.label}</span>
+      </button>
+    ))}
   </div>
  </div>
 

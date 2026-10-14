@@ -69,12 +69,12 @@ const GlikoControlLogo = () => {
           {/* Wpadający od dołu grot (Arrowhead) */}
           <path 
             d="M 36,54 L 50,40 L 64,54" 
-            stroke="white" 
+            stroke="currentColor" 
             strokeWidth="10" 
             fill="none" 
             strokeLinecap="round" 
             strokeLinejoin="round" 
-            className="splash-arrow"
+            className="splash-arrow text-slate-900 dark:text-white"
           />
         </svg>
       </motion.div>

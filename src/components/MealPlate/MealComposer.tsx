@@ -1,5 +1,5 @@
 import { useLogsStore } from "../../stores/useLogsStore";
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -10,7 +10,8 @@ import { getProductName } from '../FoodDatabase';
 import SwipeableItem from '../SwipeableItem';
 import i18n from '../../i18n';
 import { PlateSequenceCard } from './PlateSequenceCard';
-import { classifyIngredientStep, SEQUENCE_STEPS } from '../../lib/foodSequencing';
+import { CulinaryMatrixCard } from './CulinaryMatrixCard';
+import { classifyIngredientStep, SEQUENCE_STEPS, isCompositeMealItem, COMPOSITE_STEP_INFO } from '../../lib/foodSequencing';
 
 export const MealComposer = ({
  mode,
@@ -44,6 +45,8 @@ export const MealComposer = ({
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
  const safePlate = Array.isArray(plate) ? plate : [];
+ const [manualAcidicBuffer, setManualAcidicBuffer] = useState(false);
+ const [isAlDente, setIsAlDente] = useState(true);
 
  const totalCalsFromMacros = totalCarbs * 4 + totalProtein * 4 + totalFat * 9;
  const carbsPct = totalCalsFromMacros > 0 ? ((totalCarbs * 4) / totalCalsFromMacros) * 100 : 0;
@@ -232,6 +235,19 @@ export const MealComposer = ({
      {getProductName(item, i18n.language)}
    </span>
    {(() => {
+     const isComposite = isCompositeMealItem(item, plate);
+     if (isComposite) {
+       return (
+         <span className={cn(
+           "text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border",
+           COMPOSITE_STEP_INFO.bgColor,
+           COMPOSITE_STEP_INFO.borderColor,
+           COMPOSITE_STEP_INFO.textColor
+         )}>
+           {COMPOSITE_STEP_INFO.badge}
+         </span>
+       );
+     }
      const step = classifyIngredientStep(item);
      const stepInfo = SEQUENCE_STEPS[step];
      return (
@@ -334,6 +350,22 @@ export const MealComposer = ({
  </motion.div>
 
  {safePlate.length > 0 && <PlateSequenceCard plate={safePlate} />}
+ {safePlate.length > 0 && (
+   <CulinaryMatrixCard
+     plate={safePlate}
+     logs={logs}
+     manualAcidicBuffer={manualAcidicBuffer}
+     onToggleAcidicBuffer={() => {
+       Haptics.light();
+       setManualAcidicBuffer(prev => !prev);
+     }}
+     isAlDente={isAlDente}
+     onToggleAlDente={() => {
+       Haptics.light();
+       setIsAlDente(prev => !prev);
+     }}
+   />
+ )}
 
  <div className="mb-6 p-4 bg-white/5 rounded-2xl border border-white/5 glass-target">
  <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">

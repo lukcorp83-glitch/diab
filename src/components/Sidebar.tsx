@@ -35,7 +35,8 @@ import {
  Sparkles,
  Cpu,
  Facebook,
- Plane
+ Plane,
+ MoonStar
 } from 'lucide-react';
 import { cn } from '../lib/utils'; // uses clsx and tailwind-merge
 import { APP_VERSION, IS_BETA_CHANNEL, FACEBOOK_GROUP_URL, FACEBOOK_GROUP_URL_EN } from '../constants';
@@ -79,7 +80,8 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
  ...(isInsulinMode ? [{ id: 'bolus_calc', label: t('sidebar.items.bolus_calc'), tab: 'bolus', icon: <Calculator size={14} /> }] : []),
  { id: 'add_glucose', label: t('sidebar.items.add_glucose'), tab: 'dashboard', action: 'add_glucose', icon: <Plus size={14} /> },
  { id: 'profile_training', label: t('sidebar.items.profile_training'), tab: 'profile', action: 'training', icon: <Activity size={14} /> },
- { id: 'dash_travel', label: t('sidebar.items.dash_travel'), tab: 'travel', icon: <Plane size={14} /> }
+ { id: 'dash_travel', label: t('sidebar.items.dash_travel'), tab: 'travel', icon: <Plane size={14} /> },
+ { id: 'dash_bedside', label: t('sidebar.items.dash_bedside', { defaultValue: 'Zegar nocny (OLED)' }), tab: 'dashboard', action: 'bedside_clock', icon: <MoonStar size={14} /> }
  ]
  },
  { 
@@ -168,7 +170,7 @@ export default function Sidebar({ isOpen, onClose, activeTab, changeTab, onActio
  exit={{ x: '-100%', opacity: 0.85 }}
  transition={{ type: 'spring', damping: 32, stiffness: 360, mass: 0.8 }}
  className={cn(
- "gpu-layer will-change-transform fixed top-0 left-0 bottom-0 w-[85%] max-w-sm z-[110] flex flex-col p-8 shadow-2xl overflow-y-auto rounded-r-[3rem]",
+ "gpu-layer will-change-transform fixed top-0 left-0 bottom-0 w-[85%] max-w-sm z-[110] flex flex-col p-8 pt-safe pb-safe shadow-2xl overflow-y-auto rounded-r-[3rem]",
  theme === 'dark' ? "bg-[#020617]/95 backdrop-blur-xl border-r border-white/5" : "bg-white/95 backdrop-blur-xl border-r border-slate-200"
  )}
  >

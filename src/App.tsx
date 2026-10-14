@@ -39,7 +39,7 @@ import { downloadCloudPackage, uploadCloudPackage } from "./components/CloudPack
 import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
 import { useMealPlateStore, addAiItemToPlate } from "./stores/useMealPlateStore";
-import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal, checkPreBolusHypoShield } from "./services/preBolusService";
+import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal, checkPreBolusHypoShield, trackAdaptivePreBolusTrend } from "./services/preBolusService";
 import { useLogsStore } from "./stores/useLogsStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
@@ -630,8 +630,9 @@ export default function App() {
     const glTrend = latestGlucose?.direction || null;
     const glDelta = typeof latestGlucose?.delta === 'number' ? latestGlucose.delta : null;
 
-    // 1. Aktywny monitor bezpieczeństwa: skraca stoper i alarmuje, gdy cukier gwałtownie spada
+    // 1. Aktywny monitor bezpieczeństwa i adaptacyjny radar trendu
     checkPreBolusHypoShield(glValue, glTrend, glDelta);
+    trackAdaptivePreBolusTrend(glValue, glTrend, glDelta);
 
     // 2. Detekcja nowych bolusów z pompy i nowych posiłków
     checkAndNotifyPumpBolus(logs, glValue, glTrend, userSettings);
@@ -711,7 +712,8 @@ export default function App() {
           glucose: current.glucose ? current.glucose.toString() : current.value ? current.value.toString() : "---",
           arrow: arrow,
           delta: deltaStr,
-          time: time
+          time: time,
+          iob: current.iob ? current.iob.toString() : ""
         });
       } catch (e) {
         console.warn("Widget pushData error:", e);
@@ -1444,7 +1446,34 @@ export default function App() {
       
       applyColors();
       
-      root.setAttribute("data-bg", userSettings?.bgOption || localStorage.getItem("bgOption") || "default");
+      const bgOption = userSettings?.bgOption || localStorage.getItem("bgOption") || "default";
+      root.setAttribute("data-bg", bgOption);
+
+      // Edge-to-Edge System Bar Synchronization (Pasek Stanu i Nawigacji Androida + Web meta theme-color)
+      const systemBarColor = isDark 
+        ? (bgOption === "true-black" ? "#000000" : "#0f172a") 
+        : "#f8fafc";
+
+      let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (!metaThemeColor) {
+        metaThemeColor = document.createElement('meta');
+        metaThemeColor.setAttribute('name', 'theme-color');
+        document.head.appendChild(metaThemeColor);
+      }
+      metaThemeColor.setAttribute('content', systemBarColor);
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const NotificationBridge: any = (Capacitor as any).Plugins?.NotificationBridge;
+          NotificationBridge?.setSystemBarColors?.({
+            statusBarColor: systemBarColor,
+            navigationBarColor: systemBarColor,
+            isDark: isDark
+          });
+        } catch (e) {
+          console.warn("Failed to update system bar colors:", e);
+        }
+      }
     
     // 3. Efekty wizualne (szkło, material 3, eco)
     const lsGlass = localStorage.getItem("glassmorphismEnabled");

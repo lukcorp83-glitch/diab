@@ -75,6 +75,7 @@ public class WidgetUpdaterPlugin extends Plugin {
             String arrow = call.getString("arrow", "");
             String deltaStr = call.getString("delta", "---");
             String time = call.getString("time", "Brak danych");
+            String iob = call.getString("iob", "");
 
             SharedPreferences prefs = getContext().getSharedPreferences("GlikoWidgetPrefs", Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
@@ -83,6 +84,9 @@ public class WidgetUpdaterPlugin extends Plugin {
             editor.putString("widget_arrow", arrow);
             editor.putString("widget_delta", deltaStr);
             editor.putString("widget_time", time);
+            if (iob != null && !iob.isEmpty()) {
+                editor.putString("widget_iob", iob);
+            }
             editor.apply();
 
             // Odświeżamy widżety od razu - jeśli ns_url jest pusty, użyją zapisanych wyżej danych!

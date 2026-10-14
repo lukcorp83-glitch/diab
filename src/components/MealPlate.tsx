@@ -24,8 +24,6 @@ import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeH
 // Globalny znacznik zapobiegający wielokrotnemu otwieraniu kamery przy remount
 let lastGlobalCameraTrigger = 0;
 
-// Lazy load Diets to avoid conflict with AppContent.tsx lazy import
-const Diets = React.lazy(() => import("./Diets").then(module => ({ default: module.Diets })));
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Product, PlateItem } from '../types';
@@ -1104,6 +1102,7 @@ export default function MealPlate({
           carbs: Number(Number(carbs100).toFixed(1)),
           protein: Number(Number(prot100).toFixed(1)),
           fat: Number(Number(fat100).toFixed(1)),
+          fiber: ing.fiberPer100g !== undefined ? Number(ing.fiberPer100g) : (ing.fiber ? Number(ing.fiber) : 0),
           gi: ing.ig || finalResult.ig || 50,
           weight: ingWeight,
           category: "AI Wizja",

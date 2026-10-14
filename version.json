@@ -1,10 +1,10 @@
 {
-    "version": "6.0.62",
+    "version": "6.0.63",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.62-beta_OTA.apk",
-    "buildNumber": 175,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.63-beta_OTA.apk",
+    "buildNumber": 176,
     "forceUpdate": false,
-    "whatsNew": "Wdrożono harmonijkowe rozwijanie edycji sprzętu (inline) bezpośrednio w kafelku Apteczki oraz dodano moduł zarządzania zleceniem na zaopatrzenie i refundacją NFZ.",
-    "whatsNewEn": "Implemented inline accordion equipment editing directly inside inventory cards and added supply order and NFZ reimbursement tracking.",
-    "otaRevision": 335
+    "whatsNew": "Wdrożono Matrycę Fizykochemiczną Posiłku (bufor kwasowy, błonnik żelujący, wolumetryka, estymacja pasażu i okno MMC) oraz inteligentne sekwencjonowanie dań złożonych (hot dog, burger itp.). Usunięto protokół Android Auto.",
+    "whatsNewEn": "Implemented Food Physics & Culinary Matrix (acidic buffer, gel fiber, volumetrics, gastric transit and MMC window) and smart composite meal sequencing (hot dogs, burgers). Removed Android Auto protocol.",
+    "otaRevision": 336
 }

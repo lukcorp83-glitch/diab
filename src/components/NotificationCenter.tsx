@@ -34,6 +34,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { toast } from 'react-hot-toast';
 import { NotificationBridge } from '../lib/notificationBridge';
+import PixelSwitch from './common/PixelSwitch';
 
 interface AppNotification {
   id: string;
@@ -631,15 +632,11 @@ export default function NotificationCenter({ userSettings, theme, setUserSetting
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={toggleSystemNotifs}
-                        className={cn(
-                          "w-10 h-6 pl-1 shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
-                          apkNotificationsEnabled && "bg-accent-500 pl-5"
-                        )}
-                      >
-                        <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                      </button>
+                      <PixelSwitch
+                        checked={Boolean(apkNotificationsEnabled)}
+                        activeColor="bg-accent-500"
+                        onChange={toggleSystemNotifs}
+                      />
                     </div>
 
                     {/* Narzędzie testowe dźwięku alarmu MP3 */}

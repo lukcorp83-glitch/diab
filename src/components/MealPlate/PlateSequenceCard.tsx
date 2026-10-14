@@ -21,10 +21,11 @@ export const PlateSequenceCard: React.FC<PlateSequenceCardProps> = ({ plate }) =
   const sequence = getPlateGroupedSequence(plate);
   if (sequence.length === 0) return null;
 
+  const hasCompositeStep = sequence.some(s => s.stepInfo.key === 'composite');
   const hasFiberStep = sequence.some(s => s.stepInfo.step === 1);
   const hasCarbStep = sequence.some(s => s.stepInfo.step === 3 || s.stepInfo.step === 4);
   const hasProteinStep = sequence.some(s => s.stepInfo.step === 2);
-  const isWellBalanced = hasFiberStep && (hasProteinStep || hasCarbStep);
+  const isWellBalanced = hasCompositeStep || (hasFiberStep && (hasProteinStep || hasCarbStep));
 
   const getStepIcon = (iconName: string) => {
     switch (iconName) {
@@ -54,21 +55,29 @@ export const PlateSequenceCard: React.FC<PlateSequenceCardProps> = ({ plate }) =
           <div>
             <div className="flex items-center gap-2">
               <h5 className="text-[11px] font-black uppercase tracking-wider text-white">
-                {t('meal.plate_sequence_title', { defaultValue: 'Sugerowana kolejność kęsów' })}
+                {hasCompositeStep 
+                  ? t('meal.plate_sequence_composite_title', { defaultValue: 'Danie złożone (Kompozycja)' })
+                  : t('meal.plate_sequence_title', { defaultValue: 'Sugerowana kolejność kęsów' })}
               </h5>
               <span className={cn(
                 "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border",
-                isWellBalanced
+                hasCompositeStep
+                  ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                  : isWellBalanced
                   ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
                   : "bg-amber-500/15 text-amber-400 border-amber-500/30"
               )}>
-                {isWellBalanced
+                {hasCompositeStep
+                  ? t('meal.sequence_composite_badge', { defaultValue: 'Całość' })
+                  : isWellBalanced
                   ? t('meal.plate_sequence_badge_balanced', { defaultValue: 'Stabilny profil' })
                   : t('meal.plate_sequence_badge_tip', { defaultValue: 'Wskazówka' })}
               </span>
             </div>
             <p className="text-[9px] text-slate-400 font-bold mt-0.5">
-              {t('meal.plate_sequence_subtitle', { defaultValue: 'Organizacja posiłku łagodząca tempo wchłaniania glukozy' })}
+              {hasCompositeStep
+                ? t('meal.sequence_composite_sub', { defaultValue: 'Składniki tworzą jedną kulinarną całość – spożywaj razem' })
+                : t('meal.plate_sequence_subtitle', { defaultValue: 'Organizacja posiłku łagodząca tempo wchłaniania glukozy' })}
             </p>
           </div>
         </div>
@@ -149,7 +158,11 @@ export const PlateSequenceCard: React.FC<PlateSequenceCardProps> = ({ plate }) =
               <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 flex items-start gap-2 text-[9px] text-slate-300">
                 <Info size={13} className="text-indigo-400 shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
-                  {hasFiberStep ? (
+                  {hasCompositeStep ? (
+                    t('meal.sequence_composite_summary', { 
+                      defaultValue: 'Ten posiłek tworzy spójną całość kulinarną (np. hot dog, burger, kanapka). Białko i tłuszcz zawarte wewnątrz naturalnie spowalniają tempo opróżniania żołądka. Jeśli chcesz dodatkowo spłaszczyć krzywą cukru, możesz przed jedzeniem sięgnąć po porcję świeżych warzyw jako bufor.' 
+                    })
+                  ) : hasFiberStep ? (
                     t('meal.sequence_tip', { 
                       defaultValue: 'Błonnik i białko zjedzone na początku posiłku tworzą w żołądku naturalny bufor, który wygładza krzywą uwalniania energii z węglowodanów.' 
                     })

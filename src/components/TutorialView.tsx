@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
  BookOpen, 
@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
-import OnboardingTutorial from './OnboardingTutorial';
+const OnboardingTutorial = React.lazy(() => import('./OnboardingTutorial'));
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -342,10 +342,14 @@ export default function TutorialView({ setTab, onComplete }: TutorialViewProps) 
  </div>
 
  <AnimatePresence>
- {showTutorial && <OnboardingTutorial onComplete={(mode) => {
- setShowTutorial(false);
- if (onComplete) onComplete(mode);
- }} />}
+ {showTutorial && (
+   <Suspense fallback={null}>
+     <OnboardingTutorial onComplete={(mode) => {
+       setShowTutorial(false);
+       if (onComplete) onComplete(mode);
+     }} />
+   </Suspense>
+ )}
  </AnimatePresence>
  </motion.div>
  );
