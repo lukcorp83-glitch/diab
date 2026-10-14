@@ -4,6 +4,8 @@ interface NotificationBridgePluginType {
   speakGlucose: (options?: { force?: boolean; glucose?: string; trend?: string; delta?: string; lang?: string }) => Promise<void>;
   isHeadphonesConnected: () => Promise<{ connected: boolean }>;
   setVoiceReadoutEnabled: (options: { enabled: boolean }) => Promise<void>;
+  setVoiceReadoutTriggers: (options: { powerBtn?: boolean; earphoneBtn?: boolean }) => Promise<void>;
+  getVoiceReadoutTriggers: () => Promise<{ powerBtn: boolean; earphoneBtn: boolean }>;
 }
 
 const NotificationBridge = registerPlugin<NotificationBridgePluginType>('NotificationBridge');
@@ -33,6 +35,36 @@ export const voiceReadoutService = {
         await NotificationBridge.setVoiceReadoutEnabled({ enabled });
       } catch (err) {
         console.warn('Failed to set native voice readout enabled:', err);
+      }
+    }
+  },
+
+  isPowerBtnTriggerEnabled(): boolean {
+    return localStorage.getItem('gliko_voice_power_btn') !== 'false';
+  },
+
+  async setPowerBtnTriggerEnabled(enabled: boolean): Promise<void> {
+    localStorage.setItem('gliko_voice_power_btn', String(enabled));
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await NotificationBridge.setVoiceReadoutTriggers({ powerBtn: enabled });
+      } catch (err) {
+        console.warn('Failed to set power button trigger on native:', err);
+      }
+    }
+  },
+
+  isEarphoneBtnTriggerEnabled(): boolean {
+    return localStorage.getItem('gliko_voice_earphone_btn') !== 'false';
+  },
+
+  async setEarphoneBtnTriggerEnabled(enabled: boolean): Promise<void> {
+    localStorage.setItem('gliko_voice_earphone_btn', String(enabled));
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await NotificationBridge.setVoiceReadoutTriggers({ earphoneBtn: enabled });
+      } catch (err) {
+        console.warn('Failed to set earphone button trigger on native:', err);
       }
     }
   },

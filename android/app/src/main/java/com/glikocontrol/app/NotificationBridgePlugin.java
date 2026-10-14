@@ -824,4 +824,37 @@ public class NotificationBridgePlugin extends Plugin {
             call.reject("Failed to set voice readout preference: " + e.getMessage());
         }
     }
+
+    @PluginMethod
+    public void setVoiceReadoutTriggers(PluginCall call) {
+        try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+            android.content.SharedPreferences.Editor editor = prefs.edit();
+            if (call.hasOption("powerBtn")) {
+                editor.putBoolean("voice_power_btn_enabled", call.getBoolean("powerBtn", true));
+            }
+            if (call.hasOption("earphoneBtn")) {
+                editor.putBoolean("voice_earphone_btn_enabled", call.getBoolean("earphoneBtn", true));
+            }
+            editor.apply();
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to set voice readout triggers: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void getVoiceReadoutTriggers(PluginCall call) {
+        try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+            boolean powerBtn = prefs.getBoolean("voice_power_btn_enabled", true);
+            boolean earphoneBtn = prefs.getBoolean("voice_earphone_btn_enabled", true);
+            JSObject ret = new JSObject();
+            ret.put("powerBtn", powerBtn);
+            ret.put("earphoneBtn", earphoneBtn);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to get voice readout triggers: " + e.getMessage());
+        }
+    }
 }

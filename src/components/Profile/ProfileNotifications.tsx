@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot, Utensils, Battery, BatteryCharging, Headphones } from 'lucide-react';
+import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot, Utensils, Battery, BatteryCharging, Headphones, Power, Music, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -41,6 +41,8 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
 
   const [isBatteryIgnored, setIsBatteryIgnored] = useState<boolean>(true);
   const [voiceReadoutEnabled, setVoiceReadoutEnabled] = useState<boolean>(() => voiceReadoutService.isVoiceReadoutEnabled());
+  const [powerBtnEnabled, setPowerBtnEnabled] = useState<boolean>(() => voiceReadoutService.isPowerBtnTriggerEnabled());
+  const [earphoneBtnEnabled, setEarphoneBtnEnabled] = useState<boolean>(() => voiceReadoutService.isEarphoneBtnTriggerEnabled());
   const [isHeadphones, setIsHeadphones] = useState<boolean>(false);
 
   React.useEffect(() => {
@@ -305,10 +307,10 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
         <Headphones className="text-sky-500" size={18} />
         <div>
           <p className="text-xs font-black dark:text-white leading-tight">
-            Głosowy asystent słuchawkowy (TTS)
+            {t('auto.glosowy_asystent_sluchawkowy', { defaultValue: 'Głosowy asystent słuchawkowy (TTS)' })}
           </p>
           <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
-            Dwuklik włącznika telefonu czyta glikemię do podłączonych słuchawek
+            {t('auto.glosowy_asystent_sluchawkowy_opis', { defaultValue: 'Odczytuje bieżący poziom cukru do podłączonych słuchawek' })}
           </p>
         </div>
       </div>
@@ -319,15 +321,104 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
           const next = !voiceReadoutEnabled;
           setVoiceReadoutEnabled(next);
           await voiceReadoutService.setVoiceReadoutEnabled(next);
-          toast.success(next ? 'Włączono lektora słuchawkowego' : 'Wyłączono lektora słuchawkowego');
+          toast.success(next ? t('auto.wlaczono_lektora_sluchawkowego', { defaultValue: 'Włączono lektora słuchawkowego' }) : t('auto.wylaczono_lektora_sluchawkowego', { defaultValue: 'Wyłączono lektora słuchawkowego' }));
         }}
       />
     </div>
 
+    {voiceReadoutEnabled && (
+      <div className="pt-2 border-t border-sky-100/60 dark:border-slate-700/60 space-y-2">
+        <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          {t('auto.wybierz_wyzwalacze_tytul', { defaultValue: 'Wyzwalacze odczytu (mogą działać oba naraz)' })}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* Wyzwalacz 1: Dwuklik włącznika telefonu */}
+          <button
+            type="button"
+            onClick={async () => {
+              const next = !powerBtnEnabled;
+              setPowerBtnEnabled(next);
+              await voiceReadoutService.setPowerBtnTriggerEnabled(next);
+              toast.success(next 
+                ? t('auto.wlaczono_wyzwalacz_power', { defaultValue: 'Włączono: Dwuklik włącznika telefonu' }) 
+                : t('auto.wylaczono_wyzwalacz_power', { defaultValue: 'Wyłączono: Dwuklik włącznika telefonu' })
+              );
+            }}
+            className={cn(
+              "flex items-center justify-between p-2.5 rounded-xl border transition-all text-left",
+              powerBtnEnabled
+                ? "bg-sky-500/10 dark:bg-sky-500/20 border-sky-300 dark:border-sky-500/40 shadow-sm"
+                : "bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700/80 opacity-60"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <div className={cn("p-1.5 rounded-lg", powerBtnEnabled ? "bg-sky-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-500")}>
+                <Power size={14} />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold dark:text-white leading-tight">
+                  {t('auto.wyzwalacz_power_tytul', { defaultValue: 'Włącznik telefonu' })}
+                </p>
+                <p className="text-[8px] text-slate-500 dark:text-slate-400">
+                  {t('auto.wyzwalacz_power_opis', { defaultValue: 'Dwuklik włącznika / ekranu' })}
+                </p>
+              </div>
+            </div>
+            <div className={cn(
+              "w-4 h-4 rounded-full flex items-center justify-center border transition-all",
+              powerBtnEnabled ? "bg-sky-500 border-sky-500 text-white" : "border-slate-300 dark:border-slate-600"
+            )}>
+              {powerBtnEnabled && <Check size={10} strokeWidth={3} />}
+            </div>
+          </button>
+
+          {/* Wyzwalacz 2: Przycisk słuchawek */}
+          <button
+            type="button"
+            onClick={async () => {
+              const next = !earphoneBtnEnabled;
+              setEarphoneBtnEnabled(next);
+              await voiceReadoutService.setEarphoneBtnTriggerEnabled(next);
+              toast.success(next 
+                ? t('auto.wlaczono_wyzwalacz_sluchawki', { defaultValue: 'Włączono: Przycisk słuchawek' }) 
+                : t('auto.wylaczono_wyzwalacz_sluchawki', { defaultValue: 'Wyłączono: Przycisk słuchawek' })
+              );
+            }}
+            className={cn(
+              "flex items-center justify-between p-2.5 rounded-xl border transition-all text-left",
+              earphoneBtnEnabled
+                ? "bg-sky-500/10 dark:bg-sky-500/20 border-sky-300 dark:border-sky-500/40 shadow-sm"
+                : "bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700/80 opacity-60"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <div className={cn("p-1.5 rounded-lg", earphoneBtnEnabled ? "bg-sky-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-500")}>
+                <Music size={14} />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold dark:text-white leading-tight">
+                  {t('auto.wyzwalacz_sluchawki_tytul', { defaultValue: 'Przycisk słuchawek' })}
+                </p>
+                <p className="text-[8px] text-slate-500 dark:text-slate-400">
+                  {t('auto.wyzwalacz_sluchawki_opis', { defaultValue: 'Dwuklik: następny utwór / play' })}
+                </p>
+              </div>
+            </div>
+            <div className={cn(
+              "w-4 h-4 rounded-full flex items-center justify-center border transition-all",
+              earphoneBtnEnabled ? "bg-sky-500 border-sky-500 text-white" : "border-slate-300 dark:border-slate-600"
+            )}>
+              {earphoneBtnEnabled && <Check size={10} strokeWidth={3} />}
+            </div>
+          </button>
+        </div>
+      </div>
+    )}
+
     <div className="flex items-center justify-between pt-1 border-t border-sky-100/60 dark:border-slate-700/60">
       <div className="text-[9px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
         <span className={cn("w-2 h-2 rounded-full", isHeadphones ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-600")} />
-        <span>{isHeadphones ? "Słuchawki wykryte" : "Brak słuchawek (wymagane)"}</span>
+        <span>{isHeadphones ? t('auto.sluchawki_wykryte', { defaultValue: 'Słuchawki podłączone' }) : t('auto.brak_sluchawek', { defaultValue: 'Brak słuchawek' })}</span>
       </div>
       <button
         type="button"

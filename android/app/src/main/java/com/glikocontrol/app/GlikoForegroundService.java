@@ -45,6 +45,17 @@ public class GlikoForegroundService extends Service implements SensorEventListen
         }
     };
 
+    private android.media.session.MediaSession mediaSession;
+    private long lastEarphoneClickTime = 0;
+    private int earphoneClickCount = 0;
+    private final Handler earphoneHandler = new Handler(Looper.getMainLooper());
+    private final Runnable resetEarphoneRunnable = new Runnable() {
+        @Override
+        public void run() {
+            earphoneClickCount = 0;
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -61,7 +72,8 @@ public class GlikoForegroundService extends Service implements SensorEventListen
                     if (intent != null && (Intent.ACTION_SCREEN_OFF.equals(intent.getAction()) || Intent.ACTION_SCREEN_ON.equals(intent.getAction()))) {
                         android.content.SharedPreferences prefs = getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
                         boolean voiceEnabled = prefs.getBoolean("voice_readout_enabled", true);
-                        if (!voiceEnabled) return;
+                        boolean powerBtnEnabled = prefs.getBoolean("voice_power_btn_enabled", true);
+                        if (!voiceEnabled || !powerBtnEnabled) return;
 
                         long now = System.currentTimeMillis();
                         if (now - lastScreenToggleTime < 1500) {
@@ -90,6 +102,69 @@ public class GlikoForegroundService extends Service implements SensorEventListen
             android.util.Log.i("GlikoForegroundService", "Zarejestrowano screenToggleReceiver dla odczytu słuchawkowego");
         } catch (Exception e) {
             android.util.Log.e("GlikoForegroundService", "Błąd rejestracji screenToggleReceiver", e);
+        }
+
+        // Rejestracja MediaSession dla przycisków słuchawek (Bluetooth / kablowe)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                mediaSession = new android.media.session.MediaSession(this, "GlikoVoiceMediaSession");
+                mediaSession.setFlags(android.media.session.MediaSession.FLAG_HANDLES_MEDIA_BUTTONS | android.media.session.MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS);
+                mediaSession.setCallback(new android.media.session.MediaSession.Callback() {
+                    @Override
+                    public boolean onMediaButtonEvent(Intent mediaButtonIntent) {
+                        if (mediaButtonIntent == null) return false;
+                        android.view.KeyEvent keyEvent = mediaButtonIntent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+                        if (keyEvent != null && keyEvent.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                            int keyCode = keyEvent.getKeyCode();
+                            android.content.SharedPreferences prefs = getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+                            boolean voiceEnabled = prefs.getBoolean("voice_readout_enabled", true);
+                            boolean earphoneBtnEnabled = prefs.getBoolean("voice_earphone_btn_enabled", true);
+
+                            if (voiceEnabled && earphoneBtnEnabled) {
+                                // Obsługa klawiszy słuchawek: Następna piosenka, Przewijanie, Play/Pause, Hook
+                                if (keyCode == android.view.KeyEvent.KEYCODE_MEDIA_NEXT ||
+                                    keyCode == android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD ||
+                                    keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE ||
+                                    keyCode == android.view.KeyEvent.KEYCODE_HEADSETHOOK ||
+                                    keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PLAY) {
+
+                                    long now = System.currentTimeMillis();
+                                    if (now - lastEarphoneClickTime < 1200) {
+                                        earphoneClickCount++;
+                                        if (earphoneClickCount >= 2) {
+                                            earphoneClickCount = 0;
+                                            earphoneHandler.removeCallbacks(resetEarphoneRunnable);
+                                            if (VoiceReadoutHelper.isHeadphonesConnected(GlikoForegroundService.this)) {
+                                                android.util.Log.i("GlikoForegroundService", "Wykryto podwójne kliknięcie przycisku słuchawek -> uruchamiam lektora!");
+                                                VoiceReadoutHelper.speakGlucose(GlikoForegroundService.this, false);
+                                                return true;
+                                            }
+                                        }
+                                    } else {
+                                        earphoneClickCount = 1;
+                                        earphoneHandler.removeCallbacks(resetEarphoneRunnable);
+                                        earphoneHandler.postDelayed(resetEarphoneRunnable, 1200);
+                                    }
+                                    lastEarphoneClickTime = now;
+                                }
+                            }
+                        }
+                        return super.onMediaButtonEvent(mediaButtonIntent);
+                    }
+                });
+
+                android.media.session.PlaybackState state = new android.media.session.PlaybackState.Builder()
+                        .setActions(android.media.session.PlaybackState.ACTION_PLAY_PAUSE | 
+                                    android.media.session.PlaybackState.ACTION_SKIP_TO_NEXT | 
+                                    android.media.session.PlaybackState.ACTION_FAST_FORWARD)
+                        .setState(android.media.session.PlaybackState.STATE_PAUSED, 0, 1.0f)
+                        .build();
+                mediaSession.setPlaybackState(state);
+                mediaSession.setActive(true);
+                android.util.Log.i("GlikoForegroundService", "MediaSession aktywna dla przycisków słuchawek.");
+            }
+        } catch (Exception e) {
+            android.util.Log.e("GlikoForegroundService", "Błąd konfiguracji MediaSession", e);
         }
 
         // Inicjalizacja sensora kroków w tle dla ciągłego zliczania
@@ -333,6 +408,17 @@ public class GlikoForegroundService extends Service implements SensorEventListen
         }
         if (sensorManager != null) {
             sensorManager.unregisterListener(this);
+        }
+        if (screenToggleReceiver != null) {
+            try {
+                unregisterReceiver(screenToggleReceiver);
+            } catch (Exception ignored) {}
+        }
+        if (mediaSession != null) {
+            try {
+                mediaSession.setActive(false);
+                mediaSession.release();
+            } catch (Exception ignored) {}
         }
     }
 
