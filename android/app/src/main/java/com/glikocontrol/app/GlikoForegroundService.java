@@ -573,15 +573,4 @@ public class GlikoForegroundService extends Service implements SensorEventListen
         } catch (Exception ignored) {}
         return false;
     }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        try {
-            if (screenToggleReceiver != null) {
-                unregisterReceiver(screenToggleReceiver);
-                screenToggleReceiver = null;
-            }
-        } catch (Exception ignored) {}
-    }
 }
