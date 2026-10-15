@@ -1,6 +1,6 @@
 import { useLogsStore } from "../stores/useLogsStore";
 import { motion } from 'motion/react';
-import { Radio, Droplet, Cylinder, Clock, ChevronRight, Utensils } from 'lucide-react';
+import { Radio, Droplet, Cylinder, Clock, ChevronRight, Utensils, Syringe, Waves } from 'lucide-react';
 import { LogEntry } from '../types';
 import { cn, getMealAbsorptionTime } from '../lib/utils';
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,18 @@ import { AnimatedNumber } from "./common/AnimatedNumber";
 interface GlikoWidgetProps {
   setTab: (t: string) => void;
   iob: number;
-  todayStats: { carbs: number; insulin: number };
+  todayStats: {
+    carbs: number;
+    insulin: number;
+    bolus?: number;
+    basal?: number;
+    scheduledBasal?: number;
+    savedBasal?: number;
+    isApproximate?: boolean;
+    hasBasal?: boolean;
+    basalRatio?: number;
+    bolusRatio?: number;
+  };
   trend?: { icon: React.ReactNode, color: string, text: string, deltaText?: string, direction?: string } | null;
   tir: { low: number; inRange: number; high: number };
   hba1c: number;
@@ -269,19 +280,56 @@ export default function GlikoWidget({ setTab, iob, todayStats, trend, tir, hba1c
  <div className="grid grid-cols-2 gap-4">
  <motion.div whileHover={{ scale: 1.02 }} className="bg-slate-100/50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200/50 dark:border-white/5 flex flex-col justify-between glass-target">
  <div>
- <div className="flex items-center gap-2 mb-2">
+ <div className="flex items-center justify-between mb-1.5">
+ <div className="flex items-center gap-1.5">
  <Cylinder size={12} className="text-accent-500" />
- <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{t('auto.dziś_jednostek', { defaultValue: i18n.t('auto.dzis_jednostek', { defaultValue: "Dziś Jednostek" }) })}</span>
+ <span className="text-[8px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">
+   {todayStats.hasBasal ? t('chart.tdd_est', { defaultValue: 'Szacowane TDD' }) : t('auto.dziś_jednostek', { defaultValue: i18n.t('auto.dzis_jednostek', { defaultValue: "Dziś Jednostek" }) })}
+ </span>
+ </div>
+ {todayStats.hasBasal && (
+   <span className="text-[7.5px] font-black px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20" title={t('chart.approx_telemetry', { defaultValue: '*Wartość przybliżona (telemetria pompy)' })}>
+     ~SZACUNEK
+   </span>
+ )}
  </div>
  <div className="flex items-baseline gap-1">
+ {todayStats.hasBasal && <span className="text-sm font-bold text-slate-400">~</span>}
  <AnimatedNumber value={todayStats.insulin} decimals={1} className="text-2xl font-black text-slate-800 dark:text-white" />
  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{t('auto.j', { defaultValue: 'j.' })}</span>
  </div>
+
+ {todayStats.hasBasal && (
+   <div className="mt-1 flex flex-col gap-0.5">
+     <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 dark:text-slate-400">
+       <span className="flex items-center gap-1 text-pink-500">
+         <Syringe size={9} />
+         {Number(todayStats.bolus || 0).toFixed(1)}j ({todayStats.bolusRatio || 0}%)
+       </span>
+       <span className="flex items-center gap-1 text-sky-500">
+         <Waves size={9} />
+         ~{Number(todayStats.basal || 0).toFixed(1)}j ({todayStats.basalRatio || 0}%)
+       </span>
+     </div>
+
+     {(todayStats.savedBasal || 0) > 0.1 && (
+       <div className="mt-1 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-between" title={t('chart.pump_suspended_info', { defaultValue: `Pompa wstrzymała ~${todayStats.savedBasal} j bazy przy spadkach cukru`, units: todayStats.savedBasal })}>
+         <span>{t('chart.suspended_during_drops', { defaultValue: 'Wstrzymano przy spadkach' })}:</span>
+         <span className="font-black">~{todayStats.savedBasal} j</span>
+       </div>
+     )}
+   </div>
+ )}
  </div>
- <div className="mt-1.5 pt-1.5 border-t border-slate-200/40 dark:border-white/10">
- <span className="text-[10.5px] font-medium text-slate-500 dark:text-slate-400 block truncate">
+ <div className="mt-1.5 pt-1.5 border-t border-slate-200/40 dark:border-white/10 flex items-center justify-between">
+ <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">
    {t('auto.ostatnia', { defaultValue: 'Ostatnia:' })} <span className="font-extrabold text-slate-700 dark:text-slate-200">{lastBolus ? getTimeAgo(lastBolus.timestamp) : '--'}</span>
  </span>
+ {todayStats.hasBasal && (
+   <span className="text-[8px] font-semibold text-slate-400 dark:text-slate-500 italic" title={t('chart.approx_telemetry', { defaultValue: '*Wartość przybliżona (telemetria pompy)' })}>
+     *telemetria
+   </span>
+ )}
  </div>
  </motion.div>
 

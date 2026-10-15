@@ -636,7 +636,12 @@
     "basal_label": "BAZA",
     "basal_profile": "Baza (j/h)",
     "basal_toggle": "Przełącz wykres bazy (ON/OFF)",
-    "temp": "Tymcz."
+    "temp": "Tymcz.",
+    "basal_est": "Baza (szacunek)",
+    "tdd_est": "Szacowane TDD",
+    "approx_telemetry": "*Wartość przybliżona (telemetria pompy)",
+    "suspended_during_drops": "Wstrzymano przy spadkach",
+    "pump_suspended_info": "Pompa wstrzymała ~{{units}} j bazy przy spadkach cukru"
   },
   "gemini": {
     "proxy_limit_error_global": "Aby przywrócić działanie modułów Sztucznej Inteligencji (GlikoSense, Asystent), przejdź do: Mój Profil -> Opcje Zaawansowane -> Własny klucz API. Pobierz darmowy klucz Gemini ze strony aistudio.google.com i wprowadź go w aplikacji. Jest to konieczne, gdyż darmowy ogólnodostępny serwer osiągnął limity zapytań Google.",

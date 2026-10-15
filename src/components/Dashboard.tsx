@@ -56,6 +56,7 @@ import {
   Move
 } from "lucide-react";
 import { cn, calculateIOB, getEffectiveIOB } from "../lib/utils";
+import { getActualDailyBasal } from "../lib/nightscoutUtils";
 import { toast } from "react-hot-toast";
 import { APP_VERSION } from "../constants";
 import GlucoseModal from "./GlucoseModal";
@@ -986,22 +987,43 @@ export default function Dashboard({
     });
   }, [logs, trend]);
 
+  const basalLogs = useMemo(() => {
+    return (logs || []).filter((l) => l.type === "basal");
+  }, [logs]);
+
+  const dailyBasalStats = useMemo(() => {
+    return getActualDailyBasal(new Date(), settings, pumpStatus, basalLogs);
+  }, [settings, pumpStatus, basalLogs]);
+
   const todayStats = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayTs = today.getTime();
     const todayLogs = (logs || []).filter((l) => (l.timestamp || 0) >= todayTs);
     const meals = todayLogs.filter((l) => l.type === "meal" || l.type === "carbs" || (l.type === "bolus" && l.linkedMeal));
-    const insulin = todayLogs.filter((l) => l.type === "bolus");
+    const boluses = todayLogs.filter((l) => l.type === "bolus");
+
+    const bolusSum = boluses.reduce((acc, l) => acc + (l.value || 0), 0);
+    const deliveredBasal = dailyBasalStats.deliveredBasal;
+    const hasBasal = deliveredBasal > 0 || dailyBasalStats.scheduledBasal > 0;
+    const totalTdd = hasBasal ? Math.round((bolusSum + deliveredBasal) * 10) / 10 : bolusSum;
 
     return {
       carbs: meals.reduce((acc, l) => {
         const c = (l.type === "bolus" && l.linkedMeal) ? (l.linkedMeal.carbs || 0) : (l.carbs || l.value || 0);
         return acc + c;
       }, 0),
-      insulin: insulin.reduce((acc, l) => acc + (l.value || 0), 0),
+      insulin: totalTdd,
+      bolus: bolusSum,
+      basal: deliveredBasal,
+      scheduledBasal: dailyBasalStats.scheduledBasal,
+      savedBasal: dailyBasalStats.savedBasal,
+      isApproximate: true,
+      hasBasal,
+      basalRatio: totalTdd > 0 ? Math.round((deliveredBasal / totalTdd) * 100) : 0,
+      bolusRatio: totalTdd > 0 ? Math.round((bolusSum / totalTdd) * 100) : 100
     };
-  }, [logs]);
+  }, [logs, dailyBasalStats]);
 
 
 

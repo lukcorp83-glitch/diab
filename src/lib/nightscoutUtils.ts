@@ -120,3 +120,62 @@ export function getBasalRateAtTime(
   return { rate: 0, isTemp: false };
 }
 
+export interface DailyBasalResult {
+  deliveredBasal: number;   // Szacunkowa rzeczywiście podana baza z uwzględnieniem wyłączeń i temp basali
+  scheduledBasal: number;   // Teoretyczna baza z profilu
+  savedBasal: number;       // Insulina wstrzymana przez pompę (np. przy spadkach / hipo)
+  isApproximate: boolean;   // Zawsze true - wartość przybliżona na podstawie telemetrii
+  activeHours: number;      // Liczba godzin brana pod uwagę
+}
+
+/**
+ * Oblicza szacunkową dobową bazę (TDD Basal) poprzez całkowanie krokowe (co 5 minut).
+ * Uwzględnia wyłączenia pompy do 0.00 j/h przy spadkach cukru, redukcje i zwiększenia bazy.
+ * UWAGA: Zwracana wartość jest zawsze wartością przybliżoną (telemetryczną estymacją).
+ */
+export function getActualDailyBasal(
+  targetDate: Date | number = new Date(),
+  settings?: any,
+  pumpStatus?: any,
+  basalLogs?: any[]
+): DailyBasalResult {
+  const d = new Date(targetDate);
+  const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+  const endOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+  const now = Date.now();
+  
+  // Jeśli sprawdzamy dzień dzisiejszy, liczymy do chwili obecnej
+  const cutoff = Math.min(now, endOfDay);
+  if (cutoff <= startOfDay) {
+    return { deliveredBasal: 0, scheduledBasal: 0, savedBasal: 0, isApproximate: true, activeHours: 0 };
+  }
+
+  const stepMinutes = 5;
+  const stepMs = stepMinutes * 60 * 1000;
+  const stepHours = stepMinutes / 60; // 0.08333 h
+
+  let deliveredBasal = 0;
+  let scheduledBasal = 0;
+
+  for (let t = startOfDay; t <= cutoff; t += stepMs) {
+    // 1. Rzeczywiste tempo w danym momencie (z wyłączeniami 0 j/h i temp basalami)
+    const actual = getBasalRateAtTime(t, settings, pumpStatus, basalLogs);
+    deliveredBasal += (actual.rate || 0) * stepHours;
+
+    // 2. Teoretyczny profil standardowy bez nakładek tymczasowych
+    const profileOnly = getBasalRateAtTime(t, settings, null, []);
+    scheduledBasal += (profileOnly.rate || 0) * stepHours;
+  }
+
+  const activeHours = (cutoff - startOfDay) / (1000 * 60 * 60);
+  const savedBasal = Math.max(0, scheduledBasal - deliveredBasal);
+
+  return {
+    deliveredBasal: Math.round(deliveredBasal * 100) / 100,
+    scheduledBasal: Math.round(scheduledBasal * 100) / 100,
+    savedBasal: Math.round(savedBasal * 100) / 100,
+    isApproximate: true,
+    activeHours: Math.round(activeHours * 10) / 10
+  };
+}
+

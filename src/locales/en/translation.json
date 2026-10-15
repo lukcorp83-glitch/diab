@@ -636,7 +636,12 @@
     "basal_label": "BASAL",
     "basal_profile": "Basal (U/h)",
     "basal_toggle": "Toggle basal chart (ON/OFF)",
-    "temp": "Temp"
+    "temp": "Temp",
+    "basal_est": "Basal (est.)",
+    "tdd_est": "Estimated TDD",
+    "approx_telemetry": "*Approximate value (pump telemetry)",
+    "suspended_during_drops": "Suspended during drops",
+    "pump_suspended_info": "Pump suspended ~{{units}} U basal during glucose drops"
   },
   "gemini": {
     "proxy_limit_error_global": "AI modules (GlikoSense, Assistant) offline. Go to: Profile -> Advanced -> Own API Key. The free server reached Google's limits.",

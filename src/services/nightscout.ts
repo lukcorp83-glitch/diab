@@ -374,6 +374,20 @@ export const nightscoutService = {
               notes: `Temp Basal ${bRate} U/h (${dur}m)`,
               source: nsSource
             });
+          } else if (lowerEventType.includes('suspend') || lowerEventType.includes('pump suspend') || lowerEventType === 'suspend pump') {
+            const dur = Number(t.duration ?? 30);
+            logs.push({
+              id: `ns-suspend-${t._id || timestamp}`,
+              nsId: t._id,
+              type: 'basal',
+              value: 0,
+              rate: 0,
+              duration: dur,
+              isTemp: true,
+              timestamp,
+              notes: `Pump Suspend 0 U/h (${dur}m)`,
+              source: nsSource
+            });
           }
           
           if (lowerEventType === 'site change' || lowerEventType === 'cartridge change' || lowerEventType === 'pump battery change') {
