@@ -96,6 +96,7 @@ export function AppLayout({
     showTutorial,
     setShowTutorial,
     showPrivacyPopup,
+    setShowPrivacyPopup,
     showChangelog,
     setShowChangelog,
     showStatusPopup,
@@ -529,7 +530,8 @@ export function AppLayout({
                   setShowTutorial(false);
                   localStorage.setItem("hasSeenTutorial", "true");
                   localStorage.setItem("glikocontrol_privacy_accepted", "true");
-                  setShowPrivacyPopup(false);
+                  setShowPrivacyPopup?.(false);
+                  handleAcceptPrivacy?.();
                   localStorage.setItem("treatmentMode", mode); // Fallback offline
                   
                   setUserSettings((prev) => ({ 
