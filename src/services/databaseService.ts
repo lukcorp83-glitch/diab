@@ -659,6 +659,63 @@ export class DatabaseService {
       console.warn("Failed to delete food product from SQLite", e);
     }
   }
+
+  /**
+   * Zwraca podsumowanie i statystyki lokalnej bazy danych SQLite.
+   */
+  async getDatabaseInfo(): Promise<{
+    status: string;
+    isWeb: boolean;
+    totalLogs: number;
+    logTypes: Record<string, number>;
+    totalFoodProducts: number;
+    customFoodProducts: number;
+    favoriteFoodProducts: number;
+    oldestLogDate?: string;
+    newestLogDate?: string;
+  } | null> {
+    if (!this.db) return null;
+    try {
+      const logsCountRes = await this.db.query("SELECT COUNT(*) as count FROM application_logs;");
+      const totalLogs = logsCountRes?.values?.[0]?.count || 0;
+
+      const typesRes = await this.db.query("SELECT type, COUNT(*) as count FROM application_logs GROUP BY type;");
+      const logTypes: Record<string, number> = {};
+      if (typesRes?.values) {
+        typesRes.values.forEach((row: any) => {
+          logTypes[row.type] = row.count;
+        });
+      }
+
+      const rangeRes = await this.db.query("SELECT MIN(timestamp) as min_ts, MAX(timestamp) as max_ts FROM application_logs;");
+      const minTs = rangeRes?.values?.[0]?.min_ts;
+      const maxTs = rangeRes?.values?.[0]?.max_ts;
+
+      const foodCountRes = await this.db.query("SELECT COUNT(*) as count FROM food_products;");
+      const customFoodRes = await this.db.query("SELECT COUNT(*) as count FROM food_products WHERE is_custom = 1;");
+      const favFoodRes = await this.db.query("SELECT COUNT(*) as count FROM food_products WHERE is_favorite = 1;");
+
+      return {
+        status: "connected",
+        isWeb: this.isWeb,
+        totalLogs,
+        logTypes,
+        totalFoodProducts: foodCountRes?.values?.[0]?.count || 0,
+        customFoodProducts: customFoodRes?.values?.[0]?.count || 0,
+        favoriteFoodProducts: favFoodRes?.values?.[0]?.count || 0,
+        oldestLogDate: minTs ? new Date(minTs).toLocaleString() : undefined,
+        newestLogDate: maxTs ? new Date(maxTs).toLocaleString() : undefined,
+      };
+    } catch (e) {
+      console.error("Failed to get database info:", e);
+      return null;
+    }
+  }
 }
 
 export const dbService = new DatabaseService();
+
+if (typeof window !== 'undefined') {
+  (window as any).dbService = dbService;
+  (window as any).getDbInfo = () => dbService.getDatabaseInfo();
+}

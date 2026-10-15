@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+import { getBasalFromProfile } from '../lib/nightscoutUtils';
 
 interface NightscoutEntry {
   sgv: number;
@@ -229,8 +230,27 @@ function processTreatments(data: any[]): any[] {
   return logs;
 }
 
-function processDeviceStatus(data: any[]): any {
-  if (!Array.isArray(data) || data.length === 0) return null;
+function processDeviceStatus(data: any[], profileData?: any): any {
+  if (!Array.isArray(data) || data.length === 0) {
+    if (profileData) {
+      const fallbackBasal = getBasalFromProfile(profileData);
+      if (fallbackBasal !== undefined && fallbackBasal !== null) {
+        return {
+          battery: 0,
+          reservoir: undefined,
+          activeInsulin: undefined,
+          model: null,
+          basal: {
+            rate: fallbackBasal,
+            isTemp: false
+          },
+          uploader: null,
+          lastUpdate: { seconds: Math.floor(Date.now() / 1000) }
+        };
+      }
+    }
+    return null;
+  }
   
   // Znajdź najświeższy wpis zawierający rzeczywiste dane z pompy lub poziom zbiorniczka.
   // Nie ograniczamy się sztywno do 60 minut – jeśli uploader nie miał zasięgu pompy przez 2h,
@@ -266,13 +286,21 @@ function processDeviceStatus(data: any[]): any {
   // Zbiornik musi być prawidłową liczbą dodatnią > 0. Wartości <= 0 oznaczają brak odczytu z pompy.
   const parsedRes = (typeof resVal === 'number' && !isNaN(resVal) && resVal > 0) ? resVal : undefined;
   
+  let currentBasal = pumpInfo?.status?.currentbasal ?? pumpInfo?.currentbasal ?? pumpInfo?.basal?.rate ?? 0;
+  if ((currentBasal == null || Number(currentBasal) <= 0) && profileData) {
+    const profileBasal = getBasalFromProfile(profileData);
+    if (profileBasal !== undefined && profileBasal !== null && profileBasal > 0) {
+      currentBasal = profileBasal;
+    }
+  }
+
   return {
     battery: batteryPercent,
     reservoir: parsedRes,
     activeInsulin: pumpInfo?.iob?.iob ?? latest?.openaps?.enacted?.iob ?? undefined,
     model: pumpInfo?.model ?? pumpInfo?.name ?? null,
     basal: {
-       rate: pumpInfo?.status?.currentbasal ?? 0,
+       rate: Number(currentBasal) || 0,
        isTemp: !!pumpInfo?.status?.tempbasal
     },
     uploader: uploaderInfo ? {
@@ -305,16 +333,22 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
     ? `${baseUrl}/api/v1/devicestatus.json?count=5&${cacheBust}&token=${secret}` 
     : `${baseUrl}/api/v1/devicestatus.json?count=5&${cacheBust}`;
 
+  const profileUrl = secret && secret.includes('-')
+    ? `${baseUrl}/api/v1/profile.json?${cacheBust}&token=${secret}`
+    : `${baseUrl}/api/v1/profile.json?${cacheBust}`;
+
   console.log(`[Worker] Pobieranie równoległe z Nightscout (entries: ${entriesCount}, treatments: ${treatmentsCount})...`);
-  const [entriesRes, treatmentsRes, deviceRes] = await Promise.allSettled([
+  const [entriesRes, treatmentsRes, deviceRes, profileRes] = await Promise.allSettled([
     fetchWithFallbacks(entriesUrl, headers, signal),
     fetchWithFallbacks(treatmentsUrl, headers, signal),
-    fetchWithFallbacks(deviceUrl, headers, signal)
+    fetchWithFallbacks(deviceUrl, headers, signal),
+    fetchWithFallbacks(profileUrl, headers, signal)
   ]);
 
   const entriesRaw = entriesRes.status === 'fulfilled' && Array.isArray(entriesRes.value) ? entriesRes.value : [];
   const treatmentsRaw = treatmentsRes.status === 'fulfilled' && Array.isArray(treatmentsRes.value) ? treatmentsRes.value : [];
   const deviceRaw = deviceRes.status === 'fulfilled' ? deviceRes.value : null;
+  const profileRaw = profileRes.status === 'fulfilled' ? profileRes.value : null;
 
   if (entriesRes.status === 'rejected') {
     console.warn('[Worker] Zapytanie entries nie powiodło się:', entriesRes.reason);
@@ -324,7 +358,7 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
   }
   console.log(`[Worker] Zakończono pobieranie z Nightscout (otrzymano ${entriesRaw.length} entries, ${treatmentsRaw.length} treatments).`);
 
-  const processedDeviceStatus = processDeviceStatus(deviceRaw);
+  const processedDeviceStatus = processDeviceStatus(deviceRaw, profileRaw);
 
   return {
     entries: processEntries(entriesRaw),

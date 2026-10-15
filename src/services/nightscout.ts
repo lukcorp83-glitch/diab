@@ -2,6 +2,7 @@
 import { LogEntry } from '../types';
 import i18n from "../i18n";
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
+import { getBasalFromProfile } from '../lib/nightscoutUtils';
 
 export interface NightscoutEntry {
   sgv: number;
@@ -404,7 +405,7 @@ export const nightscoutService = {
 
       const baseUrl = url.replace(/\/$/, '');
       const cacheBust = `_t=${Date.now()}`;
-      const baseApiPath = `/api/v1/devicestatus.json?count=${count}&${cacheBust}`;
+      const baseApiPath = `/api/v1/devicestatus.json?count=${Math.max(count, 5)}&${cacheBust}`;
       const directUrl = secret && secret.includes('-') ? `${baseUrl}${baseApiPath}&token=${secret}` : `${baseUrl}${baseApiPath}`;
       
       let data: any[] | null = null;
@@ -418,9 +419,19 @@ export const nightscoutService = {
 
       if (!Array.isArray(data) || data.length === 0) return null;
       
-      const latest = data[0];
-      const pumpInfo = latest.pump;
-      const uploaderInfo = latest.uploader;
+      // Szukamy najświeższego rekordu zawierającego dane pompy (niektóre uploader-y wysyłają osobno status telefonu i pompy)
+      let latestWithPump: any = null;
+      for (const item of data) {
+        if (!item) continue;
+        if (item.pump || item.reservoir !== undefined || item.openaps || item.loop) {
+          latestWithPump = item;
+          break;
+        }
+      }
+
+      const latest = latestWithPump || data[0];
+      const pumpInfo = latest?.pump;
+      const uploaderInfo = data[0]?.uploader || latest?.uploader;
 
       // Try to find battery in different common places (standard Nightscout vs xDrip vs different pump drivers)
       const batteryPercent = pumpInfo?.battery?.percent ?? 
@@ -430,7 +441,7 @@ export const nightscoutService = {
                             0;
 
       // If no pump info, but we have uploader info, still return something
-      if (!pumpInfo && !uploaderInfo) return null;
+      if (!pumpInfo && !uploaderInfo && !latest?.reservoir && !latest?.openaps) return null;
       
       let resVal = pumpInfo?.reservoir ?? latest?.reservoir ?? pumpInfo?.status?.reservoir ?? latest?.openaps?.enacted?.reservoir ?? latest?.openaps?.suggested?.reservoir;
       if (resVal && typeof resVal === 'object') {
@@ -439,22 +450,51 @@ export const nightscoutService = {
       if (typeof resVal === 'string') {
         resVal = parseFloat(resVal);
       }
-      const parsedRes = (typeof resVal === 'number' && !isNaN(resVal)) ? resVal : 0;
+      const parsedRes = (typeof resVal === 'number' && !isNaN(resVal) && resVal > 0) ? resVal : 0;
+
+      // Wykrywanie bazy z devicestatus
+      let detectedBasal: number | null = 
+        pumpInfo?.status?.currentbasal ?? 
+        pumpInfo?.status?.rate ?? 
+        pumpInfo?.currentbasal ?? 
+        pumpInfo?.basal?.rate ?? 
+        latest?.openaps?.enacted?.rate ?? 
+        latest?.openaps?.suggested?.rate ?? 
+        latest?.loop?.enacted?.rate ?? 
+        null;
+
+      let isTemp = Boolean(pumpInfo?.status?.tempbasal || latest?.openaps?.enacted?.rate);
+
+      // Jeśli w devicestatus brak bazy (np. Medtronic ninja-ngp CareLink), pobieramy z aktywnego profilu Nightscout
+      if (detectedBasal == null || Number(detectedBasal) <= 0) {
+        try {
+          const profile = await this.fetchProfile(url, secret);
+          const profileBasal = getBasalFromProfile(profile);
+          if (profileBasal != null && profileBasal > 0) {
+            detectedBasal = profileBasal;
+            isTemp = false;
+          }
+        } catch (profErr) {
+          console.warn("Failed getting basal from profile:", profErr);
+        }
+      }
+
+      const finalBasalRate = detectedBasal != null ? Number(detectedBasal) : 0;
 
       const result = {
         battery: batteryPercent,
         reservoir: parsedRes,
         activeInsulin: pumpInfo?.iob?.iob ?? latest?.openaps?.enacted?.iob ?? 0,
-        model: pumpInfo?.model ?? pumpInfo?.name ?? null,
+        model: pumpInfo?.model ?? pumpInfo?.name ?? latest?.device ?? null,
         basal: {
-           rate: pumpInfo?.status?.currentbasal ?? 0,
-           isTemp: !!pumpInfo?.status?.tempbasal
+           rate: finalBasalRate,
+           isTemp
         },
         uploader: uploaderInfo ? {
            battery: uploaderInfo.battery,
            type: uploaderInfo.type || uploaderInfo.name || 'Uploader'
         } : null,
-        lastUpdate: { seconds: Math.floor(new Date(latest.created_at).getTime() / 1000) }
+        lastUpdate: { seconds: Math.floor(new Date(latest.created_at || Date.now()).getTime() / 1000) }
       };
 
       setCachedData(cacheKey, result);
@@ -463,6 +503,33 @@ export const nightscoutService = {
       console.error("Nightscout devicestatus error:", error instanceof Error ? error.message : error);
       return null;
     }
+  },
+
+  async fetchProfile(url: string, secret?: string, forceSync = false): Promise<any> {
+    const cacheKey = `ns-profile-${url}`;
+    if (!forceSync) {
+      const cached = getCachedData<any>(cacheKey);
+      if (cached) return cached;
+    }
+
+    try {
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (secret) headers['api-secret'] = secret;
+      const baseUrl = url.replace(/\/$/, '');
+      const cacheBust = `_t=${Date.now()}`;
+      const directUrl = secret && secret.includes('-')
+        ? `${baseUrl}/api/v1/profile.json?token=${secret}&${cacheBust}`
+        : `${baseUrl}/api/v1/profile.json?${cacheBust}`;
+
+      const data = await fetchWithFallbacks(directUrl, headers);
+      if (data) {
+        setCachedData(cacheKey, data);
+        return data;
+      }
+    } catch (e) {
+      console.warn("Failed to fetch Nightscout profile:", e);
+    }
+    return null;
   },
 
   async deleteTreatment(nsId: string, url?: string, apiSecret?: string): Promise<boolean> {
