@@ -6,7 +6,7 @@ import crypto from "crypto";
 
 // ... existing Firebase Admin init ...
 // Users need to configure FIREBASE_SERVICE_ACCOUNT in the settings panel format: '{"project_id": "...", ...}'
-let db: admin.firestore.Firestore | null = null;
+let db: any = null;
 try {
   let cert;
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
@@ -15,15 +15,22 @@ try {
     console.warn("⚠️ FIREBASE_SERVICE_ACCOUNT is missing. Fallback to Application Default Credentials.");
   }
   
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      credential: cert ? admin.credential.cert(cert) : admin.credential.applicationDefault()
-    });
+  const firebaseAdmin = (admin as any).default || admin;
+  if (firebaseAdmin && typeof firebaseAdmin.initializeApp === 'function') {
+    const adminApps = firebaseAdmin.apps || [];
+    if (adminApps.length === 0) {
+      const cred = cert && firebaseAdmin.credential?.cert 
+        ? firebaseAdmin.credential.cert(cert) 
+        : (firebaseAdmin.credential?.applicationDefault ? firebaseAdmin.credential.applicationDefault() : undefined);
+      firebaseAdmin.initializeApp(cred ? { credential: cred } : undefined);
+    }
+    if (typeof firebaseAdmin.firestore === 'function') {
+      db = firebaseAdmin.firestore();
+      console.log("Firebase Admin Initialized successfully.");
+    }
   }
-  db = admin.firestore();
-  console.log("Firebase Admin Initialized successfully.");
 } catch (e) {
-  console.error("Failed to initialize Firebase Admin:", e);
+  console.warn("Firebase Admin init skipped:", (e as any)?.message || e);
 }
 
 async function startServer() {
