@@ -14,13 +14,25 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.64';
+export const CURRENT_VERSION = '6.1.0';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.1.0",
+    date: "2026-10-15",
+    title: "Ulepszone UI, Asystent Słuchawkowy, Nowy Talerz i Widżet «W skrócie»",
+    changes: [
+      "Ulepszono interfejs użytkownika (UI) i płynność animacji w standardzie Google Pixel Material 3",
+      "Wdrożono asystenta słuchawkowego – głosowe czytanie poziomu cukru i trendu do słuchawek na żądanie (dwuklik włącznika lub przycisku słuchawek)",
+      "Wprowadzono nowe zaawansowane opcje w Talerzu (fizykochemia posiłków, bufor żołądkowy i sekwencjonowanie potraw)",
+      "Dodano inteligentny widżet «W skrócie» (Pixel At a Glance) ze statusem dnia i monitora odczytów",
+      "Wprowadzono poprawki błędów, automatyczną synchronizację bazy z profilu Nightscout i optymalizację stabilności"
+    ]
+  },
+  {
     version: "6.0.64",
     date: "2026-10-15",
     title: "Baza Produktów DiabScale w SQLite i Selektywna Haptyka",
@@ -67,24 +79,24 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Wdrożono asystenta kolejności spożywania produktów (sekwencjonowanie kęsów) tworzącego naturalny bufor żołądkowy",
       "Wprowadzono zasadę «Ubierania Węglowodanów» oraz modyfikator schłodzonej skrobi (retrogradacja)",
       "Dodano wykrywacz ukrytych cukrów w gotowych sosach i dressingach"
-    ]
-  },
-  {
-    version: "6.0.60",
-    date: "2026-10-09",
-    title: "Kolejność Kęsów, Wskaźnik Sytości i Skrobia Oporna",
-    changes: [
-      "Wdrożono asystenta kolejności spożywania produktów (sekwencjonowanie kęsów) tworzącego naturalny bufor żołądkowy",
-      "Dodano zasadę «Ubierania Węglowodanów» ostrzegającą przed posiłkami z samych węglowodanów bez tłuszczu i białka",
-      "Wprowadzono wskaźnik sytości posiłku (Satiety Score) szacujący czas trwania nasycenia energią",
-      "Dodano modyfikator schłodzonej skrobi (efekt retrogradacji ziemniaków, ryżu i makaronu) obniżający indeks glikemiczny",
-      "Wdrożono wykrywacz ukrytych cukrów w gotowych sosach i dressingach"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.1.0",
+    date: "2026-10-15",
+    title: "Ulepszone UI, Asystent Słuchawkowy, Nowy Talerz i Widżet «W skrócie»",
+    changes: [
+      "Ulepszono interfejs użytkownika (UI) i płynność animacji w standardzie Google Pixel Material 3",
+      "Wdrożono asystenta słuchawkowego – głosowe czytanie poziomu cukru i trendu do słuchawek na żądanie (dwuklik włącznika lub przycisku słuchawek)",
+      "Wprowadzono nowe zaawansowane opcje w Talerzu (fizykochemia posiłków, bufor żołądkowy i sekwencjonowanie potraw)",
+      "Dodano inteligentny widżet «W skrócie» (Pixel At a Glance) ze statusem dnia i monitora odczytów",
+      "Wprowadzono poprawki błędów, automatyczną synchronizację bazy z profilu Nightscout i optymalizację stabilności"
+    ]
+  },
+  {
     version: "6.0.64",
     date: "2026-10-15",
     title: "Baza Produktów DiabScale w SQLite i Selektywna Haptyka",
@@ -131,18 +143,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Wdrożono asystenta kolejności spożywania produktów (sekwencjonowanie kęsów) tworzącego naturalny bufor żołądkowy",
       "Wprowadzono zasadę «Ubierania Węglowodanów» oraz modyfikator schłodzonej skrobi (retrogradacja)",
       "Dodano wykrywacz ukrytych cukrów w gotowych sosach i dressingach"
-    ]
-  },
-  {
-    version: "6.0.60",
-    date: "2026-10-09",
-    title: "Kolejność Kęsów, Wskaźnik Sytości i Skrobia Oporna",
-    changes: [
-      "Wdrożono asystenta kolejności spożywania produktów (sekwencjonowanie kęsów) tworzącego naturalny bufor żołądkowy",
-      "Dodano zasadę «Ubierania Węglowodanów» ostrzegającą przed posiłkami z samych węglowodanów bez tłuszczu i białka",
-      "Wprowadzono wskaźnik sytości posiłku (Satiety Score) szacujący czas trwania nasycenia energią",
-      "Dodano modyfikator schłodzonej skrobi (efekt retrogradacji ziemniaków, ryżu i makaronu) obniżający indeks glikemiczny",
-      "Wdrożono wykrywacz ukrytych cukrów w gotowych sosach i dressingach"
     ]
   }
 ];

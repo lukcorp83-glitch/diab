@@ -1,10 +1,10 @@
 {
-    "version": "6.0.64",
+    "version": "6.1.0",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.64_OTA.apk",
-    "buildNumber": 178,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.1.0_OTA.apk",
+    "buildNumber": 179,
     "forceUpdate": false,
-    "whatsNew": "Wdrożono automatyczną synchronizację dawki bazy z aktywnego profilu Nightscout (dla pomp bez telemetrii bieżącej bazy), modularną bazę produktów DiabScale-grade w SQLite (zupy, obiady, pieczywo, nabiał, mięsa) z trwałym zapisem offline, kalibrację wagową widzenia AI oraz selektywną haptykę na wykresie cukru.",
-    "whatsNewEn": "Implemented automatic basal rate sync from active Nightscout profile (for pumps without live basal telemetry), modular DiabScale-grade food database in SQLite (soups, dinners, bakery, dairy, meats) with persistent offline storage, AI vision weight calibration, and selective chart haptics.",
-    "otaRevision": 338
+    "whatsNew": "Wydanie 6.1.0: Ulepszone UI i płynność interfejsu (Google Pixel Material 3), czytanie cukrów na słuchawkach (asystent głosowy), nowe zaawansowane opcje w Talerzu (fizykochemia i sekwencjonowanie posiłków), inteligentny widżet «W skrócie» (At a Glance) oraz poprawki błędów i stabilności.",
+    "whatsNewEn": "Release 6.1.0: Improved UI and interface smoothness (Google Pixel Material 3), voice glucose readout to earphones on demand, new Plate options (meal physicochemical matrix and sequencing), smart «At a Glance» widget, and bug/stability fixes.",
+    "otaRevision": 339
 }

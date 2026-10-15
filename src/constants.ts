@@ -2,8 +2,8 @@ import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '6.0.64';
-export const CURRENT_VERSION = '6.0.64';
+export const APP_VERSION = '6.1.0';
+export const CURRENT_VERSION = '6.1.0';
 
 import versionData from '../version.json';
 
