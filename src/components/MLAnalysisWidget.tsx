@@ -136,60 +136,60 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
     if (rules.dawnPhenomenonEnabled) {
       patterns.push({
         id: 'dawn',
-        title: t('auto.wzorzec_brzask_tytul', { defaultValue: 'Zjawisko Brzasku' }),
-        desc: t('auto.wzorzec_brzask_opis', { defaultValue: 'Wykryto poranny wyrzut hormonów budzących i podwyższoną glikemię rano bez posiłku.' }),
+        title: t('auto.wzorzec_brzask_tytul', { defaultValue: 'Wzrost Poranny' }),
+        desc: t('auto.wzorzec_brzask_opis', { defaultValue: 'Wykryto regularny wzrost odczytów we wczesnych godzinach porannych przed posiłkiem.' }),
         icon: '🌅',
-        tag: 'Hormonalny'
+        tag: t('auto.tag_poranny', { defaultValue: 'Poranny' })
       });
     }
 
     if (rules.somogyiEnabled) {
       patterns.push({
         id: 'somogyi',
-        title: t('auto.wzorzec_somogyi_tytul', { defaultValue: 'Efekt Somogyi (Odbicie)' }),
-        desc: t('auto.wzorzec_somogyi_opis', { defaultValue: 'Wykryto obronny wyrzut zapasów glukozy po głębokim nocnym lub popołudniowym spadku.' }),
+        title: t('auto.wzorzec_somogyi_tytul', { defaultValue: 'Wzrost Reakcyjny' }),
+        desc: t('auto.wzorzec_somogyi_opis', { defaultValue: 'Wykryto podwyższone odczyty występujące po wcześniejszym spadku glikemii.' }),
         icon: '🔄',
-        tag: 'Obronny'
+        tag: t('auto.tag_reakcyjny', { defaultValue: 'Reakcyjny' })
       });
     }
 
     if (rules.pizzaEffectMultiplier && rules.pizzaEffectMultiplier > 1.0) {
       patterns.push({
         id: 'pizza',
-        title: t('auto.wzorzec_pizza_tytul', { defaultValue: 'Efekt Pizzy (FPU / Tłuszcze-Białka)' }),
-        desc: t('auto.wzorzec_pizza_opis', { defaultValue: 'Wykryto opóźniony szczyt glikemii po 3-5 godzinach od spożycia potraw tłustych i bogatobiałkowych.' }),
+        title: t('auto.wzorzec_pizza_tytul', { defaultValue: 'Opóźnione Wchłanianie (FPU)' }),
+        desc: t('auto.wzorzec_pizza_opis', { defaultValue: 'Wykryto opóźniony szczyt odczytów po 3-5 godzinach od posiłków bogatych w tłuszcze i białka.' }),
         icon: '🍕',
-        tag: 'Trawienny'
+        tag: t('auto.tag_trawienny', { defaultValue: 'Trawienny' })
       });
     }
 
     if (rules.weekendInertiaEnabled) {
       patterns.push({
         id: 'weekend',
-        title: t('auto.wzorzec_weekend_tytul', { defaultValue: 'Bezwładność Weekendowa' }),
-        desc: t('auto.wzorzec_weekend_opis', { defaultValue: 'Wykryto istotną zmianę średniej glikemii i wrażliwości na insulinę w dni wolne od pracy.' }),
+        title: t('auto.wzorzec_weekend_tytul', { defaultValue: 'Rytm Weekendowy' }),
+        desc: t('auto.wzorzec_weekend_opis', { defaultValue: 'Wykryto zmianę profilu odczytów i zapotrzebowania w dni wolne od pracy.' }),
         icon: '🏖️',
-        tag: 'Rytm dobowy'
+        tag: t('auto.tag_rytm_dobowy', { defaultValue: 'Rytm dobowy' })
       });
     }
 
     if (rules.delayedExerciseEnabled) {
       patterns.push({
         id: 'exercise',
-        title: t('auto.wzorzec_sport_tytul', { defaultValue: 'Opóźniony Spadek Powysiłkowy' }),
-        desc: t('auto.wzorzec_sport_opis', { defaultValue: 'Wykryto wydłużone działanie insuliny (do 12h po treningu). Zwiększona wrażliwość w nocy.' }),
+        title: t('auto.wzorzec_sport_tytul', { defaultValue: 'Wpływ Aktywności Fizycznej' }),
+        desc: t('auto.wzorzec_sport_opis', { defaultValue: 'Zauważono tendencję do niższych odczytów w godzinach nocnych po zarejestrowanym treningu.' }),
         icon: '🏃',
-        tag: 'Wysiłkowy'
+        tag: t('auto.tag_aktywnosc', { defaultValue: 'Aktywność' })
       });
     }
 
     if (rules.stressSensitivityEnabled) {
       patterns.push({
         id: 'stress',
-        title: t('auto.wzorzec_stres_tytul', { defaultValue: 'Wrażliwość na Stres / Kortyzol' }),
-        desc: t('auto.wzorzec_stres_opis', { defaultValue: 'Wykryto regularne wahania porannej glikemii w dni robocze związane z rytmem pracy.' }),
+        title: t('auto.wzorzec_stres_tytul', { defaultValue: 'Wahania w Dni Robocze' }),
+        desc: t('auto.wzorzec_stres_opis', { defaultValue: 'Wykryto regularne wahania porannej glikemii w dni robocze związane z harmonogramem dnia.' }),
         icon: '⚡',
-        tag: 'Stres'
+        tag: t('auto.tag_dni_robocze', { defaultValue: 'Dni robocze' })
       });
     }
 
@@ -197,10 +197,10 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
       const isResistant = rules.insulinResistanceMultiplier > 1.05;
       patterns.push({
         id: 'resistance',
-        title: isResistant ? t('auto.wzorzec_opornosc_tytul', { defaultValue: 'Lekka Oporność na Insulinę' }) : t('auto.wzorzec_wrazliwosc_tytul', { defaultValue: 'Zwiększona Wrażliwość na Dawkę' }),
-        desc: t('auto.wzorzec_mnoznik_opis', { mult: Math.round(rules.insulinResistanceMultiplier * 100), defaultValue: `Wyuczony mnożnik wrażliwości: ${Math.round(rules.insulinResistanceMultiplier * 100)}% normy.` }),
+        title: isResistant ? t('auto.wzorzec_opornosc_tytul', { defaultValue: 'Wyższe Zapotrzebowanie' }) : t('auto.wzorzec_wrazliwosc_tytul', { defaultValue: 'Niższe Zapotrzebowanie' }),
+        desc: t('auto.wzorzec_mnoznik_opis', { mult: Math.round(rules.insulinResistanceMultiplier * 100), defaultValue: `Obliczony mnożnik zapotrzebowania: ${Math.round(rules.insulinResistanceMultiplier * 100)}% normy.` }),
         icon: isResistant ? '💪' : '📉',
-        tag: 'Metaboliczny'
+        tag: t('auto.tag_statystyczny', { defaultValue: 'Statystyczny' })
       });
     }
 
@@ -866,10 +866,10 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                   <div className="flex items-center justify-between px-1">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                        Auto-Tuning ISF (AI Sugestie)
+                        {t('auto.analiza_isf_tytul', { defaultValue: 'Statystyka Reakcji na Korekty (ISF)' })}
                       </span>
                       <span className="text-[8px] text-slate-500 dark:text-slate-400 mt-1 max-w-[200px]">
-                        Pozwól GlikoSense wykrywać i sugerować zmiany we wrażliwości na insulinę
+                        {t('auto.analiza_isf_opis', { defaultValue: 'Analizuj historyczne spadki po dawkach korekcyjnych z dziennika' })}
                       </span>
                     </div>
                     <button
@@ -877,7 +877,7 @@ export default function MLAnalysisWidget({ settings, user, setTab }: MLAnalysisW
                         const newState = !autoTuningEnabled;
                         setAutoTuningEnabled(newState);
                         localStorage.setItem('glikosense_autotuning', newState.toString());
-                        toast.success(newState ? 'Auto-Tuning włączony (Tryb sugestii)' : 'Auto-Tuning wyłączony');
+                        toast.success(newState ? t('auto.analiza_isf_wlaczona', { defaultValue: 'Statystyka ISF włączona' }) : t('auto.analiza_isf_wylaczona', { defaultValue: 'Statystyka ISF wyłączona' }));
                       }}
                       className={cn(
                         "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",

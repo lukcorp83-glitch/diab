@@ -1,10 +1,10 @@
 {
-    "version": "6.0.54",
+    "version": "6.0.64",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.54_OTA.apk",
-    "buildNumber": 168,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/GlikoControl_6.0.64_OTA.apk",
+    "buildNumber": 178,
     "forceUpdate": false,
-    "whatsNew": "Wydanie oficjalne: Inteligentne wyciszanie powiadomień o lekach (brak alarmów, gdy lek zażyto wcześniej), naprawa układu kart widżetu GlikoSense na dużym ekranie oraz pełny audyt zgodności informacyjnej MDR.",
-    "whatsNewEn": "Official release: Smart medication reminder suppression (no alerts if dose was already taken earlier), GlikoSense widget layout fixes for multi-column desktop displays, and full MDR SaMD compliance audit.",
-    "otaRevision": 328
+    "whatsNew": "Wdrożono automatyczną synchronizację dawki bazy z aktywnego profilu Nightscout (dla pomp bez telemetrii bieżącej bazy), modularną bazę produktów DiabScale-grade w SQLite (zupy, obiady, pieczywo, nabiał, mięsa) z trwałym zapisem offline, kalibrację wagową widzenia AI oraz selektywną haptykę na wykresie cukru.",
+    "whatsNewEn": "Implemented automatic basal rate sync from active Nightscout profile (for pumps without live basal telemetry), modular DiabScale-grade food database in SQLite (soups, dinners, bakery, dairy, meats) with persistent offline storage, AI vision weight calibration, and selective chart haptics.",
+    "otaRevision": 338
 }

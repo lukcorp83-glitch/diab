@@ -10,6 +10,7 @@ import { Haptics } from "../../lib/haptics";
 import { geminiService } from "../../services/gemini";
 import { useAppStore } from "../../stores/useAppStore";
 import toast from "react-hot-toast";
+import { dbService } from "../../services/databaseService";
 
 export const MealPlateModals = (props: any) => {
  const { t } = useTranslation();
@@ -52,15 +53,21 @@ export const MealPlateModals = (props: any) => {
  try {
  const result = await geminiService.analyzeNutritionLabel(dataUrl);
  const product: Product = {
- id: `scan_${Date.now()}`,
+ id: `scan_${unrecognizedBarcode || Date.now()}`,
  name: result.name || "Rozpoznany Produkt (AI)",
+ namePl: result.name || "Rozpoznany Produkt (AI)",
+ nameEn: result.name || "Recognized Product (AI)",
  carbs: result.carbs || 0,
  protein: result.protein || 0,
  fat: result.fat || 0,
  gi: result.gi || 50,
  category: "Skanowane",
- barcode: unrecognizedBarcode || ""
+ barcode: unrecognizedBarcode || "",
+ isCustom: true
  };
+ if (unrecognizedBarcode) {
+   dbService.saveFoodProduct(product).catch(() => {});
+ }
  setUnrecognizedBarcode(null);
  openWeightModal(product);
  } catch (err) {
@@ -169,10 +176,28 @@ export const MealPlateModals = (props: any) => {
  ref={scannerRef}
  onCancel={handleCloseScanner}
  onResult={async (decodedText) => {
- // 1. Sprawdź lokalną bazę customProducts
- const localMatch = customProducts.find(p => p.barcode === decodedText);
+ if (!decodedText) return;
+ const cleanCode = decodedText.trim();
+
+ // 1. Sprawdź lokalną bazę SQLite telefonu (100% offline)
+ try {
+   const offlineMatch = await dbService.getFoodProductByBarcode(cleanCode);
+   if (offlineMatch) {
+     handleCloseScanner();
+     Haptics.success();
+     toast.success(t('barcode_found_offline', { defaultValue: 'Znaleziono w bazie offline!' }));
+     openWeightModal(offlineMatch);
+     return;
+   }
+ } catch (e) {
+   console.warn("Offline barcode check error:", e);
+ }
+
+ // 2. Sprawdź lokalną bazę customProducts z pamięci
+ const localMatch = customProducts?.find((p: any) => p.barcode === cleanCode);
  if (localMatch) {
  handleCloseScanner();
+ Haptics.success();
  openWeightModal(localMatch);
  return;
  }
@@ -180,26 +205,34 @@ export const MealPlateModals = (props: any) => {
  setIsSearching(true);
  try {
  const response = await fetch(
- `https://world.openfoodfacts.org/api/v2/product/${decodedText}.json`,
+ `https://world.openfoodfacts.org/api/v2/product/${cleanCode}.json`,
  );
  const data = await response.json();
 
  if (data.status === 1 && data.product && (data.product.product_name_pl || data.product.product_name)) {
  handleCloseScanner();
  const p = data.product;
+ const productName = p.product_name_pl || p.product_name || "Produkt";
  const product: Product = {
- id: `scan_${Date.now()}`,
- name:
- p.product_name_pl ||
- p.product_name ||
- "Produkt",
- carbs: p.nutriments?.carbohydrates_100g || 0,
- protein: p.nutriments?.proteins_100g || 0,
- fat: p.nutriments?.fat_100g || 0,
+ id: `scan_${cleanCode}`,
+ name: productName,
+ namePl: p.product_name_pl || productName,
+ nameEn: p.product_name_en || p.product_name || productName,
+ carbs: Number(p.nutriments?.carbohydrates_100g || 0),
+ protein: Number(p.nutriments?.proteins_100g || 0),
+ fat: Number(p.nutriments?.fat_100g || 0),
+ fiber: Number(p.nutriments?.fiber_100g || 0),
+ kcal: Number(p.nutriments?.['energy-kcal_100g'] || p.nutriments?.energy_100g || 0),
  gi: 50,
  category: "Skanowane",
- barcode: decodedText
+ barcode: cleanCode,
+ isCustom: true
  };
+
+ // Zapisz natychmiast w bazie SQLite telefonu – kolejne skanowanie będzie działać 100% offline w 2ms!
+ await dbService.saveFoodProduct(product);
+ Haptics.success();
+ toast.success(t('barcode_saved_offline', { defaultValue: 'Zapisano w bazie telefonu offline!' }));
  openWeightModal(product);
  } else {
  // Zamiast szukać online, dajemy fallback AI
@@ -207,14 +240,14 @@ export const MealPlateModals = (props: any) => {
  await scannerRef.current.stopScanner();
  }
  setIsScannerOpen(false);
- setUnrecognizedBarcode(decodedText);
+ setUnrecognizedBarcode(cleanCode);
  }
  } catch (err) {
  if (scannerRef.current && scannerRef.current.stopScanner) {
  await scannerRef.current.stopScanner();
  }
  setIsScannerOpen(false);
- setUnrecognizedBarcode(decodedText);
+ setUnrecognizedBarcode(cleanCode);
  } finally {
  setIsSearching(false);
  }

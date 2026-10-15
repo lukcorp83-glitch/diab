@@ -113,7 +113,7 @@ Zasady formatowania:
               </p>
               <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-3 flex items-center gap-2.5 text-amber-800 dark:text-amber-300 text-[11px] font-medium">
                 <AlertCircle className="shrink-0 text-amber-600" size={15} />
-                <p>{t('auto.narzędzie_służy_wyłącznie_do_celów_', { defaultValue: 'Narzędzie planistyczne wspomagające terapię. W podróży zawsze mierz cukier częściej!' })}</p>
+                <p>{t('auto.narzędzie_służy_wyłącznie_do_celów_', { defaultValue: 'Narzędzie planistyczne wspomagające organizację podróży. W podróży zawsze mierz cukier częściej!' })}</p>
               </div>
             </div>
           </div>

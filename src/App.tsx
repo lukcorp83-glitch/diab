@@ -34,12 +34,12 @@ import { notificationService } from "./services/notificationService";
 import { nightscoutService } from "./services/nightscout";
 import { healthService } from "./services/healthService";
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
-import { loadLocalLogs, deleteLocalLog } from "./lib/localLogs";
+import { loadLocalLogs, saveLocalLogs, deleteLocalLog } from "./lib/localLogs";
 import { downloadCloudPackage, uploadCloudPackage } from "./components/CloudPackageSync";
 import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
 import { useMealPlateStore, addAiItemToPlate } from "./stores/useMealPlateStore";
-import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal, checkPreBolusHypoShield } from "./services/preBolusService";
+import { checkAndNotifyPumpBolus, checkAndNotifyNewMeal, checkPreBolusHypoShield, trackAdaptivePreBolusTrend } from "./services/preBolusService";
 import { useLogsStore } from "./stores/useLogsStore";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNightscoutSettings, useUserSettings, usePumpStatus } from "./hooks/queries/useProfileData";
@@ -197,25 +197,31 @@ export default function App() {
     const reloadDbLogs = async () => {
       try {
         let loadedLogs = await dbService.getLogs(60000);
-        if (loadedLogs.length === 0) {
-          try {
-            let idbLogs = await loadLocalLogs();
-            if (idbLogs && idbLogs.length > 0) {
-              if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
-                idbLogs = idbLogs.filter((l: any) => {
-                  if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
-                  if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
-                  if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
-                  return true;
-                });
-              }
-              console.log(`[App] Odtworzono ${idbLogs.length} wpisów z IndexedDB do SQLite`);
-              loadedLogs = idbLogs;
-              dbService.saveMultipleLogs(idbLogs).catch(console.error);
-            }
-          } catch (idbErr) {
-            console.warn('[App] Błąd odczytu IndexedDB fallback:', idbErr);
+        let idbLogs: any[] = [];
+        try {
+          idbLogs = await loadLocalLogs();
+        } catch (idbErr) {
+          console.warn('[App] Błąd odczytu IndexedDB:', idbErr);
+        }
+
+        // Pancerne łączenie obu baz na telefonie: SQLite + IndexedDB
+        if (idbLogs && idbLogs.length > 0) {
+          const combinedMap = new Map<string, any>();
+          idbLogs.forEach((l: any) => { if (l && l.id) combinedMap.set(l.id, l); });
+          loadedLogs.forEach((l: any) => { if (l && l.id) combinedMap.set(l.id, l); });
+          const merged = Array.from(combinedMap.values()).sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+
+          if (merged.length > loadedLogs.length) {
+            console.log(`[App] Odtworzono pełniejszą historię z IndexedDB (${merged.length} vs ${loadedLogs.length}) do SQLite`);
+            dbService.saveMultipleLogs(merged).catch(() => {});
           }
+          if (merged.length > idbLogs.length) {
+            saveLocalLogs(merged).catch(() => {});
+          }
+          loadedLogs = merged;
+        } else if (loadedLogs.length > 0) {
+          // Jeśli IndexedDB było puste, natychmiast uzupełniamy je ze SQLite
+          saveLocalLogs(loadedLogs).catch(() => {});
         }
 
         if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
@@ -373,14 +379,16 @@ export default function App() {
 
     // Cichy zapis nowych danych z chmury i Nightscout do lokalnej bazy SQLite (Local-First)
     const lastSavedMaxTimestampRef = useRef<number>(0);
+    const isSavingDbRef = useRef<boolean>(false);
     useEffect(() => {
-      if (fbLogs.length === 0 && nsLogs.length === 0) return;
-      const timeoutId = setTimeout(() => {
-        const recentCutoff = Date.now() - 48 * 60 * 60 * 1000;
-        const toSave = [...fbLogs, ...nsLogs].filter(l => {
+      if ((!fbLogs || fbLogs.length === 0) && (!nsLogs || nsLogs.length === 0)) return;
+      const timeoutId = setTimeout(async () => {
+        if (isSavingDbRef.current) return;
+        const recentCutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+        const toSave = [...(fbLogs || []), ...(nsLogs || [])].filter(l => {
           const ts = l.timestamp || l.createdAt || 0;
           const isTreatment = l.type === 'bolus' || l.type === 'meal' || l.type === 'site_change' || l.type === 'sensor_change';
-          // Zwykłe częste odczyty CGM filtrujemy do ostatnich 48h, ale zabiegi (węglowodany, insulina, wymiany wkłucia/sensora)
+          // Odczyty CGM zachowujemy do 90 dni (pełny kwartał na potrzeby statystyk i TIR), a zabiegi (węglowodany, insulina, wkłucia/sensory)
           // zapisujemy do bazy SQLite zawsze, aby były w 100% dostępne w statystykach i kalendarzu na telefonie
           if (!isTreatment && ts < recentCutoff && lastSavedMaxTimestampRef.current > 0) return false;
           if (deletedNsIdsRef.current) {
@@ -390,30 +398,66 @@ export default function App() {
           }
           return true;
         });
+
         if (toSave.length > 0) {
-          lastSavedMaxTimestampRef.current = Math.max(lastSavedMaxTimestampRef.current, ...toSave.map(x => x.timestamp || 0));
-          const batch = toSave.slice(0, 500); // do 500 wpisów na cykl
-          dbService.saveMultipleLogs(batch).catch(e => console.warn("Background DB save failed", e));
+          isSavingDbRef.current = true;
+          try {
+            lastSavedMaxTimestampRef.current = Math.max(lastSavedMaxTimestampRef.current, ...toSave.map(x => x.timestamp || 0));
+            // Pancerne podwójne utrwalenie na telefonie: SQLite + IndexedDB
+            await Promise.all([
+              dbService.saveMultipleLogs(toSave).catch(() => {}),
+              saveLocalLogs(toSave).catch(() => {})
+            ]);
+            // Zaktualizuj pamięć podręczną sqliteLogs, by pełna historia była natychmiast trwała
+            setSqliteLogs(prev => {
+              const map = new Map();
+              prev.forEach(item => { if (item?.id) map.set(item.id, item); });
+              toSave.forEach(item => { if (item?.id) map.set(item.id, item); });
+              return Array.from(map.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            });
+          } catch (e) {
+            console.warn("Background DB save failed", e);
+          } finally {
+            isSavingDbRef.current = false;
+          }
         }
       }, 5000);
       return () => clearTimeout(timeoutId);
     }, [fbLogs, nsLogs]);
 
-    // Automatyczne przywracanie danych z chmury po aktualizacji (gdy baza lokalna jest pusta)
+    // Automatyczne przywracanie historii z dziennej paczki zapasowej w chmurze (syncPackage/latest)
+    // Wykorzystujemy tę samą paczkę, którą aplikacja codziennie wysyła do Firebase, w drugą stronę!
     useEffect(() => {
       if (!user) return;
       const autoRestoreCloudData = async () => {
         const isRestoring = localStorage.getItem('auto_cloud_restore_active');
         if (isRestoring) return;
 
-        const localLogsCount = (sqliteLogs?.length || 0) + (logs?.length || 0);
-        if (localLogsCount < 10) {
-          console.log('[App] Wykryto brak logów po aktualizacji. Automatycznie pobieram paczkę z chmury...');
+        const currentLogs = logs || [];
+        const localLogsCount = Math.max(sqliteLogs?.length || 0, currentLogs.length);
+
+        // Sprawdzamy ile dni historii mamy faktycznie na telefonie
+        let historyDaysSpan = 0;
+        if (currentLogs.length > 0) {
+          const earliest = currentLogs[currentLogs.length - 1]?.timestamp || currentLogs[currentLogs.length - 1]?.createdAt || 0;
+          const latest = currentLogs[0]?.timestamp || currentLogs[0]?.createdAt || Date.now();
+          historyDaysSpan = Math.round((latest - earliest) / (1000 * 60 * 60 * 24));
+        }
+
+        // Sprawdzamy co maksymalnie 4 godziny, aby niepotrzebnie nie obciążać zapytań
+        const lastCheck = Number(localStorage.getItem('last_cloud_package_restore_check') || 0);
+        const FOUR_HOURS = 4 * 60 * 60 * 1000;
+
+        // Jeśli na telefonie brakuje historii (mniej niż 14 dni LUB mniej niż 150 wpisów):
+        if ((localLogsCount < 150 || historyDaysSpan < 14) && (Date.now() - lastCheck > FOUR_HOURS)) {
+          console.log(`[App] Wykryto niepełną historię lokalną (${localLogsCount} wpisów, ${historyDaysSpan} dni). Przywracam z dziennej paczki zapasowej (syncPackage/latest)...`);
           localStorage.setItem('auto_cloud_restore_active', 'true');
+          localStorage.setItem('last_cloud_package_restore_check', Date.now().toString());
           try {
             const success = await downloadCloudPackage(user);
             if (success) {
-              console.log('[App] Pomyślnie automatycznie przywrócono paczkę z chmury!');
+              console.log('[App] Pomyślnie przywrócono pełną historię z dziennej paczki chmurowej!');
+              await reloadDbLogs();
             }
           } catch (e) {
             console.warn('[App] Automatyczne przywracanie paczki z chmury nie powiodło się:', e);
@@ -425,7 +469,7 @@ export default function App() {
 
       const timer = setTimeout(autoRestoreCloudData, 3000);
       return () => clearTimeout(timer);
-    }, [user, sqliteLogs.length, logs.length]);
+    }, [user, sqliteLogs?.length, logs?.length]);
 
     // Automatyczne codzienne tworzenie paczki zapasowej w chmurze (raz na 24h w tle)
     useEffect(() => {
@@ -433,7 +477,7 @@ export default function App() {
       const autoUploadDailyPackage = async () => {
         const lastSync = Number(localStorage.getItem('last_cloud_package_sync') || 0);
         const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-        if (Date.now() - lastSync > ONE_DAY_MS && logs.length > 50) {
+        if (Date.now() - lastSync > ONE_DAY_MS && (logs?.length || 0) > 50) {
           console.log('[App] Automatyczne codzienne wysyłanie paczki synchronizacyjnej w tle...');
           const ok = await uploadCloudPackage(user, userSettings);
           if (ok) {
@@ -444,7 +488,7 @@ export default function App() {
 
       const timer = setTimeout(autoUploadDailyPackage, 15000);
       return () => clearTimeout(timer);
-    }, [user, userSettings, logs.length]);
+    }, [user, userSettings, logs?.length]);
   
     useEffect(() => {
       const allMap = new Map();
@@ -575,6 +619,33 @@ export default function App() {
     }
   }, [user, userSettings, logs, queryClient]);
 
+  // Cykliczna aktualizacja przypomnień o osprzęcie i refundacji oraz jednorazowy toast na 30 dni przed końcem zlecenia
+  useEffect(() => {
+    if (!userSettings) return;
+    try {
+      notificationService.updateDeviceReminders(userSettings);
+
+      // Pomysł 5: Dedykowany toast/dymek informacyjny w dniu, gdy do końca zlecenia zostało dokładnie <= 30 dni
+      if (userSettings.reimbursementEndDate) {
+        const diffMs = new Date(userSettings.reimbursementEndDate).getTime() - Date.now();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays > 0 && diffDays <= 30) {
+          const toastKey = `reimbursement_30d_toast_${userSettings.reimbursementEndDate}`;
+          if (!localStorage.getItem(toastKey)) {
+            localStorage.setItem(toastKey, 'true');
+            toast(
+              i18n.t('at_a_glance.reimbursement_toast_30d', { 
+                defaultValue: '📋 Zlecenie refundacji: Pozostało {{days}} dni ważności. Zaplanuj wizytę u lekarza!',
+                days: diffDays
+              }),
+              { icon: '📋', duration: 7000 }
+            );
+          }
+        }
+      }
+    } catch (e) {}
+  }, [userSettings?.reimbursementEndDate, userSettings?.sensorChangeDate, userSettings?.infusionSetChangeDate]);
+
   // Automatyczny monitor i sygnał dźwiękowy MP3 dla niskiego i wysokiego cukru
   useGlucoseAlerts(logs, userSettings);
 
@@ -586,8 +657,9 @@ export default function App() {
     const glTrend = latestGlucose?.direction || null;
     const glDelta = typeof latestGlucose?.delta === 'number' ? latestGlucose.delta : null;
 
-    // 1. Aktywny monitor bezpieczeństwa: skraca stoper i alarmuje, gdy cukier gwałtownie spada
+    // 1. Aktywny monitor bezpieczeństwa i adaptacyjny radar trendu
     checkPreBolusHypoShield(glValue, glTrend, glDelta);
+    trackAdaptivePreBolusTrend(glValue, glTrend, glDelta);
 
     // 2. Detekcja nowych bolusów z pompy i nowych posiłków
     checkAndNotifyPumpBolus(logs, glValue, glTrend, userSettings);
@@ -595,7 +667,7 @@ export default function App() {
   }, [logs, userSettings]);
 
   const lastGlucoseValue = useMemo(() => {
-    const gl = logs.filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
+    const gl = (logs || []).filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
     if (gl.length === 0) return null;
     gl.sort((a: any, b: any) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
     return gl[0].value || null;
@@ -632,7 +704,7 @@ export default function App() {
   // Synchronizacja danych z widgetami systemowymi
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    const gl = logs.filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
+    const gl = (logs || []).filter((l: any) => l.type === 'glucose' || l.type === 'sgv');
     if (gl.length === 0) return;
     gl.sort((a: any, b: any) => (b.timestamp || b.createdAt || 0) - (a.timestamp || a.createdAt || 0));
     
@@ -667,7 +739,8 @@ export default function App() {
           glucose: current.glucose ? current.glucose.toString() : current.value ? current.value.toString() : "---",
           arrow: arrow,
           delta: deltaStr,
-          time: time
+          time: time,
+          iob: current.iob ? current.iob.toString() : ""
         });
       } catch (e) {
         console.warn("Widget pushData error:", e);
@@ -997,9 +1070,18 @@ export default function App() {
     }).then(l => { listener = l; });
 
     // Obsługa kliknięć w widgety Androida i skróty aplikacji (Deep Links & Native Shortcuts)
+    let lastHandledAction = '';
+    let lastHandledActionTime = 0;
+
     const handleActionRouting = (action: string) => {
       if (!action) return;
       const cleanAction = action.trim().toLowerCase();
+      const now = Date.now();
+      if (cleanAction === lastHandledAction && (now - lastHandledActionTime < 2500)) {
+        return;
+      }
+      lastHandledAction = cleanAction;
+      lastHandledActionTime = now;
       
       if (cleanAction === 'open_camera_vision' || cleanAction === 'ai_camera') {
         useAppStore.getState().setActiveTab('meal');
@@ -1116,14 +1198,15 @@ export default function App() {
     };
   }, []);
 
-  // Smart Equipment Listener & Modal State
-  const [smartEquipmentType, setSmartEquipmentType] = useState<'reservoir' | 'sensor' | null>(null);
+  // Smart Equipment Listener & Modal State with Queue
+  const [smartEquipmentQueue, setSmartEquipmentQueue] = useState<Array<'reservoir' | 'sensor'>>([]);
+  const smartEquipmentType = smartEquipmentQueue[0] || null;
 
   useEffect(() => {
     const handleSmartEquipment = (e: any) => {
       const type = e.detail; // 'sensor' or 'reservoir'
       if (type === 'sensor' || type === 'reservoir') {
-        setSmartEquipmentType(type);
+        setSmartEquipmentQueue(prev => prev.includes(type) ? prev : [...prev, type]);
       }
     };
 
@@ -1131,9 +1214,17 @@ export default function App() {
     return () => window.removeEventListener('smart-equipment-trigger', handleSmartEquipment);
   }, []);
 
+  const handleDismissSmartEquipment = () => {
+    const type = smartEquipmentType;
+    if (type) {
+      import('./lib/smartEquipment').then(({ markSmartPromptShown }) => markSmartPromptShown(type));
+    }
+    setSmartEquipmentQueue(prev => prev.slice(1));
+  };
+
   const handleConfirmSmartEquipment = async (replaceInfusionSet: boolean, selectedSite?: string) => {
     const type = smartEquipmentType;
-    setSmartEquipmentType(null);
+    setSmartEquipmentQueue(prev => prev.slice(1));
     if (!type) return;
 
     import('./lib/smartEquipment').then(({ markSmartPromptShown }) => markSmartPromptShown(type));
@@ -1385,7 +1476,34 @@ export default function App() {
       
       applyColors();
       
-      root.setAttribute("data-bg", userSettings?.bgOption || localStorage.getItem("bgOption") || "default");
+      const bgOption = userSettings?.bgOption || localStorage.getItem("bgOption") || "default";
+      root.setAttribute("data-bg", bgOption);
+
+      // Edge-to-Edge System Bar Synchronization (Pasek Stanu i Nawigacji Androida + Web meta theme-color)
+      const systemBarColor = isDark 
+        ? (bgOption === "true-black" ? "#000000" : "#0f172a") 
+        : "#f8fafc";
+
+      let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (!metaThemeColor) {
+        metaThemeColor = document.createElement('meta');
+        metaThemeColor.setAttribute('name', 'theme-color');
+        document.head.appendChild(metaThemeColor);
+      }
+      metaThemeColor.setAttribute('content', systemBarColor);
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const NotificationBridge: any = (Capacitor as any).Plugins?.NotificationBridge;
+          NotificationBridge?.setSystemBarColors?.({
+            statusBarColor: systemBarColor,
+            navigationBarColor: systemBarColor,
+            isDark: isDark
+          });
+        } catch (e) {
+          console.warn("Failed to update system bar colors:", e);
+        }
+      }
     
     // 3. Efekty wizualne (szkło, material 3, eco)
     const lsGlass = localStorage.getItem("glassmorphismEnabled");
@@ -1812,7 +1930,7 @@ export default function App() {
         type={smartEquipmentType}
         logs={logs}
         userSettings={userSettings}
-        onClose={() => setSmartEquipmentType(null)}
+        onClose={handleDismissSmartEquipment}
         onConfirm={handleConfirmSmartEquipment}
       />
       <AppLayout

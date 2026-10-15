@@ -33,16 +33,16 @@ export function NavButton({
         <motion.div
           layoutId={ecoMode ? undefined : "nav-indicator"}
           className="gpu-layer will-change-transform absolute inset-1 rounded-2xl bg-accent-500/10 dark:bg-accent-400/10 -z-10 select-none pointer-events-none"
-          transition={{ type: "spring", stiffness: 350, damping: 25 }}
+          transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8 }}
         />
       )}
       <motion.div
         animate={{
-          scale: active ? [0.9, 1.1, 1] : 1,
+          scale: active ? [0.92, 1.08, 1] : 1,
           y: active ? -1 : 0,
         }}
-        transition={{ duration: 0.3 }}
-        whileTap={{ scale: 0.85 }}
+        transition={{ type: "spring", stiffness: 450, damping: 26 }}
+        whileTap={{ scale: 0.88 }}
         className="select-none pointer-events-none"
       >
         {React.cloneElement(icon, { size: 20 })}

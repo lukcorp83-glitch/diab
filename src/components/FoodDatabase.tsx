@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCustomProducts, useCommunityProducts } from '../hooks/queries/useFoodDatabase';
 import { useSavedMeals } from '../hooks/queries/useSavedMeals';
 import { LIB_BASE } from '../data/foodDatabase';
+import { dbService } from '../services/databaseService';
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
@@ -29,6 +30,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import { geminiService } from "../services/gemini";
 import { useAppStore } from "../stores/useAppStore";
+import { getDietBadge, isProductDietFriendly, getDietName } from "../lib/dietHelper";
 
 export const getProductName = (p: Product, lang: string) => {
  if (lang.startsWith("en") && p.nameEn) return p.nameEn;
@@ -36,20 +38,38 @@ export const getProductName = (p: Product, lang: string) => {
  return p.name;
 };
 
+export type NutrientFilter = 'all' | 'snack_free' | 'high_protein' | 'high_fiber' | 'fast_carbs' | 'diet_match';
+
 export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Product) => void }) {
   const user = useAuthStore(state => state.user);
 
- const { t } = useTranslation();
- const [searchTerm, setSearchTerm] = useState("");
- const [isSearchingOnline, setIsSearchingOnline] = useState(false);
- const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
- const [isListening, setIsListening] = useState(false);
- const [aiSearchResults, setAiSearchResults] = useState<Product[]>([]);
+  const { t } = useTranslation();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchingOnline, setIsSearchingOnline] = useState(false);
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [aiSearchResults, setAiSearchResults] = useState<Product[]>([]);
 
- const { data: customProductsData } = useCustomProducts(user);
- const { data: communityProductsData } = useCommunityProducts();
- const customProducts = customProductsData || [];
- const communityProducts = communityProductsData || [];
+  const { data: customProductsData } = useCustomProducts(user);
+  const { data: communityProductsData } = useCommunityProducts();
+  const customProducts = customProductsData || [];
+  const communityProducts = communityProductsData || [];
+  const [activeNutrientFilter, setActiveNutrientFilter] = useState<NutrientFilter>('all');
+  const [sortBy, setSortBy] = useState<'date_desc' | 'name_asc' | 'carbs_desc' | 'carbs_asc'>('name_asc');
+  const [visibleCount, setVisibleCount] = useState(40);
+
+  const activeDiet = React.useMemo(() => {
+    try {
+      const s = localStorage.getItem('glikocontrol_user_settings');
+      return s ? JSON.parse(s)?.activeDiet : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    setVisibleCount(40);
+  }, [searchTerm, activeCategory, activeNutrientFilter, sortBy]);
 
  const handleOnlineSearch = async () => {
    if (!searchTerm.trim()) return;
@@ -206,6 +226,9 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  );
  }
 
+ // Trwały zapis w bazie SQLite telefonu (odporny na czyszczenie i restarty)
+ await dbService.saveFoodProduct(prodData);
+
  setIsModalOpen(false);
  setNewProduct({
  name: "",
@@ -252,11 +275,20 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
   const isCommunity = Boolean(p.isCommunity);
  const isSystem = !p.author && !isCommunity;
 
- if (activeSource === 'own') matchesSource = isOwn;
- else if (activeSource === 'community') matchesSource = isCommunity && !isOwn;
- else if (activeSource === 'system') matchesSource = isSystem;
+  let matchesNutrient = true;
+  if (activeNutrientFilter === 'diet_match' && activeDiet) {
+    matchesNutrient = isProductDietFriendly(p, activeDiet);
+  } else if (activeNutrientFilter === 'snack_free') {
+    matchesNutrient = (p.carbs || 0) <= 5;
+  } else if (activeNutrientFilter === 'high_protein') {
+    matchesNutrient = (p.protein || 0) >= 15;
+  } else if (activeNutrientFilter === 'high_fiber') {
+    matchesNutrient = ((p as any).fiber || 0) >= 5;
+  } else if (activeNutrientFilter === 'fast_carbs') {
+    matchesNutrient = ((p.gi || 0) >= 65) || ((p.carbs || 0) >= 20) || p.category === 'Owoce' || p.category === 'Napoje';
+  }
 
- return matchesSearch && matchesCategory && matchesSource;
+  return matchesSearch && matchesCategory && matchesSource && matchesNutrient;
  }).sort((a, b) => {
     if (sortBy === 'date_desc') return (b.createdAt || b.timestamp || 0) - (a.createdAt || a.timestamp || 0);
     if (sortBy === 'carbs_desc') return (b.carbs || 0) - (a.carbs || 0);
@@ -316,6 +348,35 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
   >
   <Plus size={24} />
   </button>
+  </div>
+
+  {/* Szybkie pigułki kategorii w stylu Pixel Search Chips */}
+  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none select-none">
+    {[
+      { label: '🍎 Owoce', q: 'jabłko' },
+      { label: '🍞 Pieczywo', q: 'chleb' },
+      { label: '🥛 Nabiał', q: 'mleko' },
+      { label: '🥩 Mięso', q: 'kurczak' },
+      { label: '🍚 Ryż / Kasze', q: 'ryż' },
+      { label: '🍫 Przekąski', q: 'czekolada' }
+    ].map((chip) => (
+      <button
+        key={chip.q}
+        type="button"
+        onClick={() => {
+          Haptics.tick();
+          setSearchTerm(chip.q);
+        }}
+        className={cn(
+          "px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all shrink-0 cursor-pointer active:scale-95",
+          searchTerm.toLowerCase() === chip.q.toLowerCase()
+            ? "bg-accent-500/20 text-accent-700 dark:text-accent-300 border-accent-500/40 shadow-xs"
+            : "bg-white/70 dark:bg-slate-900/70 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800"
+        )}
+      >
+        {chip.label}
+      </button>
+    ))}
   </div>
 
   {/* Quick Action Search Bar */}
@@ -576,11 +637,40 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  </button>
  ))}
  </div>
+
+ {/* Szybkie filtry kulinarne makroskładników */}
+ <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none items-center">
+   {[
+     { id: 'all', label: t('food.filter_all', { defaultValue: 'Wszystkie' }), icon: null },
+     ...(activeDiet ? [{ id: 'diet_match', label: `Zgodne z dietą (${getDietName(activeDiet)})`, icon: '✨' }] : []),
+     { id: 'snack_free', label: t('food.filter_snack_free', { defaultValue: 'Lekkie (<5g W)' }), icon: '🌱' },
+     { id: 'high_protein', label: t('food.filter_high_protein', { defaultValue: 'Wysokobiałkowe (≥15g B)' }), icon: '🍗' },
+     { id: 'high_fiber', label: t('food.filter_high_fiber', { defaultValue: 'Bogate w błonnik (≥5g Bł)' }), icon: '🌾' },
+     { id: 'fast_carbs', label: t('food.filter_fast_carbs', { defaultValue: 'Szybka energia' }), icon: '⚡' },
+   ].map((f) => (
+     <button
+       key={f.id}
+       onClick={() => {
+         Haptics.selectionStart();
+         setActiveNutrientFilter(f.id as NutrientFilter);
+       }}
+       className={cn(
+         "shrink-0 px-3.5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border active:scale-95",
+         activeNutrientFilter === f.id
+           ? "bg-accent-500 text-white border-accent-600 shadow-md shadow-accent-500/20"
+           : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
+       )}
+     >
+       {f.icon && <span className="text-xs">{f.icon}</span>}
+       <span>{f.label}</span>
+     </button>
+   ))}
+ </div>
  </div>
 
- <div className="grid gap-1 will-change-transform">
+ <div className="grid gap-1 will-change-transform pixel-stretch-scroll">
  <AnimatePresence>
- {filtered.slice(0, 100).map((p, idx) => {
+ {filtered.slice(0, visibleCount).map((p, idx) => {
  const isCustom = p.author === user?.uid && !p.isCommunity;
  const isOwnCommunity = p.author === user?.uid && p.isCommunity;
  const itemKey = p.id || p.name || `food-item-${idx}`;
@@ -593,10 +683,11 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex justify-between items-center group mb-2 cursor-pointer hover:border-accent-500 transition-colors"
  >
  <div className="flex-1 min-w-0 pr-4">
- <div className="flex items-center gap-2 mb-1">
+ <div className="flex items-center gap-2 mb-1 flex-wrap">
  <h4 className="font-black text-sm dark:text-white truncate">
  {getProductName(p, i18n.language)}
  </h4>
+ {getDietBadge(p, activeDiet)}
  {p.isCommunity && (
  <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-accent-50 dark:bg-accent-950 text-accent-500">
  
@@ -656,18 +747,20 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  if (isDeletable && p.id) {
  return (
  <motion.div
- layout
  key={itemKey}
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95 }}
- transition={{ duration: 0.2 }}
+ transition={{ duration: 0.15 }}
  >
  <SwipeableItem
  key={`swipe-${itemKey}`}
  id={p.id}
  onDelete={async () => {
  try {
+ if (p.id) {
+ await dbService.deleteFoodProduct(p.id);
+ }
  await deleteDoc(doc(db, "users", getEffectiveUid(user), "customProducts", p.id!));
  queryClient.invalidateQueries({ queryKey: ['customProducts'] });
  } catch (err) {
@@ -683,18 +776,31 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
 
  return (
  <motion.div
- layout
  key={itemKey}
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95 }}
- transition={{ duration: 0.2 }}
+ transition={{ duration: 0.15 }}
  >
  {content}
  </motion.div>
  );
  })}
  </AnimatePresence>
+
+ {visibleCount < filtered.length && (
+   <div className="pt-2 pb-6 text-center">
+     <button
+       onClick={() => {
+         Haptics.light();
+         setVisibleCount((prev) => Math.min(prev + 40, filtered.length));
+       }}
+       className="w-full py-3.5 px-4 rounded-2xl bg-white dark:bg-slate-900 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-slate-200 dark:border-slate-800 shadow-sm active:scale-95 cursor-pointer"
+     >
+       {t('common.loadMore', { defaultValue: 'Pokaż więcej produktów' })} ({filtered.length - visibleCount} pozostało)
+     </button>
+   </div>
+ )}
  </div>
  </motion.div>
  );

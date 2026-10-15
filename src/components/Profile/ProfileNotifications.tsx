@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot, Utensils } from 'lucide-react';
+import { Settings2, Bell, AlertTriangle, AlertCircle, Clock, Volume2, Shield, Activity, Pizza, Zap, Sparkles, Moon, Sun, Bot, Utensils, Battery, BatteryCharging, Headphones, Power, Music, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { getEffectiveUid } from '../../lib/utils';
 import toast from 'react-hot-toast';
-import { Switch } from '@headlessui/react';
+import PixelSwitch from '../common/PixelSwitch';
 import i18n from '../../i18n';
 import { Capacitor } from '@capacitor/core';
 import { notificationService } from '../../services/notificationService';
 import { NotificationBridge } from '../../lib/notificationBridge';
+import { voiceReadoutService } from '../../services/voiceReadoutService';
+import { useLogsStore } from '../../stores/useLogsStore';
 // import { enableNotifications, registerServiceWorker } from '../../lib/firebase';
 
 const DEFAULT_NOTIFICATION_PREFS = {
@@ -30,13 +32,33 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
   const queryClient = useQueryClient();
   
   const [learnedRules, setLearnedRules] = useState<any>(() => {
- try {
- return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
- } catch {
- return {};
- }
- });
- const isNativeApp = () => Capacitor.isNativePlatform();
+    try {
+      return JSON.parse(localStorage.getItem('glikosense_medical_rules') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const [isBatteryIgnored, setIsBatteryIgnored] = useState<boolean>(true);
+  const [voiceReadoutEnabled, setVoiceReadoutEnabled] = useState<boolean>(() => voiceReadoutService.isVoiceReadoutEnabled());
+  const [powerBtnEnabled, setPowerBtnEnabled] = useState<boolean>(() => voiceReadoutService.isPowerBtnTriggerEnabled());
+  const [earphoneBtnEnabled, setEarphoneBtnEnabled] = useState<boolean>(() => voiceReadoutService.isEarphoneBtnTriggerEnabled());
+  const [isHeadphones, setIsHeadphones] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    voiceReadoutService.isHeadphonesConnected().then(setIsHeadphones).catch(() => {});
+    if (Capacitor.isNativePlatform()) {
+      NotificationBridge.isBatteryOptimizationIgnored()
+        .then((res: any) => {
+          if (res && typeof res.isIgnored === 'boolean') {
+            setIsBatteryIgnored(res.isIgnored);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const isNativeApp = () => Capacitor.isNativePlatform();
  // will need to be imported or recreated here.
  
  return (
@@ -67,8 +89,10 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  </p>
  </div>
  </div>
-  <button
-    onClick={async () => {
+      <PixelSwitch
+        checked={Boolean(settings.notificationsEnabled)}
+        activeColor="bg-accent-500"
+        onChange={async () => {
       if (!settings.notificationsEnabled) {
         if (window.self !== window.top && !Capacitor.isNativePlatform()) {
           alert(
@@ -173,13 +197,7 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
         }
       }
     }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.notificationsEnabled && "bg-accent-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+  />
  </div>
 
  <div className="flex items-center justify-between p-3.5 bg-accent-50 dark:bg-slate-800/50 rounded-2xl border border-accent-100 dark:border-slate-700 mt-3 mb-3">
@@ -194,8 +212,10 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
         </p>
       </div>
     </div>
-    <button
-      onClick={async () => {
+    <PixelSwitch
+      checked={settings.apkSystemNotificationsEnabled ?? true}
+      activeColor="bg-accent-500"
+      onChange={async () => {
         if (window.self !== window.top && !Capacitor.isNativePlatform()) {
           alert(i18n.t('auto.wazne_przegladarki_blokuja_pow', { defaultValue: i18n.t('auto.wazne_przegladarki_blokuj', { defaultValue: "📢 WAŻNE: Przeglądarki blokują powiadomienia wewnątrz podglądu (iframe).\n\nAby włączyć ten widżet, otwórz aplikację w nowej karcie (przycisk w prawym górnym rogu tego okna)." }) }));
           return;
@@ -255,14 +275,7 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
 
         toast.success(targetState ? 'Włączono informacje o cukrach na pasku powiadomień' : 'Wyłączono informacje o cukrach na pasku powiadomień');
       }}
-      className={cn(
-        "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
-        (settings.apkSystemNotificationsEnabled ?? true) &&
-        "bg-accent-500 pl-5",
-      )}
-    >
-      <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-    </button>
+    />
   </div>
 
   <div className="p-3.5 bg-indigo-50/50 dark:bg-slate-800/60 rounded-2xl border border-indigo-100 dark:border-slate-700 flex items-center justify-between gap-3 my-3">
@@ -288,6 +301,206 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
     </button>
   </div>
 
+  <div className="p-3.5 bg-sky-50/50 dark:bg-slate-800/60 rounded-2xl border border-sky-100 dark:border-slate-700 space-y-3 my-3">
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2.5">
+        <Headphones className="text-sky-500" size={18} />
+        <div>
+          <p className="text-xs font-black dark:text-white leading-tight">
+            {t('auto.glosowy_asystent_sluchawkowy', { defaultValue: 'Głosowy asystent słuchawkowy (TTS)' })}
+          </p>
+          <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+            {t('auto.glosowy_asystent_sluchawkowy_opis', { defaultValue: 'Odczytuje bieżący poziom cukru do podłączonych słuchawek' })}
+          </p>
+        </div>
+      </div>
+      <PixelSwitch
+        checked={voiceReadoutEnabled}
+        activeColor="bg-sky-500"
+        onChange={async () => {
+          const next = !voiceReadoutEnabled;
+          setVoiceReadoutEnabled(next);
+          await voiceReadoutService.setVoiceReadoutEnabled(next);
+          toast.success(next ? t('auto.wlaczono_lektora_sluchawkowego', { defaultValue: 'Włączono lektora słuchawkowego' }) : t('auto.wylaczono_lektora_sluchawkowego', { defaultValue: 'Wyłączono lektora słuchawkowego' }));
+        }}
+      />
+    </div>
+
+    {voiceReadoutEnabled && (
+      <div className="pt-2 border-t border-sky-100/60 dark:border-slate-700/60 space-y-2">
+        <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          {t('auto.wybierz_wyzwalacze_tytul', { defaultValue: 'Wyzwalacze odczytu (mogą działać oba naraz)' })}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {/* Wyzwalacz 1: Dwuklik włącznika telefonu */}
+          <button
+            type="button"
+            onClick={async () => {
+              const next = !powerBtnEnabled;
+              setPowerBtnEnabled(next);
+              await voiceReadoutService.setPowerBtnTriggerEnabled(next);
+              toast.success(next 
+                ? t('auto.wlaczono_wyzwalacz_power', { defaultValue: 'Włączono: Dwuklik włącznika telefonu' }) 
+                : t('auto.wylaczono_wyzwalacz_power', { defaultValue: 'Wyłączono: Dwuklik włącznika telefonu' })
+              );
+            }}
+            className={cn(
+              "flex items-center justify-between p-2.5 rounded-xl border transition-all text-left",
+              powerBtnEnabled
+                ? "bg-sky-500/10 dark:bg-sky-500/20 border-sky-300 dark:border-sky-500/40 shadow-sm"
+                : "bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700/80 opacity-60"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <div className={cn("p-1.5 rounded-lg", powerBtnEnabled ? "bg-sky-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-500")}>
+                <Power size={14} />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold dark:text-white leading-tight">
+                  {t('auto.wyzwalacz_power_tytul', { defaultValue: 'Włącznik telefonu' })}
+                </p>
+                <p className="text-[8px] text-slate-500 dark:text-slate-400">
+                  {t('auto.wyzwalacz_power_opis', { defaultValue: 'Dwuklik włącznika / ekranu' })}
+                </p>
+              </div>
+            </div>
+            <div className={cn(
+              "w-4 h-4 rounded-full flex items-center justify-center border transition-all",
+              powerBtnEnabled ? "bg-sky-500 border-sky-500 text-white" : "border-slate-300 dark:border-slate-600"
+            )}>
+              {powerBtnEnabled && <Check size={10} strokeWidth={3} />}
+            </div>
+          </button>
+
+          {/* Wyzwalacz 2: Przycisk słuchawek */}
+          <button
+            type="button"
+            onClick={async () => {
+              const next = !earphoneBtnEnabled;
+              setEarphoneBtnEnabled(next);
+              await voiceReadoutService.setEarphoneBtnTriggerEnabled(next);
+              toast.success(next 
+                ? t('auto.wlaczono_wyzwalacz_sluchawki', { defaultValue: 'Włączono: Przycisk słuchawek' }) 
+                : t('auto.wylaczono_wyzwalacz_sluchawki', { defaultValue: 'Wyłączono: Przycisk słuchawek' })
+              );
+            }}
+            className={cn(
+              "flex items-center justify-between p-2.5 rounded-xl border transition-all text-left",
+              earphoneBtnEnabled
+                ? "bg-sky-500/10 dark:bg-sky-500/20 border-sky-300 dark:border-sky-500/40 shadow-sm"
+                : "bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700/80 opacity-60"
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <div className={cn("p-1.5 rounded-lg", earphoneBtnEnabled ? "bg-sky-500 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-500")}>
+                <Music size={14} />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold dark:text-white leading-tight">
+                  {t('auto.wyzwalacz_sluchawki_tytul', { defaultValue: 'Przycisk słuchawek' })}
+                </p>
+                <p className="text-[8px] text-slate-500 dark:text-slate-400">
+                  {t('auto.wyzwalacz_sluchawki_opis', { defaultValue: 'Dwuklik: następny utwór / play' })}
+                </p>
+              </div>
+            </div>
+            <div className={cn(
+              "w-4 h-4 rounded-full flex items-center justify-center border transition-all",
+              earphoneBtnEnabled ? "bg-sky-500 border-sky-500 text-white" : "border-slate-300 dark:border-slate-600"
+            )}>
+              {earphoneBtnEnabled && <Check size={10} strokeWidth={3} />}
+            </div>
+          </button>
+        </div>
+      </div>
+    )}
+
+    <div className="flex items-center justify-between pt-1 border-t border-sky-100/60 dark:border-slate-700/60">
+      <div className="text-[9px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+        <span className={cn("w-2 h-2 rounded-full", isHeadphones ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-600")} />
+        <span>{isHeadphones ? t('auto.sluchawki_wykryte', { defaultValue: 'Słuchawki podłączone' }) : t('auto.brak_sluchawek', { defaultValue: 'Brak słuchawek' })}</span>
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          const allLogs = useLogsStore.getState().logs || [];
+          const latestGLog = allLogs.find((l: any) => l.type === 'glucose' || l.type === 'sgv');
+          const hasRealVal = latestGLog && latestGLog.value;
+          const testVal = hasRealVal ? latestGLog.value : 124;
+          const testTrend = hasRealVal ? (latestGLog.trend || 'Flat') : 'Flat';
+          const testDelta = hasRealVal ? (latestGLog.delta !== undefined ? latestGLog.delta : '+1') : '+1';
+
+          const isEn = i18n.language && i18n.language.startsWith('en');
+          voiceReadoutService.speakGlucose(testVal, testTrend, testDelta, true, i18n.language);
+          toast.success(
+            hasRealVal 
+              ? (isEn ? `Playing current reading (${testVal} mg/dL)` : `Odtwarzam bieżący odczyt (${testVal} mg/dL)`)
+              : (isEn ? 'Playing demo reading (124 mg/dL)' : 'Odtwarzam odczyt demonstracyjny (124 mg/dL)'),
+            { icon: '🎧' }
+          );
+        }}
+        className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-[9px] font-black uppercase tracking-wider shadow-sm transition-all active:scale-95 flex items-center gap-1"
+      >
+        <Volume2 size={12} />
+        {i18n.language && i18n.language.startsWith('en') ? 'Test voice' : 'Przetestuj głos'}
+      </button>
+    </div>
+  </div>
+
+  {Capacitor.isNativePlatform() && (
+    <div className={cn(
+      "p-3.5 rounded-2xl border flex items-center justify-between gap-3 my-3 transition-all",
+      isBatteryIgnored 
+        ? "bg-emerald-50/50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20" 
+        : "bg-amber-50/80 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 shadow-sm"
+    )}>
+      <div className="flex items-center gap-2.5">
+        <div className={cn(
+          "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
+          isBatteryIgnored ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
+        )}>
+          {isBatteryIgnored ? <BatteryCharging size={18} /> : <Battery size={18} />}
+        </div>
+        <div>
+          <p className="text-xs font-black dark:text-white leading-tight">
+            {isBatteryIgnored ? 'Praca w tle (Bateria: Bez ograniczeń)' : 'Optymalizacja baterii Androida'}
+          </p>
+          <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+            {isBatteryIgnored 
+              ? 'Telefon nie usypia aplikacji w nocy. Alerty działają na bieżąco.' 
+              : 'Android może opóźniać alarmy w uśpieniu. Wyłącz optymalizację!'}
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={async () => {
+          try {
+            await NotificationBridge.requestIgnoreBatteryOptimization();
+            setTimeout(() => {
+              NotificationBridge.isBatteryOptimizationIgnored()
+                .then((res: any) => {
+                  if (res && typeof res.isIgnored === 'boolean') {
+                    setIsBatteryIgnored(res.isIgnored);
+                  }
+                })
+                .catch(() => {});
+            }, 1500);
+          } catch (e: any) {
+            toast.error('Błąd otwierania ustawień baterii');
+          }
+        }}
+        className={cn(
+          "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm transition-all active:scale-95 shrink-0",
+          isBatteryIgnored 
+            ? "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200" 
+            : "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-500/20"
+        )}
+      >
+        {isBatteryIgnored ? 'Sprawdź' : 'Wyłącz limit'}
+      </button>
+    </div>
+  )}
+
  <div
  className={cn(
  "space-y-4 transition-all",
@@ -295,12 +508,12 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  )}
  >
  {!settings.notificationsEnabled && (
- <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 pl-12">
+ <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-2">
  
  {t('auto.włącz_powiadomienia_powyżej_aby_sko', { defaultValue: i18n.t('auto.wlacz_powiadomienia_powyz', { defaultValue: "Włącz powiadomienia powyżej, aby skonfigurować rodzaje alertów." }) })}
  </p>
  )}
- <div className="grid grid-cols-2 gap-3 pl-12">
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
  {[
  {
  id: "hypo",
@@ -339,9 +552,10 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
     };
     const isActive = prefs[pref.id as keyof typeof prefs] ?? true;
     return (
-      <button
+      <div
         key={pref.id}
         onClick={async () => {
+          Haptics.selection();
           const newPrefs = { ...prefs, [pref.id]: !isActive };
           if (pref.id === 'hypo') {
             newPrefs.hypoProtection = !isActive;
@@ -391,35 +605,94 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
           }
         }}
         className={cn(
-          "flex items-center gap-2.5 p-3 rounded-2xl border transition-all text-left relative",
+          "flex items-center justify-between gap-3 p-3 rounded-2xl border transition-all text-left relative cursor-pointer select-none active:scale-[0.98]",
           isActive
             ? "bg-white dark:bg-slate-800 border-accent-500/40 text-slate-800 dark:text-white shadow-sm ring-1 ring-accent-500/20"
             : "bg-slate-100/60 dark:bg-slate-900/40 border-transparent text-slate-400 opacity-60 hover:opacity-100",
         )}
       >
-        <div className={cn(
-          "p-1.5 rounded-xl shrink-0 transition-colors",
-          isActive ? "bg-accent-500/10" : "bg-slate-200/50 dark:bg-slate-800/50"
-        )}>
-          {pref.icon}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className={cn(
+            "p-2 rounded-xl shrink-0 transition-colors",
+            isActive ? "bg-accent-500/10 text-accent-500" : "bg-slate-200/50 dark:bg-slate-800/50 text-slate-400"
+          )}>
+            {pref.icon}
+          </div>
+          <span
+            className={cn(
+              "text-xs font-black uppercase tracking-tight leading-snug break-words flex-1",
+              isActive
+                ? "text-slate-800 dark:text-white"
+                : "text-slate-400 dark:text-slate-500",
+            )}
+          >
+            {pref.label}
+          </span>
         </div>
-        <span
-          className={cn(
-            "text-[10px] font-black uppercase tracking-tight",
-            isActive
-              ? "text-slate-800 dark:text-white"
-              : "text-slate-400",
-          )}
-        >
-          {pref.label}
-        </span>
-      </button>
+        <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+          <PixelSwitch
+            checked={isActive}
+            activeColor="bg-accent-500"
+            onChange={async () => {
+              Haptics.selection();
+              const newPrefs = { ...prefs, [pref.id]: !isActive };
+              if (pref.id === 'hypo') {
+                newPrefs.hypoProtection = !isActive;
+              }
+              const updated = {
+                ...settings,
+                notificationPrefs: newPrefs,
+              };
+              setSettings(updated);
+              localStorage.setItem("notificationPrefs", JSON.stringify(newPrefs));
+              localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+
+              if (Capacitor.isNativePlatform()) {
+                try {
+                  const notifsEnabled = settings.notificationsEnabled !== false;
+                  const hypoOn = notifsEnabled && (newPrefs.hypo !== false) && (newPrefs.hypoProtection !== false);
+                  const hyperOn = notifsEnabled && (newPrefs.hyper !== false);
+                  NotificationBridge.syncAlertPreferences({
+                    hypoEnabled: hypoOn,
+                    hyperEnabled: hyperOn,
+                    targetMin: settings.targetMin || 70,
+                    targetMax: settings.targetMax || 180
+                  }).catch(() => {});
+                } catch (err) {}
+              }
+
+              if (user) {
+                const uid = getEffectiveUid(user);
+                await setDoc(
+                  doc(
+                    db,
+                    "users",
+                    uid,
+                    "settings",
+                    "profile",
+                  ),
+                  {
+                    notificationPrefs: newPrefs,
+                  },
+                  { merge: true },
+                );
+                queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+                  ...(old || {}),
+                  notificationPrefs: newPrefs,
+                }));
+                queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+              }
+            }}
+            ariaLabel={pref.label}
+          />
+        </div>
+      </div>
     );
   })}
  </div>
 
  {settings.notificationsEnabled && (
- <div className="pl-12 mt-6">
+ <div className="mt-6">
  <p className="text-[10px] font-black text-accent-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
  <Sparkles size={12} className="animate-pulse" /> {t('auto.inteligentne_reguły_glikosense', { defaultValue: i18n.t('auto.inteligentne_reguly_gliko', { defaultValue: "Inteligentne reguły GlikoSense" }) })}
  </p>
@@ -442,7 +715,7 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
   };
   const isActive = prefs[pref.id as keyof typeof prefs] ?? false;
   return (
-  <button
+  <div
   key={pref.id}
   onClick={async () => {
   const newPrefs = { ...prefs, [pref.id]: !isActive };
@@ -483,30 +756,78 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
   }
   }}
   className={cn(
-  "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
+  "flex items-center justify-between gap-3 p-3 rounded-2xl border transition-all text-left cursor-pointer select-none active:scale-[0.98]",
   isActive
   ? "bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20 shadow-sm"
-  : "bg-slate-50 dark:bg-slate-900 border-transparent opacity-60"
+  : "bg-slate-50 dark:bg-slate-900 border-transparent opacity-60 hover:opacity-100"
   )}
   >
+  <div className="flex items-center gap-3 min-w-0 flex-1">
   <div className={cn(
   "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
   isActive ? "bg-white dark:bg-indigo-500/20 shadow-sm" : "bg-slate-200 dark:bg-slate-800"
   )}>
   {pref.icon}
   </div>
-  <div>
+  <div className="min-w-0 flex-1">
   <span className={cn(
-  "text-[10px] font-black uppercase tracking-tight block",
-  isActive ? "text-indigo-700 dark:text-indigo-300" : "text-slate-400"
+  "text-xs font-black uppercase tracking-tight block leading-snug break-words",
+  isActive ? "text-indigo-700 dark:text-indigo-300" : "text-slate-400 dark:text-slate-500"
   )}>
   {pref.label}
   </span>
   <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 block mt-0.5">
-  {isActive ? i18n.t('auto.glikosense_czuwa', { defaultValue: 'GlikoSense czuwa' }) : i18n.t('auto.regula_wylaczona', { defaultValue: i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) })}
+  {isActive ? i18n.t('auto.glikosense_aktywny', { defaultValue: 'GlikoSense aktywny' }) : i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" })}
   </span>
   </div>
-  </button>
+  </div>
+  <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+    <PixelSwitch
+      checked={isActive}
+      activeColor="bg-indigo-500"
+      onChange={async () => {
+        Haptics.selection();
+        const newPrefs = { ...prefs, [pref.id]: !isActive };
+        const updated = {
+          ...settings,
+          notificationPrefs: newPrefs,
+        };
+        setSettings(updated);
+        localStorage.setItem("notificationPrefs", JSON.stringify(newPrefs));
+        localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+
+        if (Capacitor.isNativePlatform()) {
+          try {
+            const notifsEnabled = settings.notificationsEnabled !== false;
+            const hypoOn = notifsEnabled && (newPrefs.hypo !== false) && (newPrefs.hypoProtection !== false);
+            const hyperOn = notifsEnabled && (newPrefs.hyper !== false);
+            NotificationBridge.syncAlertPreferences({
+              hypoEnabled: hypoOn,
+              hyperEnabled: hyperOn,
+              targetMin: settings.targetMin || 70,
+              targetMax: settings.targetMax || 180
+            }).catch(() => {});
+          } catch (err) {}
+        }
+
+        if (user) {
+          const uid = getEffectiveUid(user);
+          await setDoc(
+            doc(db, "users", uid, "settings", "profile"),
+            { notificationPrefs: newPrefs },
+            { merge: true }
+          );
+          queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+            ...(old || {}),
+            notificationPrefs: newPrefs,
+          }));
+          queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+        }
+      }}
+      ariaLabel={pref.label}
+    />
+  </div>
+  </div>
   );
   })}
  </div>
@@ -522,29 +843,29 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  {[
  {
  id: "dawnPhenomenonEnabled",
- label: t('auto.zjawisko_brzasku', { defaultValue: "Zjawisko Brzasku" }),
- desc: t('auto.wzrosty_poranne_opis', { defaultValue: "Poranne skoki glikemii" }),
+ label: t('auto.zjawisko_brzasku', { defaultValue: "Wzrost Poranny (Brzask)" }),
+ desc: t('auto.wzrosty_poranne_opis', { defaultValue: "Wzrosty odczytów rano przed posiłkiem" }),
  icon: <Sun size={14} className="text-orange-400" />,
  type: "boolean"
  },
  {
  id: "somogyiEnabled",
- label: t('auto.efekt_somogyi', { defaultValue: "Efekt Somogyi" }),
- desc: t('auto.odbicie_po_hipo_opis', { defaultValue: "Odbicie po hipoglikemii" }),
+ label: t('auto.efekt_somogyi', { defaultValue: "Wzrost po Spadku" }),
+ desc: t('auto.odbicie_po_hipo_opis', { defaultValue: "Odczyty po wcześniejszym dołku" }),
  icon: <Activity size={14} className="text-rose-400" />,
  type: "boolean"
  },
  {
  id: "insulinResistanceMultiplier",
- label: t('auto.zmienna_insulinoopornosc', { defaultValue: "Zmienna Insulinooporność" }),
- desc: t('auto.modyfikator_wrazliwosci_opis', { defaultValue: "Modyfikator wrażliwości" }),
+ label: t('auto.zmienna_insulinoopornosc', { defaultValue: "Wskaźnik Zapotrzebowania" }),
+ desc: t('auto.modyfikator_wrazliwosci_opis', { defaultValue: "Obliczony z historii dawek i posiłków" }),
  icon: <Shield size={14} className="text-purple-400" />,
  type: "multiplier"
  },
  {
  id: "pizzaEffectMultiplier",
- label: t('auto.efekt_pizzy', { defaultValue: "Efekt Pizzy" }),
- desc: t('auto.przedluzone_wchlanianie_opis', { defaultValue: "Przedłużone wchłanianie" }),
+ label: t('auto.efekt_pizzy', { defaultValue: "Tłuszcze i Białka (FPU)" }),
+ desc: t('auto.przedluzone_wchlanianie_opis', { defaultValue: "Opóźnione uwalnianie energii z posiłku" }),
  icon: <Pizza size={14} className="text-yellow-500" />,
  type: "multiplier"
  }
@@ -577,37 +898,29 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  </div>
  </div>
  
- <button
- onClick={() => {
- const newRules = { ...learnedRules };
- 
- if (pref.type === "boolean") {
- newRules[pref.id] = !isActive;
- } else {
- // Modyfikatory (np. insulinooporność 1.2x)
- if (isActive) {
- newRules[pref.id] = 1.0;
- } else {
- newRules[pref.id] = 1.2; // Domyślna wartość włączenia
- }
- }
- 
- setLearnedRules(newRules);
- localStorage.setItem('glikosense_medical_rules', JSON.stringify(newRules));
- toast.success(isActive ? t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) : t('auto.regula_wlaczona', { defaultValue: "Reguła włączona" }));
- }}
- className={cn(
- "w-10 h-5 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0",
- isActive ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-700"
- )}
- >
- <div
- className={cn(
- "bg-white w-3 h-3 rounded-full shadow-md transform transition-transform duration-200",
- isActive ? "translate-x-5" : "translate-x-0"
- )}
- />
- </button>
+              <PixelSwitch
+                checked={isActive}
+                activeColor="bg-amber-500"
+                className="shrink-0"
+                onChange={() => {
+                  const newRules = { ...learnedRules };
+                  
+                  if (pref.type === "boolean") {
+                    newRules[pref.id] = !isActive;
+                  } else {
+                    // Modyfikatory (np. insulinooporność 1.2x)
+                    if (isActive) {
+                      newRules[pref.id] = 1.0;
+                    } else {
+                      newRules[pref.id] = 1.2; // Domyślna wartość włączenia
+                    }
+                  }
+                  
+                  setLearnedRules(newRules);
+                  localStorage.setItem('glikosense_medical_rules', JSON.stringify(newRules));
+                  toast.success(isActive ? t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" }) : t('auto.regula_wlaczona', { defaultValue: "Reguła włączona" }));
+                }}
+              />
  </div>
  );
  })}

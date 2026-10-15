@@ -18,3 +18,13 @@ diab up/
 *.txt
 lighthouse-report.json
 missing*.json
+
+# Android build artifacts and caches
+.gradle/
+android/.gradle/
+android/app/build/
+android/build/
+android/app/src/main/assets/public/
+local.properties
+.idea/
+*.class

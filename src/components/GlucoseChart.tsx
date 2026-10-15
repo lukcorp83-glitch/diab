@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
 import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
-import { getTs } from '../lib/utils';
+import { getTs, cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 
 import { Plus, Minus, Maximize2, Move, Droplets, Signal, Apple, Syringe, Activity, Zap } from 'lucide-react';
@@ -968,17 +968,28 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  
  if (d.isLatest && d.velocity !== undefined) {
  let arrow = '→';
- if (d.velocity > 2) arrow = '⇈';
- else if (d.velocity > 1) arrow = '↑';
- else if (d.velocity > 0.5) arrow = '↗';
- else if (d.velocity < -2) arrow = '⇊';
- else if (d.velocity < -1) arrow = '↓';
- else if (d.velocity < -0.5) arrow = '↘';
+ const cgmDir = String(d.originalG?.direction || '').toLowerCase();
+
+ // Przy bardzo gwałtownych zmianach (>= 3 mg/dL/min lub wskaźnik DoubleUp z CGM) pojawiają się dwie wyraźne strzałki
+ if (cgmDir.includes('doubleup') || d.velocity >= 3) {
+ arrow = '↑↑';
+ } else if (cgmDir.includes('singleup') || d.velocity > 1) {
+ arrow = '↑';
+ } else if (cgmDir.includes('fortyfiveup') || cgmDir.includes('45up') || d.velocity > 0.5) {
+ arrow = '↗';
+ } else if (cgmDir.includes('doubledown') || d.velocity <= -3) {
+ arrow = '↓↓';
+ } else if (cgmDir.includes('singledown') || d.velocity < -1) {
+ arrow = '↓';
+ } else if (cgmDir.includes('fortyfivedown') || cgmDir.includes('45down') || d.velocity < -0.5) {
+ arrow = '↘';
+ }
+
  ctx.font = '900 24px sans-serif';
  ctx.fillStyle = fill;
  ctx.shadowColor = 'rgba(0,0,0,0.8)';
  ctx.shadowBlur = 6;
- ctx.fillText(arrow, x + 24, y);
+ ctx.fillText(arrow, x + (arrow.length > 1 ? 30 : 24), y);
  ctx.shadowBlur = 0;
  }
  }
@@ -1438,61 +1449,113 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  };
  }, [chartData, start, end, chartMinY, chartMaxY, targetMin, targetMax, now, isDark, showLoopSimulation, showMLPrediction, xAxisTicks, lastMlTimestamp]);
 
- const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
- e.stopPropagation();
- const canvas = canvasRef.current;
- if (!canvas) return;
- const rect = canvas.getBoundingClientRect();
- const clickX = e.clientX - rect.left;
- const clickY = e.clientY - rect.top;
- 
- const pL = 20, pR = 10;
- const cw = rect.width - pL - pR;
- const tClick = start + ((clickX - pL) / cw) * (end - start);
- 
- // Sprawdzamy czy kliknięto w dolną sekcję wykresu (gdzie są ikony bolusa i posiłku)
- const isBottomTap = clickY > rect.height - 60;
- 
- let closestTimeDiff = Infinity;
- let closestData: any = null;
- 
- // Najpierw szukamy zdarzeń (bolus/posiłek), jeśli kliknięto na dole, 
- // dając znacznie szerszy promień poszukiwań (do 90 minut, by łatwo trafić palcem)
- if (isBottomTap) {
- for (const d of chartData) {
- if (!d.bolusVal && !d.mealVal) continue;
- const diff = Math.abs(d.timestamp - tClick);
- if (diff < closestTimeDiff && diff < 90 * 60000) { 
- closestTimeDiff = diff;
- closestData = d;
- }
- }
- }
- 
- // Jeśli nie znaleziono zdarzenia lub nie kliknięto na dole, szukamy czegokolwiek (np. glukozy)
- if (!closestData) {
- closestTimeDiff = Infinity;
- for (const d of chartData) {
- const diff = Math.abs(d.timestamp - tClick);
- if (diff < closestTimeDiff && diff < 45 * 60000) { 
- closestTimeDiff = diff;
- closestData = d;
- }
- }
- }
- 
- if (closestData) {
- // Haptic feedback when scrubbing over an event
- if (!crosshair || crosshair.data.timestamp !== closestData.timestamp) {
- if (closestData.bolusVal || closestData.mealVal || closestData.siteVal || closestData.sensorVal) {
- Haptics.selectionStart();
- }
- }
- setCrosshair({ x: clickX, data: closestData, tClick });
- } else {
- setCrosshair(null);
- }
- };
+  const lastHapticPointRef = React.useRef<number | null>(null);
+  const lastHapticZoneRef = React.useRef<'hypo' | 'hyper' | 'tir' | null>(null);
+  const isScrubbingRef = React.useRef<boolean>(false);
+
+  const performScrubAt = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = clientX - rect.left;
+    const clickY = clientY - rect.top;
+    
+    const pL = 20, pR = 10;
+    const cw = rect.width - pL - pR;
+    if (cw <= 0) return;
+    const tClick = start + ((clickX - pL) / cw) * (end - start);
+    
+    // Sprawdzamy czy dotknięto w dolną sekcję wykresu (gdzie są ikony bolusa i posiłku)
+    const isBottomTap = clickY > rect.height - 60;
+    
+    let closestTimeDiff = Infinity;
+    let closestData: any = null;
+    
+    // Najpierw szukamy zdarzeń (bolus/posiłek), jeśli dotknięto na dole (do 90 minut)
+    if (isBottomTap) {
+      for (const d of chartData) {
+        if (!d.bolusVal && !d.mealVal) continue;
+        const diff = Math.abs(d.timestamp - tClick);
+        if (diff < closestTimeDiff && diff < 90 * 60000) { 
+          closestTimeDiff = diff;
+          closestData = d;
+        }
+      }
+    }
+    
+    // W przeciwnym razie szukamy najbliższego punktu glukozy
+    if (!closestData) {
+      closestTimeDiff = Infinity;
+      for (const d of chartData) {
+        const diff = Math.abs(d.timestamp - tClick);
+        if (diff < closestTimeDiff && diff < 45 * 60000) { 
+          closestTimeDiff = diff;
+          closestData = d;
+        }
+      }
+    }
+    
+    if (closestData) {
+      if (lastHapticPointRef.current !== closestData.timestamp) {
+        if (closestData.glucose !== undefined && !isNaN(closestData.glucose)) {
+          const gVal = Number(closestData.glucose);
+          const currentZone: 'hypo' | 'hyper' | 'tir' = gVal < targetMin ? 'hypo' : gVal > targetMax ? 'hyper' : 'tir';
+          
+          if (currentZone === 'hypo') {
+            // Cukier poniżej celu: wyraźniejszy impuls przy wejściu w hipo lub tyknięcie na kolejnych punktach hipo
+            if (lastHapticZoneRef.current !== 'hypo') {
+              Haptics.light();
+            } else {
+              Haptics.tick();
+            }
+          } else if (currentZone === 'hyper') {
+            // Cukier powyżej celu: impuls przy wejściu w hiper lub tyknięcie na kolejnych punktach hiper
+            if (lastHapticZoneRef.current !== 'hyper') {
+              Haptics.light();
+            } else {
+              Haptics.tick();
+            }
+          }
+          // Gdy currentZone === 'tir' (w zakresie celu) -> telefon nie wibruje!
+
+          lastHapticZoneRef.current = currentZone;
+        } else if (closestData.bolusVal || closestData.mealVal || closestData.siteVal || closestData.sensorVal) {
+          Haptics.selectionStart();
+        }
+        lastHapticPointRef.current = closestData.timestamp;
+      }
+      setCrosshair({ x: clickX, data: closestData, tClick });
+    }
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.stopPropagation();
+    performScrubAt(e.clientX, e.clientY);
+  };
+
+  const handleCanvasPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.stopPropagation();
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch (_) {}
+    isScrubbingRef.current = true;
+    performScrubAt(e.clientX, e.clientY);
+  };
+
+  const handleCanvasPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isScrubbingRef.current) return;
+    e.stopPropagation();
+    performScrubAt(e.clientX, e.clientY);
+  };
+
+  const handleCanvasPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (isScrubbingRef.current) {
+      isScrubbingRef.current = false;
+      try {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch (_) {}
+    }
+  };
 
  return (
  <div 
@@ -1559,6 +1622,10 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  ref={canvasRef}
  className="w-full h-full outline-none select-none touch-none" 
  onClick={handleCanvasClick}
+ onPointerDown={handleCanvasPointerDown}
+ onPointerMove={handleCanvasPointerMove}
+ onPointerUp={handleCanvasPointerUp}
+ onPointerCancel={handleCanvasPointerUp}
  style={{ cursor: "pointer", touchAction: "none" }} 
  />
  </div>
@@ -1570,33 +1637,52 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  initial={{ opacity: 0, y: 5 }}
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95 }}
- className="absolute top-2 pointer-events-none z-10 flex flex-col items-center"
+ className="absolute top-2 pointer-events-none z-30 flex flex-col items-center"
  style={{
- left: `clamp(10px, ${20 + ((crosshair.data.timestamp - start) / (end - start)) * (containerRef.current?.clientWidth ? containerRef.current.clientWidth - 30 : 300)}px, calc(100% - 150px))`
+ left: `clamp(105px, ${20 + ((crosshair.data.timestamp - start) / (end - start)) * (containerRef.current?.clientWidth ? containerRef.current.clientWidth - 30 : 300)}px, calc(100% - 95px))`
  }}
  >
- <div className="bg-slate-800/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-xl border border-slate-700/50 min-w-[140px] -translate-x-1/2">
- <div className="text-[10px] font-bold text-slate-400 mb-1 text-center">
+ <div className="bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-xl text-white p-3.5 rounded-[1.75rem] shadow-2xl border border-slate-700/60 min-w-[150px] -translate-x-1/2 text-center space-y-1.5">
+ <div className="text-[10px] font-extrabold text-slate-400 bg-white/5 px-2.5 py-0.5 rounded-full inline-block">
  {new Date(crosshair.data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
  </div>
  {crosshair.data.glucose !== undefined && !isNaN(crosshair.data.glucose) && (
- <div className="flex items-center justify-center gap-2 mb-1">
- <Droplets size={14} className={crosshair.data.glucose < targetMin ? 'text-rose-400' : crosshair.data.glucose > targetMax ? 'text-amber-400' : 'text-emerald-400'} />
- <span className="text-xl font-black">{Math.round(crosshair.data.glucose)}</span>
+ <>
+ <div className="flex items-center justify-center gap-1.5 pt-0.5">
+ <Droplets size={16} className={crosshair.data.glucose < targetMin ? 'text-rose-400' : crosshair.data.glucose > targetMax ? 'text-amber-400' : 'text-emerald-400'} />
+ <span className="text-2xl font-black tracking-tight">{Math.round(crosshair.data.glucose)}</span>
+ <span className="text-[10px] font-bold text-slate-400">mg/dL</span>
  </div>
+ <div className="flex items-center justify-center">
+ <span className={cn(
+ "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-block",
+ crosshair.data.glucose < targetMin
+ ? "bg-rose-500/20 text-rose-300"
+ : crosshair.data.glucose > targetMax
+ ? "bg-amber-500/20 text-amber-300"
+ : "bg-emerald-500/20 text-emerald-300"
+ )}>
+ {crosshair.data.glucose < targetMin
+ ? t('chart.zone_hypo', { defaultValue: 'Poniżej normy' })
+ : crosshair.data.glucose > targetMax
+ ? t('chart.zone_hyper', { defaultValue: 'Powyżej normy' })
+ : t('chart.zone_tir', { defaultValue: 'W normie TIR' })}
+ </span>
+ </div>
+ </>
  )}
  {crosshair.data.originalB && (
- <div className="flex items-center justify-center gap-2 mt-1">
- <Syringe size={14} className="text-indigo-400" />
- <span className="text-indigo-400 font-bold text-xs">{t('auto.bolus', { defaultValue: 'Bolus:' })}</span>
- <span className="text-sm font-black">{Number(crosshair.data.originalB.value).toFixed(2).replace(/\.?0+$/, '') || '0'} {t('auto.j', { defaultValue: 'j.' })}</span>
+ <div className="flex items-center justify-center gap-1.5 px-2 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/20 text-indigo-300">
+ <Syringe size={12} className="text-indigo-400" />
+ <span className="text-[10px] font-bold">{t('auto.bolus', { defaultValue: 'Bolus' })}:</span>
+ <span className="text-xs font-black">{Number(crosshair.data.originalB.value).toFixed(2).replace(/\.?0+$/, '') || '0'} {t('auto.j', { defaultValue: 'j.' })}</span>
  </div>
  )}
  {crosshair.data.originalM && (
- <div className="flex items-center justify-center gap-2 mt-1">
- <Apple size={14} className="text-amber-400" />
- <span className="text-amber-400 font-bold text-xs">{t('auto.węgle', { defaultValue: i18n.t('auto.wegle', { defaultValue: "Węgle:" }) })}</span>
- <span className="text-sm font-black">{Number(crosshair.data.originalM.value).toFixed(1).replace(/\.0$/, '')} g</span>
+ <div className="flex items-center justify-center gap-1.5 px-2 py-1 rounded-xl bg-amber-500/15 border border-amber-500/20 text-amber-300">
+ <Apple size={12} className="text-amber-400" />
+ <span className="text-[10px] font-bold">{t('auto.węgle', { defaultValue: i18n.t('auto.wegle', { defaultValue: "Węgle" }) })}:</span>
+ <span className="text-xs font-black">{Number(crosshair.data.originalM.value).toFixed(1).replace(/\.0$/, '')} g</span>
  </div>
  )}
  </div>

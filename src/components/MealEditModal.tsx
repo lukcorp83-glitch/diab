@@ -290,43 +290,58 @@ export default function MealEditModal({
  }
  };
 
- return createPortal(
- <div className="fixed inset-0 pt-safe pb-safe z-[100] flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto">
- <motion.div
- initial={{ opacity: 0, scale: 0.9, y: 20 }}
- animate={{ opacity: 1, scale: 1, y: 0 }}
- className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[3rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto"
- >
- <div className="p-6 space-y-6">
- <div className="flex justify-between items-center">
- <div className="flex items-center gap-3">
- <div
- className={cn(
- "w-10 h-10 rounded-2xl flex items-center justify-center",
- isBolus
- ? "bg-accent-500/10 text-accent-500"
- : "bg-amber-500/10 text-amber-500",
- )}
- >
- {isBolus ? <Syringe size={20} /> : <Utensils size={20} />}
- </div>
- <div>
- <h3 className="text-lg font-black dark:text-white leading-none">
- {isBolus ? "Edytuj Bolus" : i18n.t('auto.edytuj_posilek', { defaultValue: i18n.t('auto.edytuj_posilek', { defaultValue: "Edytuj Posiłek" }) })}
- </h3>
- <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">
- 
- {t('auto.popraw_dane_wpisu', { defaultValue: 'Popraw dane wpisu' })}
- </p>
- </div>
- </div>
- <button
- onClick={onClose}
- className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
- >
- <X size={24} />
- </button>
- </div>
+  return createPortal(
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 pt-safe pb-safe z-[100] flex items-end sm:items-center justify-center p-2 sm:p-4 bg-slate-950/40 backdrop-blur-sm overflow-y-auto"
+    >
+      <motion.div
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0.05, bottom: 0.5 }}
+        onDragEnd={(_e, info) => {
+          if (info.offset.y > 100 || info.velocity.y > 400) {
+            onClose();
+          }
+        }}
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.95, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="bg-white dark:bg-slate-900 w-full max-w-md rounded-t-[2.5rem] sm:rounded-[3rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden mt-auto sm:my-auto max-h-[92vh] flex flex-col"
+      >
+        <div className="p-6 space-y-6 overflow-y-auto">
+          {/* Pixel Bottom Sheet Drag Handle */}
+          <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto -mt-2 mb-2 sm:hidden shrink-0" />
+
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "w-10 h-10 rounded-2xl flex items-center justify-center",
+                  isBolus
+                    ? "bg-accent-500/10 text-accent-500"
+                    : "bg-amber-500/10 text-amber-500",
+                )}
+              >
+                {isBolus ? <Syringe size={20} /> : <Utensils size={20} />}
+              </div>
+              <div>
+                <h3 className="text-lg font-black dark:text-white leading-none">
+                  {isBolus ? "Edytuj Bolus" : i18n.t('auto.edytuj_posilek', { defaultValue: i18n.t('auto.edytuj_posilek', { defaultValue: "Edytuj Posiłek" }) })}
+                </h3>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">
+                  {t('auto.popraw_dane_wpisu', { defaultValue: 'Popraw dane wpisu' })}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X size={24} />
+            </button>
+          </div>
 
  <div className="space-y-4">
  {/* Search Section */}

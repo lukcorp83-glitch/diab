@@ -624,7 +624,7 @@ export default function HistoryView({ user: propUser, onBack, settings }: Histor
  </p>
  <p className="text-[9px] font-bold text-slate-400/70 dark:text-slate-500/70 mt-2 text-center max-w-[200px]">
  
- {t('auto.dodaj_swój_pierwszy_wpis_aby_rozpoc', { defaultValue: i18n.t('auto.dodaj_swoj_pierwszy_wpis', { defaultValue: "Dodaj swój pierwszy wpis, aby rozpocząć monitorowanie terapii." }) })}
+ {t('auto.dodaj_swój_pierwszy_wpis_aby_rozpoc', { defaultValue: i18n.t('auto.dodaj_swoj_pierwszy_wpis', { defaultValue: "Dodaj swój pierwszy wpis, aby rozpocząć prowadzenie dziennika." }) })}
  </p>
  </div>
  )}

@@ -46,9 +46,15 @@ export async function recordMedicationTaken(medicationId: string, customPills?: 
             newStock = Math.max(0, targetMed.stockQuantity - pillsToDeduct);
           }
 
+          const nowMs = Date.now();
           const updatedMeds = meds.map(m => 
             m.id === medicationId 
-              ? { ...m, ...(newStock !== undefined ? { stockQuantity: newStock } : {}) } 
+              ? { 
+                  ...m, 
+                  ...(newStock !== undefined ? { stockQuantity: newStock } : {}),
+                  lastTakenDate: todayStr,
+                  lastTakenTimestamp: nowMs
+                } 
               : m
           );
 

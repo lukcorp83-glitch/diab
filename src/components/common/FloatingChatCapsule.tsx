@@ -114,7 +114,7 @@ export default function FloatingChatCapsule({
           setIsOpen(true);
         }}
         className={cn(
-          "gpu-layer will-change-transform fixed bottom-28 right-5 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none",
+          "gpu-layer will-change-transform fixed bottom-[max(7rem,calc(env(safe-area-inset-bottom,0px)+6.5rem))] right-5 z-40 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none",
           "border transition-colors duration-200",
           isChild
             ? "bg-gradient-to-tr from-amber-400 to-orange-500 text-white border-white/40 shadow-orange-500/40"
@@ -155,10 +155,10 @@ export default function FloatingChatCapsule({
 
             {/* Kontener czatu z animacją sprężynową (Slide up na mobile / Scale + fade na desktopie) */}
             <motion.div
-              initial={{ y: "100%", opacity: 0.5, scale: 0.98 }}
+              initial={{ y: "100%", opacity: 0.85, scale: 0.98 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: "100%", opacity: 0, scale: 0.96 }}
-              transition={{ type: "spring", damping: 28, stiffness: 280 }}
+              exit={{ y: "100%", opacity: 0.85, scale: 0.96 }}
+              transition={{ type: "spring", damping: 32, stiffness: 380, mass: 0.8 }}
               className={cn(
                 "gpu-layer will-change-transform relative z-10 w-full md:w-[460px] h-[82vh] md:h-[700px] max-h-[90vh]",
                 "bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100",

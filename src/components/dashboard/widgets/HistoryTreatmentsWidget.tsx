@@ -27,7 +27,7 @@ export default function HistoryTreatmentsWidget(props: any) {
  } = props;
  
  // Widget body:
- const treatmentLogs = logs.filter(log => log.type === 'bolus' || (log.type as any) === 'insulin');
+ const treatmentLogs = (logs || []).filter((log: any) => log.type === 'bolus' || (log.type as any) === 'insulin');
  const hasTreatmentLogsOnly = treatmentLogs.length > 0;
  if (!hasTreatmentLogsOnly) {
  if (isEditingLayout) {

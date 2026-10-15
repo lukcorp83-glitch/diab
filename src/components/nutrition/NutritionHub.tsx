@@ -24,13 +24,14 @@ export interface NutritionHubProps {
 export default function NutritionHub({
   user,
   setTab,
-  sharedPlate,
+  sharedPlate = [],
   setSharedPlate,
   settings,
   logs = [],
   initialSubTab = "creator",
 }: NutritionHubProps) {
   const { t } = useTranslation();
+  const safePlate = Array.isArray(sharedPlate) ? sharedPlate : [];
   const [activeSubTab, setActiveSubTab] = useState<"creator" | "diet" | "history" | "nutri">(initialSubTab);
 
   useEffect(() => {
@@ -51,13 +52,13 @@ export default function NutritionHub({
       id: "creator" as const,
       label: t("nutrition.tab_creator", { defaultValue: "Talerz" }),
       icon: <Utensils className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />,
-      badge: sharedPlate.length > 0 ? sharedPlate.length : undefined,
+      badge: safePlate.length > 0 ? safePlate.length : undefined,
     },
     {
       id: "diet" as const,
       label: t("nutrition.tab_diet", { defaultValue: "Dieta" }),
       icon: <PieChart className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />,
-      badge: (settings?.activeDiet || (settings as any)?.activeDiets?.length) ? "1" : undefined,
+      badge: (settings?.activeDiet || ((settings as any)?.activeDiets && (settings as any).activeDiets.length > 0)) ? "1" : undefined,
     },
     {
       id: "history" as const,
@@ -117,7 +118,7 @@ export default function NutritionHub({
       </div>
 
       {/* Zawartość zakładek */}
-      <div className="flex-1 max-w-4xl mx-auto w-full pt-4 px-2 sm:px-4">
+      <div className="flex-1 max-w-5xl mx-auto w-full pt-4 px-2 sm:px-4">
         <AnimatePresence mode="wait">
           {activeSubTab === "creator" && (
             <motion.div
@@ -133,7 +134,7 @@ export default function NutritionHub({
                 <MealPlate
                   user={user}
                   setTab={setTab}
-                  sharedPlate={sharedPlate}
+                  sharedPlate={safePlate}
                   setSharedPlate={setSharedPlate}
                   mode="plate"
                   openHistory={() => handleTabChange("history")}

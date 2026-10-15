@@ -24,7 +24,7 @@ export default function HistoryMeasurementsWidget(props: any) {
  } = props;
  
  // Widget body:
- const glucoseLogs = logs.filter(log => log.type === 'glucose');
+ const glucoseLogs = (logs || []).filter((log: any) => log.type === 'glucose');
  const hasGlucoseLogsOnly = glucoseLogs.length > 0;
  if (!hasGlucoseLogsOnly) {
  if (isEditingLayout) {

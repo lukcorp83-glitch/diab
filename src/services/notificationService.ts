@@ -518,6 +518,63 @@ export const notificationService = {
         }
       }
 
+      // 3. Zlecenie na zaopatrzenie / Refundacja (30 dni i 7 dni przed końcem okresu)
+      if (settings?.reimbursementEndDate) {
+        const reimDateMs = new Date(settings.reimbursementEndDate).getTime();
+        if (!isNaN(reimDateMs)) {
+          const reminder30d = new Date(reimDateMs - (30 * 24 * 60 * 60 * 1000));
+          const reminder7d = new Date(reimDateMs - (7 * 24 * 60 * 60 * 1000));
+
+          // 30 dni wcześniej
+          if (reminder30d.getTime() > now) {
+            notificationsToSchedule.push({
+              id: 996,
+              title: i18n.t('notifications.reimbursement_30d_title', { defaultValue: 'Zlecenie na zaopatrzenie 📋' }),
+              body: i18n.t('notifications.reimbursement_30d_body', { defaultValue: 'Zbliża się ostatni miesiąc (30 dni) ważności zlecenia na refundację!' }),
+              schedule: { at: reminder30d },
+              channelId: 'glikocontrol_reminders_v1',
+              attachments: null,
+              actionTypeId: '',
+              extra: null
+            });
+          } else if (now >= reminder30d.getTime() && now < reminder7d.getTime()) {
+            const notifKey = `notif_reimbursement_30d_${settings.reimbursementEndDate}`;
+            if (!localStorage.getItem(notifKey)) {
+              localStorage.setItem(notifKey, 'true');
+              this.scheduleDeviceReminder(
+                i18n.t('notifications.reimbursement_30d_title', { defaultValue: 'Zlecenie na zaopatrzenie 📋' }),
+                i18n.t('notifications.reimbursement_30d_body', { defaultValue: 'Zbliża się ostatni miesiąc (30 dni) ważności zlecenia na refundację!' }),
+                996
+              );
+            }
+          }
+
+          // 7 dni wcześniej (pilne)
+          if (reminder7d.getTime() > now) {
+            notificationsToSchedule.push({
+              id: 997,
+              title: i18n.t('notifications.reimbursement_7d_title', { defaultValue: 'Pilne: Zlecenie wygasa za 7 dni ⚠️' }),
+              body: i18n.t('notifications.reimbursement_7d_body', { defaultValue: 'Za tydzień kończy się okres refundacji osprzętu. Zaplanuj kontakt w sprawie nowego zlecenia.' }),
+              schedule: { at: reminder7d },
+              channelId: 'glikocontrol_reminders_v1',
+              attachments: null,
+              actionTypeId: '',
+              extra: null
+            });
+          } else if (now >= reminder7d.getTime() && now < reimDateMs) {
+            const notifKey = `notif_reimbursement_7d_${settings.reimbursementEndDate}`;
+            if (!localStorage.getItem(notifKey)) {
+              localStorage.setItem(notifKey, 'true');
+              this.scheduleDeviceReminder(
+                i18n.t('notifications.reimbursement_7d_title', { defaultValue: 'Pilne: Zlecenie wygasa za 7 dni ⚠️' }),
+                i18n.t('notifications.reimbursement_7d_body', { defaultValue: 'Za tydzień kończy się okres refundacji osprzętu. Zaplanuj kontakt w sprawie nowego zlecenia.' }),
+                997
+              );
+            }
+          }
+        }
+      }
+
       if (Capacitor.isNativePlatform()) {
         await this.initChannels();
         let perms = await LocalNotifications.checkPermissions();
@@ -525,10 +582,10 @@ export const notificationService = {
           perms = await LocalNotifications.requestPermissions();
         }
         if (perms.display === 'granted') {
-          await LocalNotifications.cancel({ notifications: [{ id: 998 }, { id: 999 }] }).catch(() => {});
+          await LocalNotifications.cancel({ notifications: [{ id: 996 }, { id: 997 }, { id: 998 }, { id: 999 }] }).catch(() => {});
           if (notificationsToSchedule.length > 0) {
             await LocalNotifications.schedule({ notifications: notificationsToSchedule });
-            console.log('[NotificationService] Zaplanowano natywne powiadomienia 12h o sprzęcie:', notificationsToSchedule);
+            console.log('[NotificationService] Zaplanowano natywne powiadomienia o sprzęcie i refundacji:', notificationsToSchedule);
           }
         }
       }
@@ -542,13 +599,31 @@ export const notificationService = {
 
   isMedicationAlreadyTaken(medId: string, reminderTimeStr?: string): boolean {
     try {
-      const saved = localStorage.getItem('glikosense_taken_meds');
-      if (!saved) return false;
-      const takenMeds = JSON.parse(saved);
       const todayStr = new Date().toISOString().split('T')[0];
 
-      // 1. Sprawdź czy odnotowano zażycie tego leku dzisiaj
-      const medTakenDate = takenMeds[medId];
+      // 1. Sprawdź najpierw pamięć lokalną
+      const saved = localStorage.getItem('glikosense_taken_meds');
+      let takenMeds: any = {};
+      if (saved) {
+        try { takenMeds = JSON.parse(saved); } catch (e) {}
+      }
+
+      // 2. Sprawdź również dane profilu z chmury (synchronizacja z innych urządzeń)
+      let cloudTakenDate = '';
+      let cloudTakenTimestamp: number | undefined;
+      try {
+        const rawSettings = localStorage.getItem('userSettings') || localStorage.getItem('glikocontrol_user_settings');
+        if (rawSettings) {
+          const parsed = JSON.parse(rawSettings);
+          const foundMed = (parsed.medications || []).find((m: any) => m.id === medId);
+          if (foundMed) {
+            cloudTakenDate = foundMed.lastTakenDate || '';
+            cloudTakenTimestamp = foundMed.lastTakenTimestamp;
+          }
+        }
+      } catch (e) {}
+
+      const medTakenDate = takenMeds[medId] || cloudTakenDate;
       if (medTakenDate !== todayStr) {
         return false;
       }
@@ -793,7 +868,64 @@ export const notificationService = {
     });
   },
 
+  async notifyAppUpdateAvailable(version: string, isBeta: boolean = false) {
+    try {
+      const notifiedKey = `notified_update_${version}`;
+      if (localStorage.getItem(notifiedKey)) return;
+
+      const title = isBeta 
+        ? i18n.t('updates.notif_title_beta', { version, defaultValue: `🚀 Nowa wersja Beta (${version})` })
+        : i18n.t('updates.notif_title', { version, defaultValue: `✨ Dostępna nowa wersja GlikoControl (${version})` });
+      const body = i18n.t('updates.notif_body', { defaultValue: 'Dotknij, aby pobrać i zainstalować najnowszą aktualizację.' });
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await this.initChannels();
+          let perms = await LocalNotifications.checkPermissions();
+          if (perms.display !== 'granted') {
+            perms = await LocalNotifications.requestPermissions();
+          }
+          if (perms.display === 'granted') {
+            await LocalNotifications.schedule({
+              notifications: [
+                {
+                  id: 888,
+                  title,
+                  body,
+                  channelId: 'glikocontrol_reminders_v1',
+                  smallIcon: 'ic_stat_name',
+                  extra: { action: 'open_update', version }
+                }
+              ]
+            });
+            localStorage.setItem(notifiedKey, String(Date.now()));
+            console.log('[NotificationService] Wysłano powiadomienie push o aktualizacji:', version);
+          }
+        } catch (e) {
+          console.warn('[NotificationService] Błąd powiadomienia natywnego o aktualizacji:', e);
+        }
+      } else if (window.Notification && window.Notification.permission === 'granted') {
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration) {
+            registration.showNotification(title, {
+              body,
+              icon: `${import.meta.env.BASE_URL}pwa-icon.svg`.replace(/\/+/g, '/'),
+              tag: 'glikocontrol-app-update'
+            } as any);
+          } else {
+            new window.Notification(title, { body });
+          }
+          localStorage.setItem(notifiedKey, String(Date.now()));
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('[NotificationService] Błąd w notifyAppUpdateAvailable:', e);
+    }
+  },
+
   async triggerGlucoseAlarm(isHigh: boolean, value: number) {
+    let isChildMode = false;
     try {
       if (localStorage.getItem('notificationsEnabled') === 'false') return;
 
@@ -803,7 +935,6 @@ export const notificationService = {
         if (isHigh && prefs.hyper === false) return;
         if (!isHigh && (prefs.hypo === false || prefs.hypoProtection === false)) return;
       }
-      let isChildMode = false;
       const rawSettings = localStorage.getItem('glikocontrol_user_settings');
       if (rawSettings) {
         const s = JSON.parse(rawSettings);

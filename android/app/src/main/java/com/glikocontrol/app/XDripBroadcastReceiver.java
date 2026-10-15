@@ -82,8 +82,9 @@ public class XDripBroadcastReceiver extends BroadcastReceiver {
 
             // Extract timestamp
             long time = bundle.getLong("com.eveningoutpost.dexdrip.Extras.Time", System.currentTimeMillis());
-            if (time <= 0) {
-                time = System.currentTimeMillis();
+            long now = System.currentTimeMillis();
+            if (time <= 0 || time > now + 3600000L || time < now - 30 * 86400000L) {
+                time = now;
             }
 
             // Deduplication guard in memory

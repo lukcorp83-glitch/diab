@@ -160,7 +160,7 @@ export default function MedicationsWidget({ medications, size }: MedicationsWidg
       {/* Lista leków */}
       <div className="flex-1 overflow-y-auto scrollbar-none space-y-2 pr-0.5">
         {activeMeds.map((med, index) => {
-          const isTakenToday = takenMeds[med.id] === todayStr;
+          const isTakenToday = takenMeds[med.id] === todayStr || med.lastTakenDate === todayStr;
           const theme = PILL_THEMES[index % PILL_THEMES.length];
           const IconComponent = getMedicationIcon(med.name, med.dosage);
           

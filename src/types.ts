@@ -18,6 +18,7 @@ export interface Product {
   isCommunity?: boolean;
   isCustom?: boolean;
   barcode?: string;
+  isFavorite?: boolean;
 }
 
 export interface LogEntry {
@@ -100,6 +101,8 @@ export interface Medication {
   stockQuantity?: number; // Pozostała ilość tabletek/sztuk w apteczce
   stockThreshold?: number; // Próg ostrzegania o kończącym się leku
   pillsPerDose?: number; // Liczba tabletek przyjmowana na jedno przypomnienie (domyślnie 1)
+  lastTakenDate?: string; // Data ostatniego zażycia "YYYY-MM-DD"
+  lastTakenTimestamp?: number; // Dokładny znacznik czasu ostatniego zażycia (ms)
 }
 
 export interface InventoryItem {
@@ -114,8 +117,11 @@ export interface InventoryItem {
   barcode?: string;
   penCapacity?: number; // Pojemność pojedynczego pena (dla category === 'pens')
   currentPenUnits?: number; // Jednostki w aktualnie rozpoczętym penie
-  capacity?: number; // Pojemność zbiorniczka (dla category === 'reservoirs', w U lub ml)
   reservoirCapacity?: number; // Pojemność zbiorniczka w jednostkach (np. 160, 180, 200, 300 U)
+  isReimbursed?: boolean; // Czy sprzęt/lek korzysta ze zlecenia/refundacji
+  reimbursementEndDate?: string; // Data końca okresu zlecenia/refundacji "YYYY-MM-DD"
+  reimbursementTotalTranches?: number; // Liczba transz/miesięcy dla tej pozycji
+  reimbursementClaimedTranches?: number; // Liczba odebranych transz
 }
 
 export interface ChildPermissions {
@@ -212,6 +218,11 @@ export interface UserSettings {
   treatmentMode?: 'diet_only' | 'insulin' | 'pump'; // Typ leczenia: dieta/tabletki, insulina, pompa
   floatingChatEnabled?: boolean; // Pływająca pigułka asystenta AI
   customNavSlot?: string; // Identyfikator wybranej zakładki na 4. pozycji dolnego paska
+  atAGlanceEnabled?: boolean; // Pasek «W skrócie» (Pixel At a Glance) na pulpicie
+  reimbursementEndDate?: string; // Globalna data końca zlecenia / refundacji (np. NFZ) "YYYY-MM-DD"
+  reimbursementNotes?: string; // Dodatkowe notatki do zlecenia (np. numer zlecenia, ilość sztuk)
+  reimbursementTotalTranches?: number; // Całkowita liczba transz/miesięcy zlecenia (np. 1, 3, 6)
+  reimbursementClaimedTranches?: number; // Liczba odebranych transz w aptece
 }
 
 export interface AssistantMessage {

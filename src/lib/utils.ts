@@ -376,10 +376,10 @@ export function getTrendInfo(trendRaw?: string | null, t?: (key: string, opts?: 
   if (!trendRaw) return { arrow: '→', label: '' };
   const tStr = String(trendRaw).toLowerCase().trim();
 
-  // DoubleUp
+  // DoubleUp - Dwie wyraźne strzałki w górę przy szybkim wzroście
   if (tStr.includes('doubleup') || tStr === '⇈' || tStr === '↑↑') {
     return {
-      arrow: '⇈',
+      arrow: '↑↑',
       label: t ? t('trend.double_up', { defaultValue: 'szybko rośnie' }) : 'szybko rośnie'
     };
   }
@@ -400,10 +400,10 @@ export function getTrendInfo(trendRaw?: string | null, t?: (key: string, opts?: 
     };
   }
 
-  // DoubleDown
+  // DoubleDown - Dwie wyraźne strzałki w dół przy szybkim spadku
   if (tStr.includes('doubledown') || tStr === '⇊' || tStr === '↓↓') {
     return {
-      arrow: '⇊',
+      arrow: '↓↓',
       label: t ? t('trend.double_down', { defaultValue: 'szybko spada' }) : 'szybko spada'
     };
   }

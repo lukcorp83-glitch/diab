@@ -178,15 +178,56 @@ async function startServer() {
     }
   });
 
-  // Local CORS Proxy for Nightscout
-  app.get("/api/ns-proxy", async (req, res) => {
+  // Local CORS Proxy for Nightscout (Secured against SSRF to cloud metadata/sensitive services)
+  app.all("/api/ns-proxy", async (req, res) => {
     try {
-      const targetUrl = req.query.url as string;
-      const secret = req.headers['api-secret'] as string;
-      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      const targetUrl = (req.query.url as string) || (req.body?.url as string);
+      if (!targetUrl || typeof targetUrl !== 'string') {
+        return res.status(400).json({ error: "Missing url parameter" });
+      }
+
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(targetUrl);
+      } catch {
+        return res.status(400).json({ error: "Invalid url parameter" });
+      }
+
+      // Restrict to http and https protocols
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        return res.status(400).json({ error: "Unsupported protocol" });
+      }
+
+      // Block cloud metadata services (AWS, GCP, Azure, OpenStack)
+      const hostname = parsedUrl.hostname.toLowerCase();
+      if (
+        hostname === '169.254.169.254' ||
+        hostname === 'metadata.google.internal' ||
+        hostname.endsWith('.internal') ||
+        hostname === 'instance-data'
+      ) {
+        return res.status(403).json({ error: "Access to metadata service is forbidden" });
+      }
+
+      const secret = (req.headers['api-secret'] as string) || (req.query.secret as string);
+      const contentType = (req.headers['content-type'] as string) || 'application/json';
+      const headers: Record<string, string> = { 
+        'Accept': 'application/json',
+        'Content-Type': contentType
+      };
       if (secret) headers['api-secret'] = secret;
 
-      const response = await fetch(targetUrl, { headers });
+      const method = req.method.toUpperCase();
+      const fetchOptions: RequestInit = {
+        method,
+        headers
+      };
+
+      if (!['GET', 'HEAD'].includes(method) && req.body && Object.keys(req.body).length > 0) {
+        fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      }
+
+      const response = await fetch(targetUrl, fetchOptions);
       const data = await response.text();
       res.status(response.status).send(data);
     } catch (e) {

@@ -7,6 +7,7 @@ import { MealPlateModals } from "./MealPlate/MealPlateModals";
 import CameraModeModal from "./MealPlate/CameraModeModal";
 import RestaurantMenuModal, { MenuItemAnalysis, RestaurantMenuResult } from "./MealPlate/RestaurantMenuModal";
 import AiMealVerificationModal, { AiMealResult } from "./MealPlate/AiMealVerificationModal";
+import { addRecentProduct } from "../lib/foodFavorites";
 
 
 import i18n from '../i18n';
@@ -21,8 +22,9 @@ import { getEffectiveUid, getMealAbsorptionTime, getCumulativeAbsorption, getCar
 import { requireParentalAuth } from "../lib/childPermissions";
 import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
 
-// Lazy load Diets to avoid conflict with AppContent.tsx lazy import
-const Diets = React.lazy(() => import("./Diets").then(module => ({ default: module.Diets })));
+// Globalny znacznik zapobiegający wielokrotnemu otwieraniu kamery przy remount
+let lastGlobalCameraTrigger = 0;
+
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Product, PlateItem } from '../types';
@@ -193,12 +195,15 @@ export default function MealPlate({
   const queryClient = useQueryClient();
 
  const logs = propLogs || useLogsStore(state => state.logs);
- const plate = sharedPlate;
+ const plate = Array.isArray(sharedPlate) ? sharedPlate : [];
  const setPlate = setSharedPlate || (() => {});
  const { t } = useTranslation();
  const setSearchTerm = useMealPlateStore(state => state.setSearchTerm);
  const setIsSearching = useMealPlateStore(state => state.setIsSearching);
  const setOnlineResults = useMealPlateStore(state => state.setOnlineResults);
+ const lastAiMealScan = useMealPlateStore(state => state.lastAiMealScan);
+ const clearLastAiMealScan = useMealPlateStore(state => state.clearLastAiMealScan);
+ const setLastAiMealScan = useMealPlateStore(state => state.setLastAiMealScan);
 
  const [plateView, setPlateView] = useState<"composer" | "diets" | "history">("composer");
  const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -356,6 +361,14 @@ export default function MealPlate({
  const saveToCustomDb = async (product: Product) => {
  if (!user) return;
  try {
+ const prodToSave = {
+ name: getProductName(product, i18n.language),
+ carbs: product.carbs,
+ protein: product.protein || 0,
+ fat: product.fat || 0,
+ gi: typeof product.gi === "number" ? product.gi : 50,
+ category: "Z Sieci",
+ };
  await addDoc(
       collection(
         db,
@@ -363,15 +376,9 @@ export default function MealPlate({
         getEffectiveUid(user),
         "customProducts",
       ),
- {
- name: getProductName(product, i18n.language),
- carbs: product.carbs,
- protein: product.protein || 0,
- fat: product.fat || 0,
- gi: typeof product.gi === "number" ? product.gi : 50,
- category: "Z Sieci",
- },
+ prodToSave,
  );
+ await dbService.saveFoodProduct({ ...prodToSave, isCustom: true } as any);
  queryClient.invalidateQueries({ queryKey: ["customProducts"] });
  toast(i18n.t('auto.zapisano_do_wlasnych_posilkow', { defaultValue: i18n.t('auto.zapisano_do_wlasnych_posi', { defaultValue: "Zapisano do własnych posiłków." }) }));
  } catch (e) {
@@ -526,6 +533,17 @@ export default function MealPlate({
           isCustom: true
         }
       );
+
+      await dbService.saveFoodProduct({
+        id: `meal_set_${Date.now()}`,
+        name: mealName,
+        carbs: Number(totalCarbs.toFixed(1)),
+        protein: Number(totalProtein.toFixed(1)),
+        fat: Number(totalFat.toFixed(1)),
+        gi: Number(weightedGI.toFixed(0)),
+        category: "Zestawy",
+        isCustom: true
+      });
       
       queryClient.invalidateQueries({ queryKey: ["customProducts"] });
       
@@ -541,6 +559,7 @@ export default function MealPlate({
 
   const addSavedMeal = (meal: any) => {
     Haptics.light();
+    addRecentProduct(meal);
     const rawList = meal.items && meal.items.length > 0 ? meal.items : [meal];
     const normalizedItems: PlateItem[] = rawList.map((item: any) => {
       const base = item.product ? { ...item.product, weight: item.weight || 100 } : item;
@@ -576,6 +595,7 @@ export default function MealPlate({
   };
 
   const addToPlate = (product: Product, weight: number = 100) => {
+    addRecentProduct(product);
     const newItem: PlateItem = {
       ...product,
       name: product.name || product.namePl || product.nameEn || 'Produkt',
@@ -993,7 +1013,8 @@ export default function MealPlate({
 
   const startCameraAnalysis = () => {
     const now = Date.now();
-    if (now - lastCameraTriggerRef.current < 2000) return; // Zapobiega wielokrotnym wibracjom i wywołaniom
+    if (now - lastGlobalCameraTrigger < 2500 || now - lastCameraTriggerRef.current < 2500) return; // Zapobiega wielokrotnym wibracjom i wywołaniom
+    lastGlobalCameraTrigger = now;
     lastCameraTriggerRef.current = now;
     Haptics.light();
     setShowCameraModeModal(true);
@@ -1047,6 +1068,11 @@ export default function MealPlate({
           setAiMealPhoto(image.dataUrl);
           setAiMealResult(result);
           setShowAiMealModal(true);
+          setLastAiMealScan({
+            photo: image.dataUrl,
+            result,
+            timestamp: Date.now()
+          });
           Haptics.success();
         } catch (err) {
           console.error("Camera vision analysis:", err);
@@ -1092,6 +1118,7 @@ export default function MealPlate({
           carbs: Number(Number(carbs100).toFixed(1)),
           protein: Number(Number(prot100).toFixed(1)),
           fat: Number(Number(fat100).toFixed(1)),
+          fiber: ing.fiberPer100g !== undefined ? Number(ing.fiberPer100g) : (ing.fiber ? Number(ing.fiber) : 0),
           gi: ing.ig || finalResult.ig || 50,
           weight: ingWeight,
           category: "AI Wizja",
@@ -1222,10 +1249,17 @@ export default function MealPlate({
             {t('auto.talerz', { defaultValue: "Centrum Żywieniowe" })}
           </h1>
           <div className="flex items-center gap-2">
-            {aiMealResult && aiMealPhoto && (
+            {(aiMealResult || lastAiMealScan) && (
               <button
                 type="button"
-                onClick={() => { Haptics.light(); setShowAiMealModal(true); }}
+                onClick={() => { 
+                  Haptics.light(); 
+                  if (!aiMealResult && lastAiMealScan) {
+                    setAiMealPhoto(lastAiMealScan.photo);
+                    setAiMealResult(lastAiMealScan.result);
+                  }
+                  setShowAiMealModal(true); 
+                }}
                 className="px-3 h-12 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shadow-sm flex items-center gap-1.5 text-xs font-black uppercase tracking-wider transition-all active:scale-95 shrink-0 cursor-pointer"
                 title="Popraw ostatnią analizę potrawy ze zdjęcia AI"
               >
@@ -1242,6 +1276,70 @@ export default function MealPlate({
             </button>
           </div>
         </div>
+
+        {/* Baner ostatnio przeanalizowanego posiłku z aparatu (Zapobieganie utracie po zamknięciu) */}
+        {lastAiMealScan && (
+          <div className="mx-2 mb-3 p-3.5 sm:p-4 rounded-3xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/5 border border-indigo-500/20 shadow-sm flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              {lastAiMealScan.photo ? (
+                <div className="relative w-12 h-12 rounded-2xl overflow-hidden shrink-0 border border-black/10 dark:border-white/10 shadow-sm bg-slate-900">
+                  <img src={lastAiMealScan.photo} alt="Posiłek" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center shrink-0 text-indigo-500">
+                  <Sparkles size={20} />
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                    {t('camera.last_scan_badge', { defaultValue: 'Ostatni skan z aparatu' })}
+                  </span>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                    • {t('camera.approximate_badge', { defaultValue: 'Wartość poglądowa' })}
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-slate-900 dark:text-white truncate mt-0.5">
+                  {lastAiMealScan.result?.mealName || t('auto.posilek_ai', { defaultValue: 'Danie z aparatu' })}
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  {lastAiMealScan.result?.weight ? `${Math.round(lastAiMealScan.result.weight)}g` : ''} 
+                  {lastAiMealScan.result?.carbs !== undefined ? ` • ${lastAiMealScan.result.carbs}g W` : ''}
+                  {lastAiMealScan.result?.ingredients?.length ? ` • ${lastAiMealScan.result.ingredients.length} ${t('camera.ingredients_count', { defaultValue: 'składników' })}` : ''}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  Haptics.light();
+                  setAiMealPhoto(lastAiMealScan.photo);
+                  setAiMealResult(lastAiMealScan.result);
+                  setShowAiMealModal(true);
+                }}
+                className="px-3.5 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[11px] uppercase tracking-wider flex items-center gap-1 shadow-sm active:scale-95 transition-all cursor-pointer font-display"
+                title={t('camera.view_edit_tooltip', { defaultValue: 'Otwórz i edytuj ten posiłek' })}
+              >
+                <Sparkles size={13} />
+                <span>{t('camera.view_edit_btn', { defaultValue: 'Otwórz' })}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  Haptics.warning();
+                  clearLastAiMealScan();
+                }}
+                className="p-2 rounded-2xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
+                title={t('camera.dismiss_scan_tooltip', { defaultValue: 'Odrzuć ten skan' })}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        )}
  </>
  )}
 
@@ -1269,6 +1367,13 @@ export default function MealPlate({
    isOpen={showCameraModeModal}
    onClose={() => setShowCameraModeModal(false)}
    onSelectMode={handleSelectCameraMode}
+   onResumeLastScan={() => {
+     if (lastAiMealScan) {
+       setAiMealPhoto(lastAiMealScan.photo);
+       setAiMealResult(lastAiMealScan.result);
+       setShowAiMealModal(true);
+     }
+   }}
    activeDiet={settings?.activeDiet || null}
  />
 
@@ -1297,7 +1402,7 @@ export default function MealPlate({
  <ProductSearch openWeightModal={openWeightModal} openShortcutConfirmModal={openShortcutConfirmModal} startScanner={startScanner} startCameraAnalysis={startCameraAnalysis} isAnalyzing={isAnalyzing} searchError={searchError} setSearchError={setSearchError} allLocal={allLocal} activeDiet={settings?.activeDiet || null} mode={mode} publishToCommunity={publishToCommunity} saveToCustomDb={saveToCustomDb} handleScrollHaptics={handleScrollHaptics} addToPlate={addToPlate} addSavedMeal={addSavedMeal} settings={settings} isLoadingSavedMeals={isLoadingSavedMeals} savedMeals={savedMeals} plate={plate} setPlate={setPlate} cookingMethod={cookingMethod} db={db} getEffectiveUid={getEffectiveUid} />
  )}
 
- {(mode === "plate" || mode === "both") && plate.length === 0 && (
+ {(mode === "plate" || mode === "both") && (!plate || plate.length === 0) && (
  <motion.div
  initial={{ opacity: 0, scale: 0.9 }}
  animate={{ opacity: 1, scale: 1 }}

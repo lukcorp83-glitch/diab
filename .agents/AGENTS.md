@@ -44,3 +44,13 @@ Te reguły definiują specyficzne procedury i standardy pracy w tym projekcie. Z
   - Tablice `PWA_VERSIONS` i `APK_VERSIONS` w `src/constants/versions.ts` powinny trzymać wyłącznie ostatnie 5 wersji (interfejs aplikacji w Profilu wyświetla maksymalnie 3 ostatnie wydania, a okno nowości tylko 1 najnowsze). Przy dodawaniu nowego wydania ZAWSZE usuwaj najstarsze wpisy przekraczające limit 5, aby nie pompować rozmiaru bundle'a niepotrzebną historią.
   - Jeśli usuwasz lub zastępujesz bibliotekę npm, natychmiast usuwaj ją z `package.json` oraz aktualizuj `package-lock.json` (`npm install --package-lock-only`).
 
+- **Zgodność z MDR / SaMD (Bezwzględny Zakaz Terminologii Medycznej i Diagnostycznej)**:
+  - GlikoControl NIE JEST wyrobem medycznym. Aplikacja służy wyłącznie jako prywatny dziennik, rejestrator danych telemetrycznych oraz kalendarz użytkownika.
+  - NIGDY nie używaj w interfejsie, powiadomieniach ani podpowiedziach AI sformułowań sugerujących diagnozę, nadzór medyczny, terapię lub dawkowanie leków (np. „czuwa medycznie”, „diagnoza”, „leczenie”, „rekomendowana dawka”, „bezpiecznie rozpocznij jedzenie”, „podaj bolus”, „podaj korektę”).
+  - Zawsze stosuj neutralne, techniczne i organizacyjne określenia:
+    - Zamiast „czuwa nad glikemią” -> „rejestrator aktywny” / „monitorowanie odczytów”,
+    - Zamiast „Leczenie (Treatments)” -> „Wpisy / Dawki i posiłki”,
+    - Zamiast „diagnozuj problem / terapia” -> „sprawdź stan sprzętu / przegląd danych”,
+    - Zamiast „czas na posiłek, możesz bezpiecznie jeść” -> „odliczanie zakończone / upłynął zaplanowany czas”,
+    - Zamiast „zalecana dawka” -> „zarejestrowana dawka” / „wartość wprowadzona przez użytkownika”.
+

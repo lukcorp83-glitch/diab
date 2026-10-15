@@ -69,6 +69,9 @@ interface AppState {
   showPrivacyPopup: boolean;
   setShowPrivacyPopup: (show: boolean) => void;
 
+  showBedsideClock: boolean;
+  setShowBedsideClock: (show: boolean) => void;
+
   showStatusPopup: boolean;
   setShowStatusPopup: (show: boolean) => void;
 
@@ -170,6 +173,9 @@ export const useAppStore = create<AppState>((set) => ({
 
   showPrivacyPopup: false,
   setShowPrivacyPopup: (show) => set({ showPrivacyPopup: show }),
+
+  showBedsideClock: false,
+  setShowBedsideClock: (show) => set({ showBedsideClock: show }),
 
   showStatusPopup: false,
   setShowStatusPopup: (show) => set({ showStatusPopup: show }),

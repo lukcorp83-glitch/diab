@@ -20,6 +20,28 @@ export interface PreBolusTimerState {
   elapsedSeconds: number;
   isReady: boolean;
   hypoShieldTriggered?: boolean;
+  startGlucose?: number | null;
+  currentGlucose?: number | null;
+  currentTrend?: string | null;
+  currentDelta?: number | null;
+  trendDropDetected?: boolean;
+}
+
+/**
+ * Normalizuje angielskie i techniczne nazwy trendów CGM na czytelne strzałki Unicode
+ */
+export function normalizeTrendToArrow(trend?: string | null): string {
+  if (!trend) return '';
+  const t = trend.trim();
+  const lower = t.toLowerCase();
+  if (t === '↑↑' || t === '⇈' || lower === 'doubleup') return '↑↑';
+  if (t === '↑' || lower === 'singleup') return '↑';
+  if (t === '↗' || lower === 'fortyfiveup' || lower === 'rising') return '↗';
+  if (t === '→' || lower === 'flat') return '→';
+  if (t === '↘' || lower === 'fortyfivedown' || lower === 'falling') return '↘';
+  if (t === '↓' || lower === 'singledown') return '↓';
+  if (t === '↓↓' || t === '⇊' || lower === 'doubledown') return '↓↓';
+  return t;
 }
 
 /**
@@ -229,7 +251,9 @@ export function isBolusHandledOrCompleted(timestamp: number, bolusId?: string): 
 export function startPreBolusTimer(
   totalWaitMinutes: number,
   bolusUnits?: number,
-  customStartTime?: number
+  customStartTime?: number,
+  initialGlucose?: number | null,
+  initialTrend?: string | null
 ): void {
   const roundedWaitMinutes = Math.round(Number(totalWaitMinutes) || 0);
   if (roundedWaitMinutes <= 0) {
@@ -249,7 +273,11 @@ export function startPreBolusTimer(
     startTime,
     targetTime,
     totalMinutes: roundedWaitMinutes,
-    bolusUnits: cleanUnitsStr ? Number(cleanUnitsStr) : undefined
+    bolusUnits: cleanUnitsStr ? Number(cleanUnitsStr) : undefined,
+    startGlucose: initialGlucose || null,
+    currentGlucose: initialGlucose || null,
+    currentTrend: normalizeTrendToArrow(initialTrend) || null,
+    trendDropDetected: false
   };
 
   localStorage.setItem('prebolus_timer_state', JSON.stringify(state));
@@ -339,7 +367,12 @@ export function getPreBolusTimerState(): PreBolusTimerState {
       bolusUnits: parsed.bolusUnits,
       elapsedSeconds,
       isReady,
-      hypoShieldTriggered: !!parsed.hypoShieldTriggered
+      hypoShieldTriggered: !!parsed.hypoShieldTriggered,
+      startGlucose: parsed.startGlucose || null,
+      currentGlucose: parsed.currentGlucose || null,
+      currentTrend: parsed.currentTrend || null,
+      currentDelta: parsed.currentDelta || null,
+      trendDropDetected: !!parsed.trendDropDetected
     };
   } catch (e) {
     return {
@@ -438,17 +471,18 @@ export function checkPreBolusHypoShield(
   // Haptyka ostrzegawcza
   Haptics.warning();
 
-  // Wizualny toast dla użytkownika
-  const trendArrow = currentTrend ? ` ${currentTrend}` : (isFallingTrend ? ' ↓' : '');
+  // Wizualny toast dla użytkownika (zgodny z MDR - neutralny)
+  const normArrow = normalizeTrendToArrow(currentTrend);
+  const trendArrow = normArrow ? ` ${normArrow}` : (isFallingTrend ? ' ↓' : '');
   toast.error(
     i18n.t('bolus.hypo_shield_toast', {
       glucose: Math.round(currentGlucose),
       trend: trendArrow,
-      defaultValue: `🚨 Wykryto spadek cukru (${Math.round(currentGlucose)} mg/dL${trendArrow})! Stoper skrócony – zjedz posiłek natychmiast, aby uniknąć hipoglikemii.`
+      defaultValue: `📉 Zarejestrowano spadek glikemii (${Math.round(currentGlucose)} mg/dL${trendArrow})! Upłynął zaplanowany czas odliczania.`
     }),
     {
-      duration: 10000,
-      icon: '🚨',
+      duration: 8000,
+      icon: '📉',
       style: {
         background: '#ef4444',
         color: '#ffffff',
@@ -463,18 +497,144 @@ export function checkPreBolusHypoShield(
   try {
     NotificationBridge.startLiveTimer({
       targetTime: now - 1000,
-      title: i18n.t('bolus.hypo_shield_notif_title', { defaultValue: 'Posiłek natychmiast! 🚨' }),
+      title: i18n.t('bolus.hypo_shield_notif_title', { defaultValue: 'Odliczanie zakończone ⏱️' }),
       text: i18n.t('bolus.hypo_shield_notif_desc', {
         glucose: Math.round(currentGlucose),
-        defaultValue: `Wykryto spadek glikemii (${Math.round(currentGlucose)} mg/dL). Stoper zakończony – zjedz od razu!`
+        defaultValue: `Zarejestrowano spadek odczytów (${Math.round(currentGlucose)} mg/dL). Upłynął zaplanowany czas odliczania.`
       }),
       id: 777
     }).catch(() => {});
   } catch (e) {}
 
-  // Emisja zdarzenia do UI (np. pigułka DynamicActionCapsule natychmiast zmienia kolor na gotowy do posiłku)
+  // Emisja zdarzenia do UI
   window.dispatchEvent(new CustomEvent('prebolus_timer_update', { detail: getPreBolusTimerState() }));
 
+  return true;
+}
+
+/**
+ * Adaptacyjny radar trendu telemetrycznego dla aktywnego stopera przedposiłkowego.
+ * Jeśli podczas odliczania odczyty z sensora wykażą przełamanie trendu w dół,
+ * stoper rejestruje ten fakt i płynnie dostosowuje czas odliczania.
+ */
+export function trackAdaptivePreBolusTrend(
+  currentGlucose: number | null,
+  currentTrend: string | null,
+  delta?: number | null
+): boolean {
+  if (currentGlucose === null || currentGlucose === undefined || isNaN(currentGlucose) || currentGlucose <= 0) {
+    return false;
+  }
+
+  const timerState = getPreBolusTimerState();
+  if (!timerState.active || timerState.remainingSeconds <= 30 || timerState.isReady) {
+    return false;
+  }
+
+  const saved = localStorage.getItem('prebolus_timer_state');
+  if (!saved) return false;
+
+  let parsed: any = {};
+  try {
+    parsed = JSON.parse(saved);
+  } catch (e) {
+    return false;
+  }
+
+  // Zapisujemy najświeższy odczyt i trend w stanie stopera do podglądu na żywo w UI
+  parsed.currentGlucose = currentGlucose;
+  parsed.currentTrend = normalizeTrendToArrow(currentTrend);
+  parsed.currentDelta = delta;
+
+  // Jeśli startGlucose nie był zapisany, inicjalizujemy go obecnym odczytem
+  if (typeof parsed.startGlucose !== 'number' || isNaN(parsed.startGlucose)) {
+    parsed.startGlucose = currentGlucose;
+    localStorage.setItem('prebolus_timer_state', JSON.stringify(parsed));
+    window.dispatchEvent(new CustomEvent('prebolus_timer_update', { detail: getPreBolusTimerState() }));
+    return false;
+  }
+
+  // Jeśli przełamanie trendu zostało już wcześniej zarejestrowane w tej sesji, tylko odświeżamy bieżące odczyty
+  if (parsed.trendDropDetected) {
+    localStorage.setItem('prebolus_timer_state', JSON.stringify(parsed));
+    window.dispatchEvent(new CustomEvent('prebolus_timer_update', { detail: getPreBolusTimerState() }));
+    return false;
+  }
+
+  const elapsedSeconds = timerState.elapsedSeconds;
+  // Weryfikujemy przełamanie trendu po minimum 2 minutach od startu (120s), aby wyeliminować szum
+  if (elapsedSeconds < 120) {
+    localStorage.setItem('prebolus_timer_state', JSON.stringify(parsed));
+    return false;
+  }
+
+  const normTrend = (currentTrend || '').toLowerCase().trim();
+  const isFallingTrend = normTrend.includes('down') || 
+    normTrend === '↓' || normTrend === '↓↓' || normTrend === '⇊' || normTrend === '⇣' ||
+    normTrend === '↘' || normTrend === '⬊' || normTrend.includes('fall') ||
+    normTrend === '-1' || normTrend === '-2' || normTrend === '-3' || normTrend.startsWith('--') ||
+    (typeof delta === 'number' && delta <= -1.2);
+
+  const glucoseDropped = currentGlucose <= parsed.startGlucose - 4;
+
+  // Warunek przełamania trendu (spadek o min. 4 mg/dL ze strzałką w dół lub ogólny spadek o 7 mg/dL)
+  const isTrendBreak = (glucoseDropped && (isFallingTrend || (typeof delta === 'number' && delta < 0))) || 
+                       (currentGlucose <= parsed.startGlucose - 7);
+
+  if (!isTrendBreak) {
+    localStorage.setItem('prebolus_timer_state', JSON.stringify(parsed));
+    return false;
+  }
+
+  parsed.trendDropDetected = true;
+
+  // Jeśli pozostało więcej niż 60 sekund, płynnie skracamy pozostały czas do 45 sekund
+  const now = Date.now();
+  if (timerState.remainingSeconds > 60) {
+    parsed.targetTime = now + 45 * 1000;
+  }
+
+  localStorage.setItem('prebolus_timer_state', JSON.stringify(parsed));
+
+  Haptics.notification();
+
+  const normArrow = normalizeTrendToArrow(currentTrend);
+  const trendArrow = normArrow ? ` ${normArrow}` : (isFallingTrend ? ' ↘' : '');
+  toast(
+    i18n.t('bolus.adaptive_trend_drop_toast', {
+      glucose: Math.round(currentGlucose),
+      trend: trendArrow,
+      defaultValue: `📉 Zarejestrowano spadek odczytów (${Math.round(currentGlucose)} mg/dL${trendArrow}) – zaplanowany czas odliczania dobiega końca.`
+    }),
+    {
+      icon: '📉',
+      duration: 6000,
+      style: {
+        background: '#0f172a',
+        color: '#38bdf8',
+        fontWeight: 'bold',
+        borderRadius: '1.2rem',
+        border: '1px solid rgba(56, 189, 248, 0.3)',
+        padding: '14px'
+      }
+    }
+  );
+
+  // Aktualizacja powiadomienia w pasku stanu i na ekranie blokady Androida
+  try {
+    NotificationBridge.startLiveTimer({
+      targetTime: parsed.targetTime,
+      title: i18n.t('bolus.adaptive_notif_title', { defaultValue: '📉 Zarejestrowano spadek odczytów' }),
+      text: i18n.t('bolus.adaptive_notif_desc', {
+        glucose: Math.round(currentGlucose),
+        trend: trendArrow,
+        defaultValue: `Odczyt: ${Math.round(currentGlucose)} mg/dL${trendArrow}. Zaplanowany czas odliczania dobiega końca.`
+      }),
+      id: 777
+    }).catch(() => {});
+  } catch (e) {}
+
+  window.dispatchEvent(new CustomEvent('prebolus_timer_update', { detail: getPreBolusTimerState() }));
   return true;
 }
 
@@ -587,7 +747,7 @@ export function checkAndNotifyPumpBolus(
 
   if (remainingMinutes > 0) {
     Haptics.notification();
-    startPreBolusTimer(Math.round(waitMinutes), Number(latestBolus.value), latestBolus.timestamp);
+    startPreBolusTimer(Math.round(waitMinutes), Number(latestBolus.value), latestBolus.timestamp, currentGlucose, currentTrend);
 
     const delayNote = elapsedMinutes > 0 
       ? ` (${i18n.t('auto.podano_w_pompie', { count: elapsedMinutes, defaultValue: `podano ${elapsedMinutes} min temu w pompie` })})` 

@@ -559,6 +559,10 @@ const saveInventoryItem = async () => {
  </strong>
  {' • '}{med.aiData.interactions}
  </p>
+ <p className="text-[8.5px] text-slate-400 dark:text-slate-500 italic pt-1 border-t border-slate-200/40 dark:border-slate-800/40 flex items-center gap-1">
+ <Info size={10} className="shrink-0 text-teal-500" />
+ <span>{t('medication_ai_disclaimer', { defaultValue: 'Informacja edukacyjna: Skonsultuj się z lekarzem lub farmaceutą.' })}</span>
+ </p>
  </div>
  )}
  </div>
@@ -624,21 +628,37 @@ const saveInventoryItem = async () => {
               </div>
             </div>
 
-            {/* Szybki przycisk Zażyj 1 dawkę */}
-            <button
-              type="button"
-              onClick={() => takeMedicationDose(med)}
-              title={t('auto.zazyj_dawke', { defaultValue: 'Zażyj dawkę' })}
-              className={cn(
-                "px-2.5 py-1 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1 shadow-sm shrink-0 ml-2",
-                runout.isLowStock
-                  ? "bg-rose-600 text-white hover:bg-rose-700"
-                  : "bg-teal-600 text-white hover:bg-teal-700"
-              )}
-            >
-              <Check size={10} />
-              {t('auto.zazyj_dawke', { defaultValue: 'Zażyj' })}
-            </button>
+            {/* Szybki przycisk Zażyj 1 dawkę / Stan zażycia z synchronizacją chmury */}
+            {(() => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const isTakenToday = med.lastTakenDate === todayStr;
+
+              if (isTakenToday) {
+                return (
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[8.5px] font-black uppercase tracking-wider shrink-0 ml-2 border border-emerald-500/20">
+                    <CheckCircle2 size={11} />
+                    <span>{t('auto.zazyto_dzisiaj', { defaultValue: 'Zażyto' })}</span>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  type="button"
+                  onClick={() => takeMedicationDose(med)}
+                  title={t('auto.zazyj_dawke', { defaultValue: 'Zażyj dawkę' })}
+                  className={cn(
+                    "px-2.5 py-1 rounded-xl text-[8.5px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center gap-1 shadow-sm shrink-0 ml-2",
+                    runout.isLowStock
+                      ? "bg-rose-600 text-white hover:bg-rose-700"
+                      : "bg-teal-600 text-white hover:bg-teal-700"
+                  )}
+                >
+                  <Check size={10} />
+                  {t('auto.zazyj_dawke', { defaultValue: 'Zażyj' })}
+                </button>
+              );
+            })()}
           </div>
         );
       })()}
@@ -855,6 +875,14 @@ const saveInventoryItem = async () => {
             <strong className="text-slate-800 dark:text-slate-200">{t('auto.interakcje', { defaultValue: "Interakcje:" })}</strong> {newMedication.aiData.interactions}
           </div>
         )}
+      </div>
+
+      {/* Notka medyczna MDR / Responsible AI */}
+      <div className="pt-2 border-t border-teal-500/10 flex items-start gap-1.5 text-[9.5px] text-teal-700/80 dark:text-teal-300/80">
+        <Info size={12} className="shrink-0 mt-0.5 text-teal-500" />
+        <p className="leading-snug">
+          {t('medication_ai_disclaimer', { defaultValue: 'Informacja edukacyjna: Analiza AI ma charakter pomocniczy. Zawsze skonsultuj się z lekarzem lub farmaceutą przed zażyciem leku lub zmianą dawkowania.' })}
+        </p>
       </div>
     </div>
   )}

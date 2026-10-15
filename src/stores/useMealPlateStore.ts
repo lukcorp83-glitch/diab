@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Product, PlateItem } from '../types';
+import { Haptics } from '../lib/haptics';
+import { toast } from 'react-hot-toast';
+
+export interface SavedAiMealScan {
+  photo: string | null;
+  result: any;
+  timestamp: number;
+}
 
 interface MealPlateState {
   plate: PlateItem[];
@@ -8,6 +16,10 @@ interface MealPlateState {
   addToPlate: (item: PlateItem) => void;
   removeFromPlate: (plateItemId: string) => void;
   clearPlate: () => void;
+  
+  lastAiMealScan: SavedAiMealScan | null;
+  setLastAiMealScan: (scan: SavedAiMealScan | null) => void;
+  clearLastAiMealScan: () => void;
   
   searchTerm: string;
   setSearchTerm: (term: string) => void;
@@ -27,29 +39,43 @@ export const useMealPlateStore = create<MealPlateState>()(
   persist(
     (set) => ({
       plate: [],
-      setPlate: (updater) => set((state) => ({
-        plate: typeof updater === 'function' ? updater(state.plate) : updater
-      })),
-      addToPlate: (item) => set((state) => ({ plate: [...state.plate, item] })),
-      removeFromPlate: (id) => set((state) => ({ plate: state.plate.filter(i => i.plateItemId !== id) })),
+      setPlate: (updater) => set((state) => {
+        const currentPlate = Array.isArray(state.plate) ? state.plate : [];
+        const next = typeof updater === 'function' ? updater(currentPlate) : updater;
+        return { plate: Array.isArray(next) ? next : [] };
+      }),
+      addToPlate: (item) => set((state) => ({ plate: [...(Array.isArray(state.plate) ? state.plate : []), item] })),
+      removeFromPlate: (id) => set((state) => ({ plate: (Array.isArray(state.plate) ? state.plate : []).filter(i => i.plateItemId !== id) })),
       clearPlate: () => set({ plate: [] }),
+      
+      lastAiMealScan: null,
+      setLastAiMealScan: (lastAiMealScan) => set({ lastAiMealScan }),
+      clearLastAiMealScan: () => set({ lastAiMealScan: null }),
       
       searchTerm: "",
       setSearchTerm: (searchTerm) => set({ searchTerm }),
       
       onlineResults: [],
-      setOnlineResults: (onlineResults) => set({ onlineResults }),
+      setOnlineResults: (onlineResults) => set({ onlineResults: Array.isArray(onlineResults) ? onlineResults : [] }),
       
       isSearching: false,
       customProducts: [],
-      setCustomProducts: (customProducts) => set({ customProducts }),
+      setCustomProducts: (customProducts) => set({ customProducts: Array.isArray(customProducts) ? customProducts : [] }),
       communityProducts: [],
-      setCommunityProducts: (communityProducts) => set({ communityProducts }),
+      setCommunityProducts: (communityProducts) => set({ communityProducts: Array.isArray(communityProducts) ? communityProducts : [] }),
       setIsSearching: (isSearching) => set({ isSearching }),
     }),
     {
       name: 'diacontrol_shared_plate',
-      partialize: (state) => ({ plate: state.plate }),
+      partialize: (state) => ({ 
+        plate: Array.isArray(state.plate) ? state.plate : [],
+        lastAiMealScan: state.lastAiMealScan || null
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state && (!state.plate || !Array.isArray(state.plate))) {
+          state.plate = [];
+        }
+      }
     }
   )
 );
@@ -83,13 +109,11 @@ export function addAiItemToPlate(actionData: any) {
 
   useMealPlateStore.getState().addToPlate(plateItem);
   try {
-    import('../lib/haptics').then(({ Haptics }) => Haptics.success()).catch(() => {});
-    import('react-hot-toast').then(({ toast }) => {
-      toast.success(`🍽️ Dodano do Talerza: ${plateItem.name} (${plateItem.weight}g)`, {
-        icon: '🍽️',
-        duration: 4000,
-      });
-    }).catch(() => {});
+    Haptics.success();
+    toast.success(`🍽️ Dodano do Talerza: ${plateItem.name} (${plateItem.weight}g)`, {
+      icon: '🍽️',
+      duration: 4000,
+    });
   } catch (e) {}
 }
 

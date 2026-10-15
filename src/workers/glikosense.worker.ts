@@ -1382,13 +1382,25 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
     if (isCurrentSugarLow) {
         insights.push(`🚨 Aktywny niski poziom cukru (${Math.round(latestBg)} mg/dL)! Przyjmij 15-20g szybkich węglowodanów (glukoza, sok).`);
     } else if (riskOfHypo) {
-        const hypoPhrases = [i18n.t('auto.przeczucie_mi_mowi_ze_zbliza_s', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: i18n.t('auto.przeczucie_mi_mowi_ze_zbl', { defaultValue: "⚠️ Przeczucie mi mówi, że zbliża się niezłe hipo! Zjedz szybko trochę cukrów prostych tak by nie zlecieć całkiem ze skały." }) }) }), i18n.t('auto.bardzo_czerwone_swiatlo_u_mnie', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: i18n.t('auto.bardzo_czerwone_swiatlo_u', { defaultValue: "⚠️ Bardzo czerwone światło u mnie - potężnie wylatujesz na dół! Zaserwuj sobie łyk soku." }) }) }), i18n.t('auto.spadek_i_maly_zakres_konieczni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: i18n.t('auto.spadek_i_maly_zakres_koni', { defaultValue: "⚠️ Spadek i mały zakres! Koniecznie przerzuć zębatkę wyżej zabezpieczając te skoki odpowiednią glukozą!" }) }) })];
+        const hypoPhrases = [
+            i18n.t('auto.prognoza_spadku_glikemii', { defaultValue: "⚠️ Przewidywany spadek w kierunku dolnej granicy zakresu docelowego. Zwróć uwagę na odczyty CGM." }),
+            i18n.t('auto.odczyty_spadkowe_norma', { defaultValue: "⚠️ Odczyty wykazują tendencję spadkową. Monitoruj trend glikemii." }),
+            i18n.t('auto.zblizanie_do_dolnego_progu', { defaultValue: "⚠️ Glikemia zbliża się do dolnego progu docelowego." })
+        ];
         insights.push(hypoPhrases[Math.floor(Math.random() * hypoPhrases.length)]);
     } else if (predictedNextHour > 180 || latestBg > 180) {
-        const hyperPhrases = [i18n.t('auto.powoli_wybiegamy_w_teren_wysok', { defaultValue: i18n.t('auto.powoli_wybiegamy_w_teren', { defaultValue: i18n.t('auto.powoli_wybiegamy_w_teren', { defaultValue: "📈 Powoli wybiegamy w teren wysokich cukrów. Zorientuj się skąd to zmierza, ja mogę nie wszystkiego wiedzieć o jedzeniu by to sprowadzić z powrotem." }) }) }), i18n.t('auto.sklaniamy_sie_gwaltownie_przed', { defaultValue: i18n.t('auto.sklaniamy_sie_gwaltownie', { defaultValue: i18n.t('auto.sklaniamy_sie_gwaltownie', { defaultValue: "📈 Skłaniamy się gwałtownie przed drzwiami hiperglikemii, mała poprawka da nam sporego kopa rześkości na kolejną godzinę." }) }) }), i18n.t('auto.wydaje_mi_sie_ze_ostatnio_musi', { defaultValue: i18n.t('auto.wydaje_mi_sie_ze_ostatnio', { defaultValue: i18n.t('auto.wydaje_mi_sie_ze_ostatnio', { defaultValue: "📈 Wydaje mi się, że ostatnio musiało wpaść troszkę niezaznaczonych słodkości... Spodziewaj się lotu powyżej linii." }) }) })]
+        const hyperPhrases = [
+            i18n.t('auto.trend_wzrostowy_powyzej_normy', { defaultValue: "📈 Trend wskazuje na wzrost powyżej górnej granicy zakresu docelowego." }),
+            i18n.t('auto.odczyty_powyzej_celu', { defaultValue: "📈 Odczyty wykazują tendencję zwyżkową powyżej ustalonego zakresu." }),
+            i18n.t('auto.przewidywany_wzrost_glikemii', { defaultValue: "📈 Przewidywany wzrost glikemii ponad docelowy zakres. Sprawdź zarejestrowane posiłki." })
+        ];
         insights.push(hyperPhrases[Math.floor(Math.random() * hyperPhrases.length)]);
     } else {
-        const normalPhrases = [i18n.t('auto.piekna_chwila_homeostazy_napra', { defaultValue: i18n.t('auto.piekna_chwila_homeostazy', { defaultValue: i18n.t('auto.piekna_chwila_homeostazy', { defaultValue: "✨ Piękna chwila homeostazy, naprawdę warto ją celebrować, i dla takich widoków na ekranie staram się bywały zawsze!" }) }) }), i18n.t('auto.krok_po_kroku_i_mamy_idealny_m', { defaultValue: i18n.t('auto.krok_po_kroku_i_mamy_idea', { defaultValue: i18n.t('auto.krok_po_kroku_i_mamy_idea', { defaultValue: "✨ Krok po kroku i mamy idealny moment równowagi... Oby tak dalej przez całą resztę dnia!" }) }) }), i18n.t('auto.w_tej_minucie_mozna_powiedziec', { defaultValue: i18n.t('auto.w_tej_minucie_mozna_powie', { defaultValue: i18n.t('auto.w_tej_minucie_mozna_powie', { defaultValue: "✨ W tej minucie można powiedzieć jedynie brawo byczku - jest ok, żadnych niespodziewanych kłopotów na moje oko!" }) }) })];
+        const normalPhrases = [
+            i18n.t('auto.glikemia_w_normie_stabilna', { defaultValue: "✨ Glikemia utrzymuje się stabilnie w docelowym zakresie (TIR)." }),
+            i18n.t('auto.stabilny_przebieg_odczytow', { defaultValue: "✨ Krok po kroku – stabilny i równomierny profil glikemii." }),
+            i18n.t('auto.optymalna_strefa_docelowa', { defaultValue: "✨ Odczyty w optymalnej strefie docelowej. Stabilny trend." })
+        ];
         insights.push(normalPhrases[Math.floor(Math.random() * normalPhrases.length)]);
     }
 
@@ -1419,7 +1431,7 @@ self.onmessage = async (e: MessageEvent<GlikoWorkerInput>) => {
         // Cukier jest niski - usuwamy sprzeczne wnioski o hiperglikemii, terenie wysokich cukrów czy homeostazie
         insights = insights.filter(ins => {
             const lower = ins.toLowerCase();
-            return !(lower.includes('teren wysokich') || lower.includes('hiperglikemi') || lower.includes('utknął wysoko') || lower.includes('homeostaz') || lower.includes('drzwiami') || lower.includes('równowagi'));
+            return !(lower.includes('teren wysokich') || lower.includes('hiperglikemi') || lower.includes('utknął wysoko') || lower.includes('homeostaz') || lower.includes('wzrost powyżej') || lower.includes('równowagi'));
         });
     }
 

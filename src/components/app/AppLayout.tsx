@@ -56,6 +56,7 @@ const OnboardingTutorial = React.lazy(() => import("../OnboardingTutorial"));
 const PrivacyPopup = React.lazy(() => import("../PrivacyPopup"));
 const ChangelogPopup = React.lazy(() => import("../ChangelogPopup"));
 const UpdateModal = React.lazy(() => import("../UpdateModal"));
+const BedsideClockModal = React.lazy(() => import("../BedsideClockModal"));
 import NotificationCenter from "../NotificationCenter";
 const NotebookManager = React.lazy(() => import("../NotebookManager"));
 import GlikoSenseIcon from "../GlikoSenseIcon";
@@ -102,10 +103,13 @@ export function AppLayout({
     isKeyboardOpen,
     setInitialAction,
     profileCategory,
-    setProfileCategory
+    setProfileCategory,
+    showBedsideClock,
+    setShowBedsideClock
   } = useAppStore();
   const { t } = useTranslation();
-  const sharedPlate = useMealPlateStore((state) => state.plate);
+  const rawSharedPlate = useMealPlateStore((state) => state.plate);
+  const sharedPlate = Array.isArray(rawSharedPlate) ? rawSharedPlate : [];
 
   const [shortcuts, setShortcuts] = React.useState<any[]>([]);
   const [avatarError, setAvatarError] = React.useState(false);
@@ -116,6 +120,7 @@ export function AppLayout({
   }, [userSettings?.customNavSlot, userSettings?.childMode, userSettings?.treatmentMode]);
 
   const isCustomSlotActive = React.useMemo(() => {
+    if (currentNavSlot.id === 'bedside_clock') return false;
     if (currentNavSlot.category) {
       return activeTab === 'profile' && profileCategory === currentNavSlot.category;
     }
@@ -129,6 +134,10 @@ export function AppLayout({
   }, [activeTab, currentNavSlot.category, profileCategory]);
 
   const handleCustomSlotClick = () => {
+    if (currentNavSlot.id === 'bedside_clock') {
+      setShowBedsideClock(true);
+      return;
+    }
     if (currentNavSlot.category) {
       setProfileCategory(currentNavSlot.category);
       handleNavClick('profile');
@@ -356,6 +365,8 @@ export function AppLayout({
           onAction={(action) => {
             if (action === "tutorial") {
               setShowTutorial(true);
+            } else if (action === "bedside_clock" || action === "dash_bedside") {
+              setShowBedsideClock(true);
             } else {
               setInitialAction(action);
             }
@@ -380,7 +391,7 @@ export function AppLayout({
         {/* Navigation */}
         {!isShortcutMode && (
           <nav className={cn(
-            "fixed bottom-4 left-4 right-4 glass backdrop-blur-3xl border border-black/5 dark:border-white/10 z-50 rounded-[2rem] shadow-2xl transition-all duration-300 select-none",
+            "fixed bottom-[max(1rem,env(safe-area-inset-bottom,1rem))] left-4 right-4 glass backdrop-blur-3xl border border-black/5 dark:border-white/10 z-50 rounded-[2rem] shadow-2xl transition-all duration-300 select-none",
             isKeyboardOpen ? "opacity-0 pointer-events-none translate-y-24" : "opacity-100 translate-y-0"
           )}>
             <div className="max-w-md md:max-w-5xl lg:max-w-7xl mx-auto flex items-center justify-around h-20 px-2 group">
@@ -413,7 +424,7 @@ export function AppLayout({
                     lastGlucose={lastGlucoseValue ? Math.round(lastGlucoseValue) : null}
                     mealProgress={mealProgress}
                     shortcuts={shortcuts}
-                    plateCount={sharedPlate.length}
+                    plateCount={Array.isArray(sharedPlate) ? sharedPlate.length : 0}
                     userSettings={userSettings}
                     getEffectiveIOB={getEffectiveIOB}
                     changeTab={changeTab}
@@ -461,6 +472,13 @@ export function AppLayout({
         {/* Modals & Popups */}
         <React.Suspense fallback={null}>
           <UpdateModal />
+          <BedsideClockModal
+            isOpen={showBedsideClock}
+            onClose={() => setShowBedsideClock(false)}
+            logs={logs || []}
+            userSettings={userSettings}
+            pumpStatus={pumpStatus}
+          />
           <Toaster
             position="top-center"
             containerStyle={{ top: 'max(env(safe-area-inset-top), 50px)' }}

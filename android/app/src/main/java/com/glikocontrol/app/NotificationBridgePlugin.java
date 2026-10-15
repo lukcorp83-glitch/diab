@@ -5,8 +5,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.view.Window;
+import androidx.core.view.WindowInsetsControllerCompat;
 import android.provider.Settings;
 import android.content.ComponentName;
+import android.os.PowerManager;
+import android.net.Uri;
 
 import androidx.core.app.NotificationManagerCompat;
 
@@ -395,8 +400,8 @@ public class NotificationBridgePlugin extends Plugin {
                         } catch (Exception ignored) {}
 
                         androidx.core.app.NotificationCompat.Builder readyBuilder = new androidx.core.app.NotificationCompat.Builder(appContext, "gliko_meal_timer_v1")
-                                .setContentTitle("Czas na posiłek! 🍽️")
-                                .setContentText("Odliczanie zakończone. Możesz już zjeść posiłek!")
+                                .setContentTitle("Odliczanie zakończone ⏱️")
+                                .setContentText("Upłynął zaplanowany czas odliczania.")
                                 .setUsesChronometer(false)
                                 .setShowWhen(false)
                                 .setOngoing(false)
@@ -417,7 +422,7 @@ public class NotificationBridgePlugin extends Plugin {
                             readyBuilder.setSmallIcon(R.drawable.ic_stat_name);
                         }
 
-                        android.graphics.Bitmap doneIcon = NightscoutFetcher.createPillBadgeBitmap(appContext, "JEŚĆ!", true);
+                        android.graphics.Bitmap doneIcon = NightscoutFetcher.createPillBadgeBitmap(appContext, "OK", true);
                         if (doneIcon != null) {
                             readyBuilder.setLargeIcon(doneIcon);
                         }
@@ -524,6 +529,11 @@ public class NotificationBridgePlugin extends Plugin {
             }
             if (call.hasOption("targetMax")) {
                 editor.putString("widget_target_max", String.valueOf(call.getInt("targetMax", 180)));
+            }
+            if (call.hasOption("betaProgramEnabled")) {
+                editor.putBoolean("betaProgramEnabled", call.getBoolean("betaProgramEnabled", false));
+                android.content.SharedPreferences glikoPrefs = getContext().getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+                glikoPrefs.edit().putBoolean("betaProgramEnabled", call.getBoolean("betaProgramEnabled", false)).apply();
             }
             editor.apply();
             call.resolve();
@@ -687,5 +697,184 @@ public class NotificationBridgePlugin extends Plugin {
             ret.put("supported", false);
         }
         call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void isBatteryOptimizationIgnored(PluginCall call) {
+        JSObject ret = new JSObject();
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+                boolean isIgnored = pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName());
+                ret.put("isIgnored", isIgnored);
+            } else {
+                ret.put("isIgnored", true);
+            }
+        } catch (Exception e) {
+            ret.put("isIgnored", false);
+        }
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void requestIgnoreBatteryOptimization(PluginCall call) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+                if (pm != null && !pm.isIgnoringBatteryOptimizations(getContext().getPackageName())) {
+                    Intent intent = new Intent();
+                    intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(Uri.parse("package:" + getContext().getPackageName()));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    getContext().startActivity(intent);
+                }
+            }
+            call.resolve();
+        } catch (Exception e) {
+            // Fallback: otwórz ogólny ekran ustawień baterii
+            try {
+                Intent fallback = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(fallback);
+                call.resolve();
+            } catch (Exception ex) {
+                call.reject("Nie udało się otworzyć ustawień baterii: " + ex.getMessage());
+            }
+        }
+    }
+
+    @PluginMethod
+    public void setSystemBarColors(PluginCall call) {
+        String statusBarColorHex = call.getString("statusBarColor");
+        String navigationBarColorHex = call.getString("navigationBarColor");
+        Boolean isDark = call.getBoolean("isDark", true);
+
+        if (getActivity() == null) {
+            call.reject("Activity is null");
+            return;
+        }
+
+        getActivity().runOnUiThread(() -> {
+            try {
+                Window window = getActivity().getWindow();
+                WindowInsetsControllerCompat controller =
+                    new WindowInsetsControllerCompat(window, window.getDecorView());
+
+                if (statusBarColorHex != null && !statusBarColorHex.isEmpty()) {
+                    int color = Color.parseColor(statusBarColorHex);
+                    window.setStatusBarColor(color);
+                }
+
+                if (navigationBarColorHex != null && !navigationBarColorHex.isEmpty()) {
+                    int color = Color.parseColor(navigationBarColorHex);
+                    window.setNavigationBarColor(color);
+                }
+
+                boolean lightIcons = isDark != null && isDark;
+                // If lightIcons is true (dark theme), appearanceLight should be false (white icons)
+                controller.setAppearanceLightStatusBars(!lightIcons);
+                controller.setAppearanceLightNavigationBars(!lightIcons);
+
+                call.resolve();
+            } catch (Exception e) {
+                call.reject("Failed to set bar colors: " + e.getMessage());
+            }
+        });
+    }
+
+    @PluginMethod
+    public void speakGlucose(PluginCall call) {
+        try {
+            boolean force = call.getBoolean("force", true);
+            String glucose = call.getString("glucose", null);
+            String trend = call.getString("trend", null);
+            String delta = call.getString("delta", null);
+            String lang = call.getString("lang", null);
+            if (lang != null && !lang.trim().isEmpty()) {
+                android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+                prefs.edit().putString("app_language", lang.trim()).apply();
+            }
+            VoiceReadoutHelper.speakGlucose(getContext(), force, glucose, trend, delta, lang);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to speak glucose: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void isHeadphonesConnected(PluginCall call) {
+        try {
+            boolean connected = VoiceReadoutHelper.isHeadphonesConnected(getContext());
+            JSObject ret = new JSObject();
+            ret.put("connected", connected);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to check headphones: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void setVoiceReadoutEnabled(PluginCall call) {
+        try {
+            boolean enabled = call.getBoolean("enabled", true);
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+            prefs.edit().putBoolean("voice_readout_enabled", enabled).apply();
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to set voice readout preference: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void setVoiceReadoutTriggers(PluginCall call) {
+        try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+            android.content.SharedPreferences.Editor editor = prefs.edit();
+            if (call.hasOption("powerBtn")) {
+                editor.putBoolean("voice_power_btn_enabled", call.getBoolean("powerBtn", true));
+            }
+            if (call.hasOption("earphoneBtn")) {
+                editor.putBoolean("voice_earphone_btn_enabled", call.getBoolean("earphoneBtn", true));
+            }
+            editor.apply();
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to set voice readout triggers: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void getVoiceReadoutTriggers(PluginCall call) {
+        try {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences("GlikoPrefs", Context.MODE_PRIVATE);
+            boolean powerBtn = prefs.getBoolean("voice_power_btn_enabled", true);
+            boolean earphoneBtn = prefs.getBoolean("voice_earphone_btn_enabled", true);
+            JSObject ret = new JSObject();
+            ret.put("powerBtn", powerBtn);
+            ret.put("earphoneBtn", earphoneBtn);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to get voice readout triggers: " + e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void openDreamSettings(PluginCall call) {
+        try {
+            Intent intent = new Intent(Settings.ACTION_DREAM_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            try {
+                // Alternatywa: Ustawienia wyświetlacza, jeśli dana nakładka nie ma dedykowanego widoku wygaszacza
+                Intent fallback = new Intent(Settings.ACTION_DISPLAY_SETTINGS);
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(fallback);
+                call.resolve();
+            } catch (Exception ex) {
+                call.reject("Failed to open dream settings: " + ex.getMessage());
+            }
+        }
     }
 }

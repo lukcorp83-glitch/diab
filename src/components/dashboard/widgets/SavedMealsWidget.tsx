@@ -125,7 +125,7 @@ export const SavedMealsWidget: React.FC<SavedMealsWidgetProps> = ({
     );
   }
 
-  if (savedMeals.length === 0) {
+  if (!savedMeals || savedMeals.length === 0) {
     return (
       <div 
         onClick={() => {
@@ -160,12 +160,12 @@ export const SavedMealsWidget: React.FC<SavedMealsWidgetProps> = ({
               {t("auto.zapisane_posilki_naglowek", { defaultValue: "ZAPISANE POSIŁKI" })}
             </h4>
             <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              {savedMeals.length}
+              {savedMeals?.length || 0}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            {savedMeals.length > 2 && (
+            {(savedMeals?.length || 0) > 2 && (
               <div className="hidden sm:flex items-center gap-1">
                 <button 
                   onClick={() => scrollSide('left')}

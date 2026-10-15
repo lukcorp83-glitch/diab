@@ -170,7 +170,7 @@ export default function Achievements({ user: propUser, setTab, petData }: Achiev
       },
       {
         id: "glucose_tracker",
-        title: "Czuwaj!",
+        title: i18n.t('auto.staly_monitoring', { defaultValue: "Stały monitoring" }),
         description: i18n.t('auto.zaznacz_50_pomiarow_glikemii', { defaultValue: "Zaznacz 50 pomiarów glikemii." }),
         icon: <Zap className="w-8 h-8 text-accent-500" />,
         color: "bg-accent-500",

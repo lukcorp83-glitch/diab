@@ -1,7 +1,6 @@
-import { toast } from "react-hot-toast";
 import React, { useState } from 'react';
 import { Download, Upload, Copy, Check, Info, Loader2 } from 'lucide-react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { UserSettings } from '../types';
 import { useTranslation } from "react-i18next";
@@ -57,6 +56,7 @@ export default function SettingsTransfer({
  const data = snapshot.data();
  if (data && data.settings) {
  onImport(data.settings);
+ deleteDoc(codeRef).catch(() => {});
  alert(i18n.t('auto.ustawienia_pomyslnie_zaimporto', { defaultValue: i18n.t('auto.ustawienia_pomyslnie_zaim', { defaultValue: "Ustawienia pomyślnie zaimportowane!" }) }));
  setInputCode('');
  }

@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+import { getBasalFromProfile } from '../lib/nightscoutUtils';
 
 interface NightscoutEntry {
   sgv: number;
@@ -33,7 +34,7 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
   let lastError = null;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s max na bezpośrednie połączenie
+  const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s max na bezpośrednie połączenie
 
   const abortListener = () => controller.abort();
   if (parentSignal) {
@@ -54,8 +55,8 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
       if (parentSignal) parentSignal.removeEventListener('abort', abortListener);
       if (parentSignal?.aborted) throw e;
       if (e.name === 'AbortError') {
-        console.warn(`[Worker] Bezpośrednie połączenie: TIMEOUT (15s)`);
-        lastError = "Request timed out (15s limit)";
+        console.warn(`[Worker] Bezpośrednie połączenie: TIMEOUT (25s)`);
+        lastError = "Request timed out (25s limit)";
       } else {
         console.warn(`[Worker] Bezpośrednie połączenie: BŁĄD SIECI - ${e.message}`);
         lastError = e.message || "Network error on direct fetch";
@@ -84,7 +85,7 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
     const proxyUrl = proxies[i];
     console.log(`[Worker] Próbuję połączenia przez proxy [${i}]: ${proxyUrl}`);
     const proxyController = new AbortController();
-    const proxyTimeoutId = setTimeout(() => proxyController.abort(), 8000);
+    const proxyTimeoutId = setTimeout(() => proxyController.abort(), 12000);
     const proxyAbortListener = () => proxyController.abort();
     if (parentSignal) parentSignal.addEventListener('abort', proxyAbortListener, { once: true });
 
@@ -103,8 +104,8 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
       if (parentSignal) parentSignal.removeEventListener('abort', proxyAbortListener);
       if (parentSignal?.aborted) throw e;
       if (e.name === 'AbortError') {
-        console.warn(`[Worker] Proxy [${i}] TIMEOUT (8s)`);
-        lastError = "Proxy request timed out (8s limit)";
+        console.warn(`[Worker] Proxy [${i}] TIMEOUT (12s)`);
+        lastError = "Proxy request timed out (12s limit)";
       } else {
         console.warn(`[Worker] Proxy [${i}] BŁĄD SIECI - ${e.message}`);
         lastError = e.message || "Network error on proxy";
@@ -155,7 +156,11 @@ function processTreatments(data: any[]): any[] {
     if (!ts) return;
     if (ts < 10000000000) ts *= 1000;
     const timestamp = ts;
-    const insulin = Number(t.insulin || t.amount || 0);
+    const rawInsulin = t.insulin ?? t.units ?? t.dose ?? t.enteredinsulin ?? t.amount ?? t.bolus ?? 0;
+    const normalInsulin = Number(t.normal || 0);
+    const extendedInsulin = Number(t.extended || 0);
+    const comboSum = (normalInsulin + extendedInsulin) > 0 ? (normalInsulin + extendedInsulin) : 0;
+    const insulin = Number(rawInsulin || comboSum || 0);
     const carbs = Number(t.carbs || 0);
     const mealName = t.food || t.description || (t.notes && t.notes !== '<none>' ? t.notes : '') || '';
     const cleanNotes = mealName || (t.eventType && t.eventType !== '<none>' ? t.eventType : '');
@@ -225,8 +230,27 @@ function processTreatments(data: any[]): any[] {
   return logs;
 }
 
-function processDeviceStatus(data: any[]): any {
-  if (!Array.isArray(data) || data.length === 0) return null;
+function processDeviceStatus(data: any[], profileData?: any): any {
+  if (!Array.isArray(data) || data.length === 0) {
+    if (profileData) {
+      const fallbackBasal = getBasalFromProfile(profileData);
+      if (fallbackBasal !== undefined && fallbackBasal !== null) {
+        return {
+          battery: 0,
+          reservoir: undefined,
+          activeInsulin: undefined,
+          model: null,
+          basal: {
+            rate: fallbackBasal,
+            isTemp: false
+          },
+          uploader: null,
+          lastUpdate: { seconds: Math.floor(Date.now() / 1000) }
+        };
+      }
+    }
+    return null;
+  }
   
   // Znajdź najświeższy wpis zawierający rzeczywiste dane z pompy lub poziom zbiorniczka.
   // Nie ograniczamy się sztywno do 60 minut – jeśli uploader nie miał zasięgu pompy przez 2h,
@@ -262,13 +286,21 @@ function processDeviceStatus(data: any[]): any {
   // Zbiornik musi być prawidłową liczbą dodatnią > 0. Wartości <= 0 oznaczają brak odczytu z pompy.
   const parsedRes = (typeof resVal === 'number' && !isNaN(resVal) && resVal > 0) ? resVal : undefined;
   
+  let currentBasal = pumpInfo?.status?.currentbasal ?? pumpInfo?.currentbasal ?? pumpInfo?.basal?.rate ?? 0;
+  if ((currentBasal == null || Number(currentBasal) <= 0) && profileData) {
+    const profileBasal = getBasalFromProfile(profileData);
+    if (profileBasal !== undefined && profileBasal !== null && profileBasal > 0) {
+      currentBasal = profileBasal;
+    }
+  }
+
   return {
     battery: batteryPercent,
     reservoir: parsedRes,
     activeInsulin: pumpInfo?.iob?.iob ?? latest?.openaps?.enacted?.iob ?? undefined,
     model: pumpInfo?.model ?? pumpInfo?.name ?? null,
     basal: {
-       rate: pumpInfo?.status?.currentbasal ?? 0,
+       rate: Number(currentBasal) || 0,
        isTemp: !!pumpInfo?.status?.tempbasal
     },
     uploader: uploaderInfo ? {
@@ -285,9 +317,9 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
   const baseUrl = url.replace(/\/$/, '');
   const cacheBust = `_t=${Date.now()}`;
   
-  const entriesCount = count;
-  // Optymalizacja: dla małych/szybkich odświeżeń pobieramy tylko bieżące zabiegi (100), dla pełnej historii max 2000 (nigdy 20 000!)
-  const treatmentsCount = count <= 150 ? 100 : (count <= 1000 ? 500 : 2000);
+  const entriesCount = Math.min(count, 3500); // Max 3500 odczytów CGM (~12 dni) chroni przed timeoutami bazy Nightscout
+  // Optymalizacja: dla małych/szybkich odświeżeń pobieramy 500 zabiegów (~3-4 tyg), dla pełnej synchronizacji 2500 (~4 miesiące historii!)
+  const treatmentsCount = count <= 150 ? 500 : 2500;
   
   const entriesUrl = secret && secret.includes('-') 
     ? `${baseUrl}/api/v1/entries.json?count=${entriesCount}&${cacheBust}&token=${secret}` 
@@ -301,15 +333,32 @@ async function fetchNightscoutData(url: string, secret: string | undefined, coun
     ? `${baseUrl}/api/v1/devicestatus.json?count=5&${cacheBust}&token=${secret}` 
     : `${baseUrl}/api/v1/devicestatus.json?count=5&${cacheBust}`;
 
-  console.log(`[Worker] Pobieranie wpisów (entries: ${entriesCount})...`);
-  const entriesRaw = await fetchWithFallbacks(entriesUrl, headers, signal);
-  console.log(`[Worker] Pobieranie zabiegów (treatments: ${treatmentsCount})...`);
-  const treatmentsRaw = await fetchWithFallbacks(treatmentsUrl, headers, signal).catch(() => []);
-  console.log(`[Worker] Pobieranie statusu urządzenia (devicestatus)...`);
-  const deviceRaw = await fetchWithFallbacks(deviceUrl, headers, signal).catch(() => null);
-  console.log("[Worker] Zakończono pobieranie z Nightscout.");
+  const profileUrl = secret && secret.includes('-')
+    ? `${baseUrl}/api/v1/profile.json?${cacheBust}&token=${secret}`
+    : `${baseUrl}/api/v1/profile.json?${cacheBust}`;
 
-  const processedDeviceStatus = processDeviceStatus(deviceRaw);
+  console.log(`[Worker] Pobieranie równoległe z Nightscout (entries: ${entriesCount}, treatments: ${treatmentsCount})...`);
+  const [entriesRes, treatmentsRes, deviceRes, profileRes] = await Promise.allSettled([
+    fetchWithFallbacks(entriesUrl, headers, signal),
+    fetchWithFallbacks(treatmentsUrl, headers, signal),
+    fetchWithFallbacks(deviceUrl, headers, signal),
+    fetchWithFallbacks(profileUrl, headers, signal)
+  ]);
+
+  const entriesRaw = entriesRes.status === 'fulfilled' && Array.isArray(entriesRes.value) ? entriesRes.value : [];
+  const treatmentsRaw = treatmentsRes.status === 'fulfilled' && Array.isArray(treatmentsRes.value) ? treatmentsRes.value : [];
+  const deviceRaw = deviceRes.status === 'fulfilled' ? deviceRes.value : null;
+  const profileRaw = profileRes.status === 'fulfilled' ? profileRes.value : null;
+
+  if (entriesRes.status === 'rejected') {
+    console.warn('[Worker] Zapytanie entries nie powiodło się:', entriesRes.reason);
+  }
+  if (treatmentsRes.status === 'rejected') {
+    console.warn('[Worker] Zapytanie treatments nie powiodło się:', treatmentsRes.reason);
+  }
+  console.log(`[Worker] Zakończono pobieranie z Nightscout (otrzymano ${entriesRaw.length} entries, ${treatmentsRaw.length} treatments).`);
+
+  const processedDeviceStatus = processDeviceStatus(deviceRaw, profileRaw);
 
   return {
     entries: processEntries(entriesRaw),

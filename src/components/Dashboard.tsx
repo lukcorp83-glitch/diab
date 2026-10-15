@@ -18,6 +18,7 @@ import HydrationWidget from "./HydrationWidget";
 import SiteRotationWidget from "./SiteRotationWidget";
 import { PumpStatusCard } from "./PumpStatusCard";
 import { PenTrackerWidget } from "./PenTrackerWidget";
+import AtAGlance from "./dashboard/AtAGlance";
 import {
   Activity,
   Clock,
@@ -28,7 +29,7 @@ import {
   Plus,
   Shield,
   Trash2,
-  ChevronRight,
+  ChevronRight, ChevronsUp, ChevronsDown,
   TrendingUp,
   AlertTriangle,
   Signal,
@@ -39,6 +40,7 @@ import {
   Edit3,
   Cpu,
   Zap,
+  MoonStar,
   X,
   Info,
   Calendar,
@@ -375,10 +377,10 @@ export default function Dashboard({
 
   useEffect(() => {
     const runAnalysis = async () => {
-      if (logs.length >= 5) {
+      if (logs && logs.length >= 5) {
         try {
           const res = await MLAnalyzer.analyzeData(logs, false, 'quick');
-          setMlInfo({ accuracy: res.accuracy, datasetSize: res.datasetSize || logs.length });
+          setMlInfo({ accuracy: res.accuracy, datasetSize: res.datasetSize || (logs?.length || 0) });
         } catch (e) {
           console.error("Dashboard ML analysis error:", e);
         }
@@ -624,6 +626,10 @@ export default function Dashboard({
       setIsTrainingModalOpen(true);
       onClearInitialAction?.();
       useAppStore.getState().setInitialAction(null);
+    } else if (initialAction === "bedside_clock" || initialAction === "dash_bedside") {
+      useAppStore.getState().setShowBedsideClock(true);
+      onClearInitialAction?.();
+      useAppStore.getState().setInitialAction(null);
     }
   }, [initialAction, settings.followerMode]);
 
@@ -833,7 +839,7 @@ export default function Dashboard({
 
     if (diff > 15)
       return {
-        icon: <ChevronRight className="-rotate-90" />,
+        icon: <ChevronsUp className="text-rose-500 animate-pulse" />,
         color: "text-rose-500",
         text: i18n.t('auto.szybko_rośnie', { defaultValue: i18n.t('auto.szybko_rosnie', { defaultValue: "Szybko rośnie" }) }),
         direction: "UP_FAST",
@@ -851,7 +857,7 @@ export default function Dashboard({
       };
     if (diff < -15)
       return {
-        icon: <ChevronRight className="rotate-90" />,
+        icon: <ChevronsDown className="text-rose-500 animate-pulse" />,
         color: "text-rose-500",
         text: i18n.t('auto.szybko_spada', { defaultValue: 'Szybko spada' }),
         direction: "DOWN_FAST",
@@ -879,7 +885,7 @@ export default function Dashboard({
 
   const patternInsights = useMemo(() => {
     const now = Date.now();
-    const sortedGlucose = logs
+    const sortedGlucose = (logs || [])
       .filter((l) => l.type === "glucose" || (l as any).bg)
       .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
@@ -907,7 +913,7 @@ export default function Dashboard({
       }
     } else {
       // 2. Jeśli nie ma bieżącego niskiego cukru, sprawdzamy OSTATNI posiłek z ostatnich 3h
-      const recentMeal = logs.find(
+      const recentMeal = (logs || []).find(
         (l) =>
           (l.type === "meal" || l.type === "carbs" || (l.type === "bolus" && (l.linkedMeal || l.notes?.toLowerCase().includes("posiłek")))) &&
           now - (l.timestamp || 0) <= 3 * 60 * 60 * 1000
@@ -1023,7 +1029,7 @@ export default function Dashboard({
               isChildMode={settings.childMode || false}
               petName={petData?.name}
               accuracy={mlInfo?.accuracy}
-              datasetSize={mlInfo?.datasetSize || logs.length}
+              datasetSize={mlInfo?.datasetSize || (logs?.length || 0)}
               compact={size.startsWith("1")}
             >
               {settings.childMode && (
@@ -1516,8 +1522,33 @@ export default function Dashboard({
     <div
       className="space-y-6 pb-20 will-change-transform relative"
     >
+      {/* Pixel At a Glance (W skrócie) Header */}
+      {(settings.atAGlanceEnabled ?? true) && (
+        <AtAGlance
+          userSettings={settings}
+          logs={logs}
+          setTab={setTab}
+          isInsulinMode={isInsulinMode}
+          pumpStatus={pumpStatus}
+          onOpenBedsideClock={() => useAppStore.getState().setShowBedsideClock(true)}
+        />
+      )}
+
       {/* Pasek Pigułek - Linia 1 (Hydratacja, Pogoda, Bateria, Zbiornik) */}
       <div className="px-2 flex gap-2 overflow-x-auto scrollbar-none pb-1 mt-2">
+         {!(settings.atAGlanceEnabled ?? true) && (
+            <button
+              onClick={() => {
+                Haptics.light();
+                useAppStore.getState().setShowBedsideClock(true);
+              }}
+              className="px-3 py-1.5 rounded-2xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shrink-0 transition-all active:scale-95 cursor-pointer shadow-xs"
+              title={t('nightstand.open_title', { defaultValue: 'Włącz zegar nocny' })}
+            >
+              <MoonStar size={12} className="fill-indigo-500/20" />
+              <span>{t('nightstand.btn_label', { defaultValue: 'Zegar nocny' })}</span>
+            </button>
+         )}
          {widgets.find(w => w.id === 'hydration')?.visible && (
             <TopPillHydration />
          )}
@@ -1640,22 +1671,33 @@ export default function Dashboard({
                 ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/10"
                 : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10"
             )}
-            title={t('auto.kustonizuj_kafelki_pulpitu', { defaultValue: 'Kustonizuj kafelki pulpitu' })}
+            title={t('dashboard.customize_tiles', { defaultValue: 'Dostosuj kafelki pulpitu' })}
           >
             <Sliders size={11} />
-            
-                                  {t('auto.dostosuj', { defaultValue: 'Dostosuj' })}
-                                </button>
+            {t('auto.dostosuj', { defaultValue: 'Dostosuj' })}
+          </button>
           {nsUrl && (
             <a 
               href={nsUrl} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 active:scale-95 transition-all glass-target"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest border border-slate-200 dark:border-white/10 active:scale-95 transition-all glass-target relative"
             >
-              
-                                        {t('auto.nightscout', { defaultValue: 'Nightscout' })}
-                                      </a>
+              {syncStatus && (
+                <span className="relative flex h-2 w-2">
+                  {syncStatus.status === 'syncing' && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                  )}
+                  <span className={cn(
+                    "relative inline-flex rounded-full h-2 w-2",
+                    syncStatus.status === 'syncing' ? 'bg-indigo-500' : 
+                    syncStatus.status === 'success' ? 'bg-emerald-500' : 
+                    syncStatus.status === 'error' ? 'bg-rose-500' : 'bg-slate-400'
+                  )} />
+                </span>
+              )}
+              {t('auto.nightscout', { defaultValue: 'Nightscout' })}
+            </a>
           )}
           <button 
             onClick={() => { Haptics.light(); setTab('chart'); }}
@@ -1862,7 +1904,8 @@ export default function Dashboard({
                    key={w.id}
                    id={w.id}
                    className={cn(
-                   "relative overflow-hidden flex flex-col p-2.5 gpu-layer will-change-transform",
+                   "relative overflow-hidden flex flex-col gpu-layer will-change-transform",
+                   w.id === "quick_bolus" || w.id === "quick_measurement" ? "p-0" : "p-2.5",
                    widgetSize.endsWith('2') ? "row-span-2 md:min-h-[350px]" : "row-span-1 md:min-h-[140px]",
                    widgetSize.startsWith('2') ? "col-span-2" : "col-span-1",
                    "rounded-[2.6rem]",
@@ -2078,7 +2121,7 @@ export default function Dashboard({
       {/* 7. Quick Actions Section */}
       <motion.div className="space-y-4">
         {/* Shortcuts row - Now full width and above buttons */}
-        {shortcuts.length > 0 && (
+        {(shortcuts?.length || 0) > 0 && (
           <div className="glass-card !p-6 flex flex-col gap-4 border border-white/50 dark:border-white/5 shadow-lg">
             <div className="flex justify-between items-center px-1">
               <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-display">{t('auto.szybkie_skroty_naglowek', { defaultValue: 'SZYBKIE SKRÓTY' })}</h4>
@@ -2156,7 +2199,7 @@ export default function Dashboard({
 
       {/* 8. Recent History View */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {recentGlucoseLogs.length > 0 && (
+        {(recentGlucoseLogs?.length || 0) > 0 && (
           <motion.div className="space-y-3">
             <div className="flex justify-between items-center px-4">
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
@@ -2190,7 +2233,7 @@ export default function Dashboard({
           </motion.div>
         )}
 
-        {recentTreatmentLogs.length > 0 && (
+        {(recentTreatmentLogs?.length || 0) > 0 && (
           <motion.div className="space-y-3">
             <div className="flex justify-between items-center px-4">
               <h3 className="text-[10px] font-black text-slate-500/60 uppercase tracking-widest flex items-center gap-2">
@@ -2251,30 +2294,10 @@ export default function Dashboard({
         </div>
       )}
       
-      {/* 9. Floating Status Center */}
-      <div className="fixed bottom-24 right-4 z-[45]">
-         {nsUrl && syncStatus && (
-           <motion.div 
-             initial={{ opacity: 0, scale: 0.8 }}
-             animate={{ opacity: 1, scale: 1 }}
-             className={cn(
-               "glass w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl border-white/50 dark:border-white/10",
-             )}
-           >
-              <div className={cn(
-                "w-3 h-3 rounded-full border-2 border-white dark:border-slate-900",
-                syncStatus.status === 'syncing' ? 'bg-indigo-500 animate-pulse' : 
-                syncStatus.status === 'success' ? 'bg-emerald-500' : 
-                syncStatus.status === 'error' ? 'bg-rose-500' : 'bg-slate-400'
-              )} />
-              {syncStatus.status === 'syncing' && <div className="absolute inset-0 border-2 border-indigo-500/30 rounded-2xl animate-ping" />}
-           </motion.div>
-         )}
-      </div>
+
 
       {editingLog && (editingLog.type === "meal" ? <MealEditModal log={editingLog} user={user} onClose={() => setEditingLog(null)} /> : <DoseEditModal log={editingLog} user={user} onClose={() => setEditingLog(null)} />)}
       
-      {/* Footer Info */}
       <div className="pt-8 pb-4 text-center space-y-2 opacity-30">
         <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-500">
           

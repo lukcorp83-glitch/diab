@@ -12,7 +12,8 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { usePetStatus, useNightscoutSettings } from '../hooks/queries/useProfileData';
 import { useShortcuts } from "../hooks/queries/useShortcuts";
 import { useQueryClient } from "@tanstack/react-query";
-import { motion, Reorder } from "motion/react";
+import { motion, Reorder, AnimatePresence } from "motion/react";
+import { useBackButton } from "../hooks/useBackButton";
 import {
  Settings,
  LogOut,
@@ -138,6 +139,111 @@ import GlikoTraining from "./GlikoTraining";
 import { ConnectedDevice } from "../hooks/useGlikoServer";
 import { useTranslation } from "react-i18next";
 import i18n from '../i18n';
+
+const MATERIAL3_CATEGORY_THEMES: Record<string, {
+  bg: string;
+  iconBg: string;
+  iconColor: string;
+  border: string;
+}> = {
+  tutorial: {
+    bg: "bg-indigo-50/70 dark:bg-indigo-950/25",
+    iconBg: "bg-indigo-500/15 dark:bg-indigo-400/20",
+    iconColor: "text-indigo-600 dark:text-indigo-300",
+    border: "border-indigo-400/40 dark:border-indigo-500/40",
+  },
+  simulator: {
+    bg: "bg-orange-50/70 dark:bg-orange-950/25",
+    iconBg: "bg-orange-500/15 dark:bg-orange-400/20",
+    iconColor: "text-orange-600 dark:text-orange-300",
+    border: "border-orange-400/40 dark:border-orange-500/40",
+  },
+  account: {
+    bg: "bg-blue-50/70 dark:bg-blue-950/25",
+    iconBg: "bg-blue-500/15 dark:bg-blue-400/20",
+    iconColor: "text-blue-600 dark:text-blue-300",
+    border: "border-blue-400/40 dark:border-blue-500/40",
+  },
+  therapy: {
+    bg: "bg-emerald-50/70 dark:bg-emerald-950/25",
+    iconBg: "bg-emerald-500/15 dark:bg-emerald-400/20",
+    iconColor: "text-emerald-600 dark:text-emerald-300",
+    border: "border-emerald-400/40 dark:border-emerald-500/40",
+  },
+  training: {
+    bg: "bg-teal-50/70 dark:bg-teal-950/25",
+    iconBg: "bg-teal-500/15 dark:bg-teal-400/20",
+    iconColor: "text-teal-600 dark:text-teal-300",
+    border: "border-teal-400/40 dark:border-teal-500/40",
+  },
+  shop: {
+    bg: "bg-amber-50/70 dark:bg-amber-950/25",
+    iconBg: "bg-amber-500/15 dark:bg-amber-400/20",
+    iconColor: "text-amber-600 dark:text-amber-300",
+    border: "border-amber-400/40 dark:border-amber-500/40",
+  },
+  notifications: {
+    bg: "bg-amber-50/70 dark:bg-amber-950/25",
+    iconBg: "bg-amber-500/15 dark:bg-amber-400/20",
+    iconColor: "text-amber-600 dark:text-amber-300",
+    border: "border-amber-400/40 dark:border-amber-500/40",
+  },
+  devices: {
+    bg: "bg-violet-50/70 dark:bg-violet-950/25",
+    iconBg: "bg-violet-500/15 dark:bg-violet-400/20",
+    iconColor: "text-violet-600 dark:text-violet-300",
+    border: "border-violet-400/40 dark:border-violet-500/40",
+  },
+  stats: {
+    bg: "bg-purple-50/70 dark:bg-purple-950/25",
+    iconBg: "bg-purple-500/15 dark:bg-purple-400/20",
+    iconColor: "text-purple-600 dark:text-purple-300",
+    border: "border-purple-400/40 dark:border-purple-500/40",
+  },
+  food: {
+    bg: "bg-orange-50/70 dark:bg-orange-950/25",
+    iconBg: "bg-orange-500/15 dark:bg-orange-400/20",
+    iconColor: "text-orange-600 dark:text-orange-300",
+    border: "border-orange-400/40 dark:border-orange-500/40",
+  },
+  meds: {
+    bg: "bg-cyan-50/70 dark:bg-cyan-950/25",
+    iconBg: "bg-cyan-500/15 dark:bg-cyan-400/20",
+    iconColor: "text-cyan-600 dark:text-cyan-300",
+    border: "border-cyan-400/40 dark:border-cyan-500/40",
+  },
+  api: {
+    bg: "bg-sky-50/70 dark:bg-sky-950/25",
+    iconBg: "bg-sky-500/15 dark:bg-sky-400/20",
+    iconColor: "text-sky-600 dark:text-sky-300",
+    border: "border-sky-400/40 dark:border-sky-500/40",
+  },
+  pairing: {
+    bg: "bg-blue-50/70 dark:bg-blue-950/25",
+    iconBg: "bg-blue-500/15 dark:bg-blue-400/20",
+    iconColor: "text-blue-600 dark:text-blue-300",
+    border: "border-blue-400/40 dark:border-blue-500/40",
+  },
+  android: {
+    bg: "bg-emerald-50/70 dark:bg-emerald-950/25",
+    iconBg: "bg-emerald-500/15 dark:bg-emerald-400/20",
+    iconColor: "text-emerald-600 dark:text-emerald-300",
+    border: "border-emerald-400/40 dark:border-emerald-500/40",
+  },
+  system: {
+    bg: "bg-slate-100/80 dark:bg-slate-800/60",
+    iconBg: "bg-slate-500/15 dark:bg-slate-400/20",
+    iconColor: "text-slate-700 dark:text-slate-300",
+    border: "border-slate-300 dark:border-slate-600",
+  },
+  diets: {
+    bg: "bg-emerald-50/70 dark:bg-emerald-950/25",
+    iconBg: "bg-emerald-500/15 dark:bg-emerald-400/20",
+    iconColor: "text-emerald-600 dark:text-emerald-300",
+    border: "border-emerald-400/40 dark:border-emerald-500/40",
+  },
+};
+
 interface ProfileProps {
  
  handleLogout: () => void;
@@ -387,6 +493,9 @@ export default function Profile({
    setStoreCategory(cat);
  };
 
+ useBackButton(activeCategory !== null, () => setActiveCategory(null), 10);
+ const isMaterial = Boolean(settings.material3Enabled) || (typeof window !== 'undefined' && localStorage.getItem("material3Enabled") === "true");
+
  const topMenuRef = useRef<HTMLDivElement>(null);
  useEffect(() => {
  const slider = topMenuRef.current;
@@ -526,7 +635,7 @@ export default function Profile({
  },
  {
  id: "therapy",
- label: i18n.t('auto.terapia', { defaultValue: 'Terapia' }),
+ label: i18n.t('auto.terapia', { defaultValue: 'Cele i przeliczniki' }),
  sub: i18n.t('auto.cele_i_isf', { defaultValue: 'Cele & ISF' }),
  icon: <Activity size={24} />,
  color: "bg-emerald-500",
@@ -1252,8 +1361,16 @@ export default function Profile({
  </button>
  </>
  )}
+ <AnimatePresence mode="wait">
  {activeCategory === null ? (
- <div className="pb-6 pt-2">
+ <motion.div
+   key="profile-category-grid"
+   initial={{ opacity: 0, scale: 0.98 }}
+   animate={{ opacity: 1, scale: 1 }}
+   exit={{ opacity: 0, scale: 0.98 }}
+   transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+   className="pb-6 pt-2"
+ >
  {settings.followerMode && (
  <div className="mb-6 bg-cyan-500/10 border border-cyan-500/20 rounded-[2.5rem] p-5 shadow-lg flex items-center justify-between">
  <div className="flex items-center gap-4">
@@ -1396,7 +1513,9 @@ export default function Profile({
       }}
       className="flex flex-col gap-2.5 mb-6"
     >
-      {orderedCategories.map((cat, idx) => (
+      {orderedCategories.map((cat, idx) => {
+        const mTheme = MATERIAL3_CATEGORY_THEMES[cat.id] || MATERIAL3_CATEGORY_THEMES.system;
+        return (
         <Reorder.Item
           key={cat.id}
           value={cat.id}
@@ -1404,10 +1523,12 @@ export default function Profile({
         >
           <div
             className={cn(
-              "w-full rounded-2xl flex items-center justify-between p-3.5 transition-all shadow-sm select-none border",
+              "w-full flex items-center justify-between p-3.5 transition-all shadow-sm select-none border",
               settings.glassmorphismEnabled
-                ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 border-white/40 dark:border-white/10"
-                : "bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700",
+                ? "rounded-2xl backdrop-blur-xl bg-white/20 dark:bg-white/5 border border-white/40 dark:border-white/10"
+                : isMaterial
+                ? cn("rounded-[1.5rem] border-2", mTheme.bg, mTheme.border)
+                : "rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700",
               "cursor-grab active:cursor-grabbing hover:border-indigo-500/50"
             )}
           >
@@ -1417,8 +1538,10 @@ export default function Profile({
               </span>
               <div
                 className={cn(
-                  "w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0",
-                  cat.color
+                  "flex items-center justify-center shrink-0",
+                  isMaterial
+                    ? cn("w-9 h-9 rounded-xl", mTheme.iconBg, mTheme.iconColor)
+                    : cn("w-9 h-9 rounded-xl text-white shadow-sm", cat.color)
                 )}
               >
                 {cat.icon}
@@ -1468,7 +1591,8 @@ export default function Profile({
             </div>
           </div>
         </Reorder.Item>
-      ))}
+        );
+      })}
     </Reorder.Group>
   ) : (
     /* Widok edycji: 2. Siatka z 4-kierunkowym przemieszczaniem (Góra, Dół, Lewo, Prawo) oraz Kliknij i Przenieś */
@@ -1478,6 +1602,7 @@ export default function Profile({
     >
       {orderedCategories.map((cat, idx) => {
         const isSelectedForMove = selectedTileForMove === cat.id;
+        const mTheme = MATERIAL3_CATEGORY_THEMES[cat.id] || MATERIAL3_CATEGORY_THEMES.system;
 
         return (
           <motion.div
@@ -1486,7 +1611,9 @@ export default function Profile({
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
             className="w-full relative"
           >
-            <div
+            <motion.div
+              whileTap={!isEditingTiles ? { scale: 0.94 } : undefined}
+              transition={{ type: "spring", stiffness: 450, damping: 25 }}
               onClick={() => {
                 if (isEditingTiles) {
                   if (selectedTileForMove) {
@@ -1501,16 +1628,24 @@ export default function Profile({
                   }
                   return;
                 }
-                Haptics.selection();
+                Haptics.light();
                 setActiveCategory(cat.id);
               }}
               className={cn(
-                "w-full h-32 rounded-[1.75rem] flex flex-col p-4 transition-all duration-300 relative overflow-hidden group select-none cursor-pointer",
-                settings.glassmorphismEnabled
-                  ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
-                  : "bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50",
+                "w-full h-32 flex flex-col p-4 transition-all duration-300 relative overflow-hidden group select-none cursor-pointer",
+                isMaterial
+                  ? cn(
+                      "rounded-[2rem] border-2 shadow-xs active:shadow-inner",
+                      mTheme.bg,
+                      mTheme.border
+                    )
+                  : settings.glassmorphismEnabled
+                  ? "rounded-[1.75rem] backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+                  : "rounded-[1.75rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50",
                 !isEditingTiles &&
-                  (settings.glassmorphismEnabled
+                  (isMaterial
+                    ? "hover:brightness-95 dark:hover:brightness-110 hover:-translate-y-0.5 active:scale-[0.96]"
+                    : settings.glassmorphismEnabled
                     ? "hover:bg-white/10 dark:hover:bg-white/5 hover:shadow-xl hover:-translate-y-1"
                     : "hover:bg-white dark:hover:bg-slate-800 hover:shadow-xl hover:-translate-y-1"),
                 isEditingTiles && !isSelectedForMove &&
@@ -1522,9 +1657,11 @@ export default function Profile({
               <div className="flex items-center justify-between w-full mb-2">
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-[1rem] flex items-center justify-center text-white shadow-md shrink-0 transition-transform",
-                    !isEditingTiles && "group-hover:scale-110",
-                    cat.color
+                    "flex items-center justify-center shrink-0 transition-transform",
+                    isMaterial
+                      ? cn("w-11 h-11 rounded-[1.25rem]", mTheme.iconBg, mTheme.iconColor)
+                      : cn("w-10 h-10 rounded-[1rem] text-white shadow-md", cat.color),
+                    !isEditingTiles && "group-hover:scale-105"
                   )}
                 >
                   {cat.icon}
@@ -1608,34 +1745,70 @@ export default function Profile({
 
               <div className="text-left mt-auto">
                 <div className="flex items-center gap-1.5 line-clamp-1">
-                  <p className="text-[11px] sm:text-xs font-black uppercase tracking-tight text-slate-900 dark:text-white truncate">
+                  <p className={cn(
+                    "font-black uppercase tracking-tight truncate",
+                    isMaterial
+                      ? "text-xs text-slate-800 dark:text-slate-100"
+                      : "text-[11px] sm:text-xs text-slate-900 dark:text-white"
+                  )}>
                     {cat.label}
                   </p>
                   {cat.id === "android" && (
-                    <span className="bg-indigo-500 text-white px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-widest shrink-0 shadow-sm leading-none">
+                    <span className={cn(
+                      "px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest shrink-0 leading-none",
+                      isMaterial
+                        ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold"
+                        : "bg-indigo-500 text-white shadow-sm"
+                    )}>
                       {t('auto.beta', { defaultValue: 'BETA' })}
                     </span>
                   )}
                 </div>
-                <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-600 transition-colors mt-0.5 line-clamp-2 leading-tight">
+                <p className={cn(
+                  "font-bold mt-0.5 line-clamp-2 leading-tight transition-colors",
+                  isMaterial
+                    ? "text-[9.5px] text-slate-500 dark:text-slate-400 font-medium"
+                    : "text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 group-hover:text-slate-600"
+                )}>
                   {cat.sub}
                 </p>
               </div>
 
               {/* Baner szybkiego przenoszenia na kliknięcie */}
               {isEditingTiles && selectedTileForMove && !isSelectedForMove && (
-                <div className="absolute inset-0 bg-indigo-600/90 backdrop-blur-xs flex items-center justify-center text-white font-black text-xs uppercase tracking-wider rounded-[1.75rem] shadow-inner transition-all hover:bg-indigo-600 animate-fadeIn">
+                <div className={cn(
+                  "absolute inset-0 bg-indigo-600/90 backdrop-blur-xs flex items-center justify-center text-white font-black text-xs uppercase tracking-wider shadow-inner transition-all hover:bg-indigo-600 animate-fadeIn",
+                  isMaterial ? "rounded-[2rem]" : "rounded-[1.75rem]"
+                )}>
                   📍 Wstaw tutaj
                 </div>
               )}
-            </div>
+            </motion.div>
           </motion.div>
         );
       })}
     </motion.div>
   )}
-  </div>
+  </motion.div>
   ) : (
+ <motion.div
+   key={`profile-category-${activeCategory}`}
+   initial={{ opacity: 0, y: 16 }}
+   animate={{ opacity: 1, y: 0 }}
+   exit={{ opacity: 0, y: -12 }}
+   drag="x"
+   dragDirectionLock
+   dragConstraints={{ left: 0, right: 0 }}
+   dragElastic={{ left: 0.02, right: 0.35 }}
+   onDragEnd={(_e, info) => {
+     if (info.offset.x > 80 || info.velocity.x > 350) {
+       Haptics.light();
+       setActiveCategory(null);
+     }
+   }}
+   transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+   className="pb-20 touch-pan-y"
+ >
  <div 
  ref={topMenuRef}
  onWheel={(e) => {
@@ -1648,14 +1821,16 @@ export default function Profile({
  <div className="flex gap-2">
  <button
  onClick={() => {
- Haptics.selection();
+ Haptics.light();
  setActiveCategory(null);
  }}
  className={cn(
- "flex items-center gap-2 transition-colors duration-200 px-4 py-3 rounded-[1.5rem] text-[10px] uppercase font-black tracking-widest shrink-0",
- settings.glassmorphismEnabled
- ? "text-slate-700 dark:text-slate-200 hover:bg-white/20 dark:hover:bg-slate-800/30 backdrop-blur-md bg-white/10 dark:bg-slate-900/10 border border-white/20"
- : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800",
+ "flex items-center gap-2 transition-colors duration-200 px-4 py-3 text-[10px] uppercase font-black tracking-widest shrink-0 active:scale-95",
+ isMaterial
+ ? "rounded-full text-slate-800 dark:text-slate-100 bg-slate-200/80 dark:bg-slate-800/80 hover:bg-slate-300 dark:hover:bg-slate-700 shadow-xs"
+ : settings.glassmorphismEnabled
+ ? "rounded-[1.5rem] text-slate-700 dark:text-slate-200 hover:bg-white/20 dark:hover:bg-slate-800/30 backdrop-blur-md bg-white/10 dark:bg-slate-900/10 border border-white/20"
+ : "rounded-[1.5rem] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800",
  )}
  >
  <ChevronLeft size={16} />
@@ -1663,10 +1838,12 @@ export default function Profile({
  </button>
  <div
  className={cn(
- "flex rounded-[1.5rem] p-1 items-center",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-slate-50 dark:bg-slate-800/50",
+ "flex p-1 items-center",
+ isMaterial
+ ? "rounded-full bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200/40 dark:border-slate-700/40"
+ : settings.glassmorphismEnabled
+ ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset rounded-[1.5rem]"
+ : "bg-slate-50 dark:bg-slate-800/50 rounded-[1.5rem]",
  )}
  >
  {[
@@ -1685,7 +1862,7 @@ export default function Profile({
  { id: "account", label: i18n.t('auto.profil', { defaultValue: 'Profil' }), icon: <User size={14} />, color: "text-blue-500 bg-blue-500/10" },
  {
  id: "therapy",
- label: i18n.t('auto.terapia', { defaultValue: 'Terapia' }),
+ label: i18n.t('auto.terapia', { defaultValue: 'Cele i przeliczniki' }),
  icon: <Activity size={14} />,
  color: "text-emerald-500 bg-emerald-500/10",
  },
@@ -1728,26 +1905,37 @@ export default function Profile({
  <button
  key={cat.id}
  onClick={() => {
- Haptics.selection();
+ Haptics.light();
  setActiveCategory(cat.id);
  }}
  className={cn(
- "flex items-center gap-2 px-3 py-2 rounded-2xl text-[10px] font-bold transition-all whitespace-nowrap",
+ "flex items-center gap-2 px-3 py-2 text-[10px] font-bold transition-all whitespace-nowrap active:scale-95",
+ isMaterial ? "rounded-full" : "rounded-2xl",
  activeCategory === cat.id
- ? settings.glassmorphismEnabled
+ ? isMaterial
+ ? "bg-accent-500/20 text-accent-700 dark:text-accent-300 font-black shadow-xs border border-accent-500/30"
+ : settings.glassmorphismEnabled
  ? "bg-white/20 dark:bg-slate-700/30 shadow-sm text-slate-900 dark:text-white border border-white/20 dark:border-white/5"
  : "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white"
+ : isMaterial
+ ? "text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
  : settings.glassmorphismEnabled
  ? "text-slate-600 dark:text-slate-400 hover:bg-white/5 dark:hover:bg-slate-800/30"
  : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300",
  )}
  >
- <span className={cn("p-1.5 flex items-center justify-center rounded-xl shrink-0 opacity-100", cat.color)}>{cat.icon}</span>
+ <span className={cn(
+   "flex items-center justify-center shrink-0 opacity-100",
+   isMaterial ? "p-1 rounded-full bg-transparent" : "p-1.5 rounded-xl",
+   !isMaterial && cat.color
+ )}>{cat.icon}</span>
  <span className="uppercase tracking-widest leading-none flex items-center gap-1.5">
  {cat.label}
  {cat.id === "android" && (
- <span className="bg-indigo-500/20 text-indigo-600 dark:bg-indigo-500/30 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[8px] font-black">
- 
+ <span className={cn(
+   "px-1.5 py-0.5 rounded text-[8px] font-black",
+   isMaterial ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300" : "bg-indigo-500/20 text-indigo-600 dark:bg-indigo-500/30 dark:text-indigo-400"
+ )}>
  {t('auto.beta', { defaultValue: 'BETA' })}
  </span>
  )}
@@ -1757,7 +1945,6 @@ export default function Profile({
  </div>
  </div>
  </div>
- )}
  {activeCategory === "account" && (
  <motion.div
  initial={{ opacity: 0, y: 20 }}
@@ -2464,7 +2651,7 @@ export default function Profile({
             ) : (
               <CheckCircle2 size={16} />
             )}
-            {t('auto.zapisz_parametry_terapii', { defaultValue: 'Zapisz parametry terapii' })}
+            {t('auto.zapisz_parametry_terapii', { defaultValue: 'Zapisz parametry profilu' })}
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -4548,6 +4735,9 @@ export default function Profile({
  </motion.div>
  )}
  {activeCategory === "system" && <ProfileSystem user={user} settings={settings} setSettings={setSettings} />}
+ </motion.div>
+ )}
+ </AnimatePresence>
  {showBarcodeScanner && (
  <BarcodeScannerModal
  onClose={() => setShowBarcodeScanner(false)}
@@ -4589,43 +4779,74 @@ function SettingInput({
     }
   }, [value]);
 
+  const stepNum = parseFloat(step) || 1;
+
+  const handleStep = (direction: 'up' | 'down') => {
+    if (disabled) return;
+    Haptics.tick();
+    let current = parseFloat(localValue);
+    if (isNaN(current)) current = 0;
+    const nextVal = direction === 'up' ? current + stepNum : current - stepNum;
+    const clamped = Math.min(max, Math.max(min, Math.round(nextVal * 100) / 100));
+    const formatted = formatValue(clamped);
+    setLocalValue(formatted);
+    onChange(clamped);
+  };
+
   return (
-    <div className="space-y-1.5 flex flex-col items-center">
+    <div className="space-y-1.5 flex flex-col items-center w-full">
       <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
         {label}
       </label>
-      <input
- type="number"
- step={step}
- min={min}
- max={max}
- value={localValue}
- disabled={disabled}
- onChange={(e) => {
- setLocalValue(e.target.value);
- const parsed = parseFloat(e.target.value);
- if (!isNaN(parsed)) {
- onChange(parsed);
- }
- }}
- onBlur={() => {
- let parsed = parseFloat(localValue);
- if (isNaN(parsed)) parsed = 0;
- if (parsed < min) parsed = min;
- if (parsed > max) parsed = max;
- const formatted = Number.isInteger(parsed)
- ? parsed.toString()
- : Number(parsed)
- .toFixed(2)
- .replace(/\.00$/, "")
- .replace(/(\.[0-9])0$/, "$1");
- setLocalValue(formatted);
- onChange(parseFloat(formatted));
- }}
- className={`w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl font-black text-center text-lg outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
- />
- </div>
- );
+      <div className="flex items-center w-full gap-2">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.88 }}
+          disabled={disabled || (parseFloat(localValue) <= min)}
+          onClick={() => handleStep('down')}
+          className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 border border-slate-200/50 dark:border-slate-700/50 active:bg-slate-200 dark:active:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+        >
+          <Minus size={18} strokeWidth={2.5} />
+        </motion.button>
+
+        <input
+          type="number"
+          step={step}
+          min={min}
+          max={max}
+          value={localValue}
+          disabled={disabled}
+          onChange={(e) => {
+            setLocalValue(e.target.value);
+            const parsed = parseFloat(e.target.value);
+            if (!isNaN(parsed)) {
+              onChange(parsed);
+            }
+          }}
+          onBlur={() => {
+            let parsed = parseFloat(localValue);
+            if (isNaN(parsed)) parsed = 0;
+            if (parsed < min) parsed = min;
+            if (parsed > max) parsed = max;
+            const formatted = formatValue(parsed);
+            setLocalValue(formatted);
+            onChange(parseFloat(formatted));
+          }}
+          className={`flex-1 min-w-0 bg-slate-50 dark:bg-slate-800 py-3.5 px-2 rounded-2xl font-black text-center text-lg outline-none border border-slate-100 dark:border-slate-700 focus:border-accent-500 transition-all dark:text-white ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+        />
+
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.88 }}
+          disabled={disabled || (parseFloat(localValue) >= max)}
+          onClick={() => handleStep('up')}
+          className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 border border-slate-200/50 dark:border-slate-700/50 active:bg-slate-200 dark:active:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+        >
+          <Plus size={18} strokeWidth={2.5} />
+        </motion.button>
+      </div>
+    </div>
+  );
 }
 
 

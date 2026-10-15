@@ -432,14 +432,36 @@ export const geminiService = {
       ? `\nKOREKTA / DOPRECYZOWANIE UŻYTKOWNIKA: Użytkownik wskazuje, że danie/produkt na zdjęciu to: "${correctionHint}". Bezwzględnie przyjmij tę informację jako nadrzędną i poprawną! Zidentyfikuj składniki, wagi i makroskładniki dokładnie w oparciu o tę potrawę.\n`
       : "";
 
-    const prompt = `Przeanalizuj to zdjęcie posiłku.
+    const prompt = `Przeanalizuj to zdjęcie posiłku dla osoby z cukrzycą.
 ${langInstruction}
 ${userCorrectionPrompt}
-1. Podaj DOKŁADNĄ, ROZPOZNAWALNĄ NAZWĘ GŁÓWNĄ CAŁEGO POSIŁKU (pole "mealName", np. "Pizza Pepperoni", "Kanapka z szynką i serem", "Spaghetti Bolognese", "Jajecznica na maśle z pieczywem", "Kotlet schabowy z ziemniakami i surówką").
-2. Rozbij ten posiłek na WSZYSTKIE WIDOCZNE POJEDYNCZE SKŁADNIKI (tablica "ingredients", np. ser mozzarella, ciasto do pizzy, sos pomidorowy, szynka, oliwki) i oszacuj orientacyjną wagę każdego składnika (w gramach) oraz wartości odżywcze NA 100g każdego składnika (węglowodany, białko, tłuszcz, IG).
-3. Oszacuj CAŁKOWITĄ sumaryczną wagę całego dania oraz CAŁKOWITĄ ilość węglowodanów, białek, tłuszczy i wypadkowe IG.
-4. Podaj wniosek diabetologiczny o wpływie na glikemię ("glycemicImpact") - np. czy cukier wzrośnie szybko, wolno, czy dwufazowo.
-5. Podaj konkretną wskazówkę bilansowania ("balanceAdvice") - co warto dodać lub zmienić, aby lepiej zbilansować posiłek pod kątem cukrzycy.
+
+KRYTYCZNA KALIBRACJA WAGI I SKALI ZDJĘCIA (REALITY CHECK):
+Zdjęcie zrobione z bliska potrafi optycznie wyolbrzymić mały produkt. ZAWSZE stosuj realne, standardowe gramatury spożywcze i nie zawyżaj porcji:
+- 1 kromka chleba tostowego (kwadratowa) = 25-30g (zawiera zaledwie 10-13g węglowodanów! NIGDY nie szacuj 1 kromki tostowej na 80g czy 36g węgli!).
+- 1 kromka chleba tradycyjnego/żytniego = 35-40g (ok. 15-18g węglowodanów).
+- 1 bułka kajzerka = 50-60g (ok. 28-30g węglowodanów).
+- 1 bułka grahamka = 65-70g (ok. 30-33g węglowodanów).
+- 1 plasterek sera żółtego lub wędliny = 15-20g.
+- 1 jajko kurze = 50-55g (0g węgli).
+- 1 łyżeczka masła = 5g, 1 łyżka = 10-15g.
+- Ziemniaki do obiadu (np. 3 małe sztuki) = 150g (ok. 25g węgli).
+- Gotowany ryż lub makaron (standardowa porcja obiadowa) = 150-180g (ok. 35-45g węgli).
+- 1 średnie jabłko / gruszka = 150-170g (ok. 16-20g węgli).
+
+ZASADY WYLICZEŃ:
+1. Podaj DOKŁADNĄ, ROZPOZNAWALNĄ NAZWĘ GŁÓWNĄ CAŁEGO POSIŁKU (pole "mealName", np. "Tost razowy", "Kanapka z szynką i serem", "Pizza Pepperoni").
+2. Rozbij posiłek na WSZYSTKIE WIDOCZNE POJEDYNCZE SKŁADNIKI (tablica "ingredients"). Dla każdego składnika podaj:
+   - "name": nazwa składnika,
+   - "weight": REALNA waga w gramach (ściśle uwzględniając powyższą kalibrację!),
+   - "carbsPer100g", "proteinPer100g", "fatPer100g", "fiberPer100g", "ig",
+   - "carbs": obliczona ilość węglowodanów w tej porcji (waga * carbsPer100g / 100),
+   - "protein": waga * proteinPer100g / 100,
+   - "fat": waga * fatPer100g / 100.
+3. CAŁKOWITE wartości w głównym obiekcie ("carbs", "protein", "fat", "weight") MUSZĄ być ścisłą sumą policzoną z poszczególnych składników, a nie wartością zgadywaną z sufitu!
+4. Podaj wniosek diabetologiczny o wpływie na glikemię ("glycemicImpact") - np. czy wzrost będzie łagodny, szybki czy opóźniony.
+5. Podaj konkretną wskazówkę bilansowania ("balanceAdvice") - co warto dodać lub zmienić.
+6. Oceń matrycę kulinarną: "hasAcidicBuffer" (true jeśli są kiszonki, cytryna, ocet, winegret), "hasGelFiber" (true jeśli nasiona chia, owies, siemię lniane), "textureForm" ("solid" | "mashed_puree" | "liquid_smoothie").
 ${dietInfo}
 
 Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania markdown):
@@ -450,6 +472,9 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
   "protein": 20,
   "fat": 15,
   "ig": 55,
+  "hasAcidicBuffer": false,
+  "hasGelFiber": false,
+  "textureForm": "solid",
   "analysis": "Pyszna pizza na cienkim cieście...",
   "glycemicImpact": "Spodziewany przedłużony wzrost glikemii ze względu na zawartość białka i tłuszczu...",
   "balanceAdvice": "Warto dodać świeżą rukolę lub sałatkę ze świeżych warzyw...",
@@ -460,6 +485,7 @@ Zwróć odpowiedź absolutnie w formacie JSON (czysty JSON, bez formatowania mar
       "carbsPer100g": 48,
       "proteinPer100g": 7,
       "fatPer100g": 2.5,
+      "fiberPer100g": 2.2,
       "ig": 70
     },
     {
@@ -1038,7 +1064,7 @@ Odpowiedz TYLKO czystym JSON-em:
 
     const treatmentMode = settings?.treatmentMode;
     const dietRestriction = treatmentMode === "diet_only"
-      ? "\nBARDZO WAŻNE: Pacjent leczy cukrzycę wyłącznie dietą (lub tabletkami), BEZ INSULINY. Kategorycznie zabrania się sugerowania podawania bolusów, zmiany bazy czy wstrzyknięć. Odpowiadaj jako asystent dietetyczno-motywacyjny (skup się na ruchu, indeksie glikemicznym i wodzie).\n"
+      ? "\nBARDZO WAŻNE: Użytkownik prowadzi dziennik wyłącznie z dietą (lub tabletkami), BEZ INSULINY. Kategorycznie zabrania się sugerowania podawania bolusów, zmiany bazy czy wstrzyknięć. Odpowiadaj jako asystent dietetyczno-motywacyjny (skup się na ruchu, indeksie glikemicznym i wodzie).\n"
       : "";
 
     const insightsStr =
@@ -1054,7 +1080,7 @@ Odpowiedz TYLKO czystym JSON-em:
     const trendInfo = currentStatus?.trend ? ` (trend: ${currentStatus.trend})` : "";
 
     const currentDataStr = currentStatus
-      ? `\n    AKTUALNY STATUS PACJENTA (Stan na: ${now.toLocaleString("pl-PL")}):\n    - Bieżąca glikemia: ${currentStatus.glucose} mg/dL${trendInfo} (To jest najnowszy odczyt!)\n    - Aktywna insulina (IOB): ${currentStatus.iob.toFixed(2)} j.\n    - Aktywne węglowodany (COB): ${currentStatus.cob.toFixed(0)} g\n    ${insightsStr}${activeDietStr}\n    ` + pumpModelInfo
+      ? `\n    AKTUALNE DANE REJESTRATORA (Stan na: ${now.toLocaleString("pl-PL")}):\n    - Bieżąca glikemia: ${currentStatus.glucose} mg/dL${trendInfo} (To jest najnowszy odczyt!)\n    - Aktywna insulina (IOB): ${currentStatus.iob.toFixed(2)} j.\n    - Aktywne węglowodany (COB): ${currentStatus.cob.toFixed(0)} g\n    ${insightsStr}${activeDietStr}\n    ` + pumpModelInfo
       : `AKTUALNY CZAS: ${now.toLocaleString("pl-PL")}\n${insightsStr}${activeDietStr}${pumpModelInfo}`;
 
     let medicalRulesStr = "";
@@ -1330,7 +1356,7 @@ Format JSON:
   },
 
   async analyzeMedication(medName: string): Promise<any> {
-    const prompt = `Act as an expert clinical pharmacologist. Analyze the medication/supplement named "${medName}". 
+    const prompt = `Act as an expert clinical pharmacologist in diabetes care. Analyze the medication/supplement named "${medName}". 
 Return ONLY a valid JSON object with the exact following schema:
 {
   "activeIngredient": "String. The primary active substance (INN). If combination, state main active components.",
@@ -1338,6 +1364,7 @@ Return ONLY a valid JSON object with the exact following schema:
   "interactions": "String. A short, concise sentence about major interactions with diabetes medications or insulin.",
   "description": "String. 1-2 concise sentences explaining what it is and its primary effect on blood sugar or insulin resistance."
 }
+IMPORTANT MEDICAL SAFETY GUARDRAIL: Do NOT prescribe, change, or recommend drug doses. All outputs are educational.
 IMPORTANT: Translate 'activeIngredient', 'interactions', and 'description' to Polish. KEEP 'sugarImpact' strictly in English as one of the 4 allowed keywords.
 Respond ONLY with the JSON object. Do not include markdown code blocks or any other text.`;
 

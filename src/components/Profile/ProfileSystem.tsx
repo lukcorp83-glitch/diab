@@ -29,6 +29,8 @@ import { useLogsStore } from '../../stores/useLogsStore';
 import { useAppStore } from '../../stores/useAppStore';
 import { geminiService } from '../../services/gemini';
 import { Haptics } from '../../lib/haptics';
+import { NotificationBridge } from '../../lib/notificationBridge';
+import PixelSwitch from '../common/PixelSwitch';
 
 export default function ProfileSystem({ user, settings, setSettings, isIOS, pushSupported, latestSensorLog, updates, sensorSite }: any) {
  const { t } = useTranslation();
@@ -274,42 +276,33 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  <div className="text-left">
  <p className="text-[11px] font-black uppercase dark:text-white">{t('auto.aktywuj_tryb', { defaultValue: 'Aktywuj tryb' })}</p>
  </div>
- <button
- onClick={async () => {
- const isFollower = !settings.followerMode;
- const updated = { ...settings, followerMode: isFollower };
- setSettings(updated);
- const uid = getEffectiveUid(user!);
- if (uid) {
-   try {
-     await setDoc(
-       doc(db, "users", uid, "settings", "profile"),
-       { followerMode: isFollower },
-       { merge: true }
-     );
-   } catch (e) {
-     console.warn("Could not sync followerMode to Firestore", e);
-   }
- }
- 
- if (isFollower) {
- toast.success(i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: "Włączono Tryb Śledzący" }) }));
- } else {
- toast.success(i18n.t('auto.wylaczono_tryb_sledzacy', { defaultValue: i18n.t('auto.wylaczono_tryb_sledzacy', { defaultValue: "Wyłączono Tryb Śledzący" }) }));
- }
- }}
- className={cn(
- "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
- settings.followerMode ? "bg-cyan-500" : "bg-slate-300 dark:bg-slate-700"
- )}
- >
- <div
- className={cn(
- "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
- settings.followerMode ? "translate-x-6" : "translate-x-0"
- )}
+ <PixelSwitch
+  checked={Boolean(settings.followerMode)}
+  activeColor="bg-cyan-500"
+  onChange={async (newVal) => {
+    const isFollower = newVal;
+    const updated = { ...settings, followerMode: isFollower };
+    setSettings(updated);
+    const uid = getEffectiveUid(user!);
+    if (uid) {
+      try {
+        await setDoc(
+          doc(db, "users", uid, "settings", "profile"),
+          { followerMode: isFollower },
+          { merge: true }
+        );
+      } catch (e) {
+        console.warn("Could not sync followerMode to Firestore", e);
+      }
+    }
+    
+    if (isFollower) {
+      toast.success(i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: i18n.t('auto.wlaczono_tryb_sledzacy', { defaultValue: "Włączono Tryb Śledzący" }) }));
+    } else {
+      toast.success(i18n.t('auto.wylaczono_tryb_sledzacy', { defaultValue: i18n.t('auto.wylaczono_tryb_sledzacy', { defaultValue: "Wyłączono Tryb Śledzący" }) }));
+    }
+  }}
  />
- </button>
  </div>
  </div>
 
@@ -395,10 +388,11 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
-   onClick={async () => {
-   const newVal = !settings.childMode;
-   setSettings((prev) => ({ ...prev, childMode: newVal }));
+ <PixelSwitch
+   checked={Boolean(settings.childMode)}
+   activeColor="bg-amber-500"
+   onChange={async (newVal) => {
+     setSettings((prev: any) => ({ ...prev, childMode: newVal }));
      if (user) {
        try {
          await setDoc(
@@ -412,13 +406,7 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
        queryClient.invalidateQueries({ queryKey: ['userSettings'] });
      }
    }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.childMode && "bg-amber-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ />
  </div>
 
  <div
@@ -444,34 +432,28 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- const newVal =
- settings.showPumpWidget === false ? true : false;
- setSettings((prev) => ({
- ...prev,
- showPumpWidget: newVal,
- }));
- if (user)
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { showPumpWidget: newVal },
- { merge: true },
- );
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.showPumpWidget !== false && "bg-indigo-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={settings.showPumpWidget !== false}
+   activeColor="bg-accent-500"
+   onChange={async (newVal) => {
+     setSettings((prev: any) => ({
+       ...prev,
+       showPumpWidget: newVal,
+     }));
+     if (user)
+       await setDoc(
+         doc(
+           db,
+           "users",
+           getEffectiveUid(user),
+           "settings",
+           "profile",
+         ),
+         { showPumpWidget: newVal },
+         { merge: true },
+       );
+   }}
+ />
  </div>
 
  {/* Informacje o cukrach na pasku powiadomień Androida */}
@@ -496,44 +478,82 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- const currentState = settings.apkSystemNotificationsEnabled ?? true;
- const targetState = !currentState;
+ <PixelSwitch
+   checked={settings.apkSystemNotificationsEnabled ?? true}
+   activeColor="bg-emerald-500"
+   onChange={async (targetState) => {
+     setSettings((prev: any) => ({
+       ...prev,
+       apkSystemNotificationsEnabled: targetState,
+     }));
+     localStorage.setItem("apkSystemNotificationsEnabled", targetState ? "true" : "false");
 
- setSettings((prev: any) => ({
- ...prev,
- apkSystemNotificationsEnabled: targetState,
- }));
- localStorage.setItem("apkSystemNotificationsEnabled", targetState ? "true" : "false");
+     if (user) {
+       await setDoc(
+         doc(db, "users", getEffectiveUid(user), "settings", "profile"),
+         { apkSystemNotificationsEnabled: targetState },
+         { merge: true },
+       );
+     }
 
- if (user) {
- await setDoc(
- doc(db, "users", getEffectiveUid(user), "settings", "profile"),
- { apkSystemNotificationsEnabled: targetState },
- { merge: true },
- );
- }
+     if (Capacitor.isNativePlatform()) {
+       try {
+         const { NotificationBridge } = await import('../../lib/notificationBridge');
+         await NotificationBridge.setOngoingNotificationEnabled({ enabled: targetState });
+       } catch (e) {
+         console.warn("Failed setting ongoing notification on Android:", e);
+       }
+     }
 
- if (Capacitor.isNativePlatform()) {
- try {
- const { NotificationBridge } = await import('../../lib/notificationBridge');
- await NotificationBridge.setOngoingNotificationEnabled({ enabled: targetState });
- } catch (e) {
- console.warn("Failed setting ongoing notification on Android:", e);
- }
- }
-
- toast.success(targetState ? 'Włączono informacje o cukrach na pasku powiadomień' : 'Wyłączono informacje o cukrach na pasku powiadomień');
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- (settings.apkSystemNotificationsEnabled ?? true) && "bg-emerald-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+     toast.success(targetState ? 'Włączono informacje o cukrach na pasku powiadomień' : 'Wyłączono informacje o cukrach na pasku powiadomień');
+   }}
+ />
  </div>
+
+ {Capacitor.isNativePlatform() && (
+  <div
+    className={cn(
+      "group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md",
+      settings.glassmorphismEnabled
+        ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+        : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
+    )}
+  >
+    <div className="flex items-center gap-4">
+      <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+        <Moon size={22} />
+      </div>
+      <div className="text-left">
+        <p className="text-sm font-black dark:text-white leading-tight">
+          {t('auto.wygaszacz_ekranu_ladowanie', { defaultValue: "Wygaszacz podczas ładowania" })}
+        </p>
+        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight mt-1">
+          {t('auto.wygaszacz_ekranu_opis', { defaultValue: "Zegar Nocny OLED z odczytem cukru (systemowy Daydream Androida)" })}
+        </p>
+      </div>
+    </div>
+    <button
+      onClick={async () => {
+        Haptics.light();
+        try {
+          const { NotificationBridge } = await import('../../lib/notificationBridge');
+          await NotificationBridge.openDreamSettings();
+          toast.success(
+            i18n.language.startsWith('pl')
+              ? 'Otwarto ustawienia wygaszacza Androida. Wybierz GlikoControl jako wygaszacz.'
+              : 'Opened Android screen saver settings. Select GlikoControl.',
+            { duration: 4000 }
+          );
+        } catch (e) {
+          console.warn("Failed to open dream settings:", e);
+        }
+      }}
+      className="px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-black uppercase tracking-wider transition-all border border-indigo-200 dark:border-indigo-500/20 active:scale-95 shrink-0"
+    >
+      {t('auto.otworz_ustawienia', { defaultValue: "Ustawienia" })}
+    </button>
+  </div>
+ )}
 
  <div
  className={cn(
@@ -558,33 +578,28 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- const newVal = !settings.showMealWidget;
- setSettings((prev) => ({
- ...prev,
- showMealWidget: newVal,
- }));
- if (user)
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { showMealWidget: newVal },
- { merge: true },
- );
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.showMealWidget && "bg-amber-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={Boolean(settings.showMealWidget)}
+   activeColor="bg-amber-500"
+   onChange={async (newVal) => {
+     setSettings((prev: any) => ({
+       ...prev,
+       showMealWidget: newVal,
+     }));
+     if (user)
+       await setDoc(
+         doc(
+           db,
+           "users",
+           getEffectiveUid(user),
+           "settings",
+           "profile",
+         ),
+         { showMealWidget: newVal },
+         { merge: true },
+       );
+   }}
+ />
  </div>
 
  {/* Pływająca Pigułka Czatu */}
@@ -609,33 +624,28 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- const newVal = settings.floatingChatEnabled === false ? true : false;
- setSettings((prev: any) => ({
- ...prev,
- floatingChatEnabled: newVal,
- }));
- if (user)
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { floatingChatEnabled: newVal },
- { merge: true },
- );
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.floatingChatEnabled !== false && "bg-indigo-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={settings.floatingChatEnabled !== false}
+   activeColor="bg-accent-500"
+   onChange={async (newVal) => {
+     setSettings((prev: any) => ({
+       ...prev,
+       floatingChatEnabled: newVal,
+     }));
+     if (user)
+       await setDoc(
+         doc(
+           db,
+           "users",
+           getEffectiveUid(user),
+           "settings",
+           "profile",
+         ),
+         { floatingChatEnabled: newVal },
+         { merge: true },
+       );
+   }}
+ />
  </div>
 
  {/* Czwarty przycisk dolnego paska */}
@@ -695,31 +705,15 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={() => {
- const current =
- localStorage.getItem("gliko_haptics_enabled") !==
- "false";
- localStorage.setItem(
- "gliko_haptics_enabled",
- String(!current),
- );
- // Force a re-render
- window.dispatchEvent(new Event("storage"));
- // We need to trigger a local state update to show visual toggle change
- // but since we don't have local state here easily without refactoring,
- // we'll just use the fact that buttons re-render on parent render.
- // Actually, let's use a small trick: update a settings field that doesn't matter much or just trigger a parent update.
- setSettings({ ...settings });
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- localStorage.getItem("gliko_haptics_enabled") !==
- "false" && "bg-accent-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={localStorage.getItem("gliko_haptics_enabled") !== "false"}
+   activeColor="bg-accent-500"
+   onChange={(newVal) => {
+     localStorage.setItem("gliko_haptics_enabled", String(newVal));
+     window.dispatchEvent(new Event("storage"));
+     setSettings({ ...settings });
+   }}
+ />
  </div>
 
  {/* GlikoSense & Pogoda */}
@@ -746,33 +740,28 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </p>
  </div>
  </div>
- <button
- onClick={async () => {
- const newVal = !settings.weatherNeuralEnabled;
- setSettings((prev) => ({
- ...prev,
- weatherNeuralEnabled: newVal,
- }));
- if (user)
- await setDoc(
- doc(
- db,
- "users",
- getEffectiveUid(user),
- "settings",
- "profile",
- ),
- { weatherNeuralEnabled: newVal },
- { merge: true },
- );
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.weatherNeuralEnabled && "bg-teal-500 pl-5",
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
+ <PixelSwitch
+   checked={Boolean(settings.weatherNeuralEnabled)}
+   activeColor="bg-teal-500"
+   onChange={async (newVal) => {
+     setSettings((prev: any) => ({
+       ...prev,
+       weatherNeuralEnabled: newVal,
+     }));
+     if (user)
+       await setDoc(
+         doc(
+           db,
+           "users",
+           getEffectiveUid(user),
+           "settings",
+           "profile",
+         ),
+         { weatherNeuralEnabled: newVal },
+         { merge: true },
+       );
+   }}
+ />
  </div>
  </div>
 
@@ -1009,92 +998,98 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  ))}
  </div>
 
- {/* Dynamic Colors Toggle */}
- <div className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 mt-4">
- <div className="flex items-center gap-3">
- <div className="w-10 h-10 rounded-xl bg-accent-500/10 flex items-center justify-center text-accent-500">
- <Sparkles size={20} />
- </div>
- <div className="text-left">
- <p className="text-sm font-black dark:text-white leading-tight">{t('auto.dynamiczne_kolory', { defaultValue: 'Dynamiczne Kolory' })}</p>
- <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{t('auto.dopasowuje_kolory_aplikacji_do_twoj', { defaultValue: 'Dopasowuje kolory aplikacji do Twojej tapety' })}</p>
- </div>
- </div>
- <button
- onClick={async () => {
- const newVal = !settings.dynamicColorsEnabled;
- const updated = {
-   ...settings,
-   dynamicColorsEnabled: newVal,
-   material3Enabled: newVal ? settings.material3Enabled : false
- };
- setSettings(updated);
- localStorage.setItem("dynamicColorsEnabled", String(newVal));
- if (!newVal) localStorage.setItem("material3Enabled", "false");
- localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+          {/* Inset Grouped Settings: Styl i Wydajność */}
+          <div className={cn(
+            "pixel-inset-group border mt-4 overflow-hidden",
+            settings.glassmorphismEnabled
+              ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+              : "bg-white dark:bg-slate-800/80 border-slate-200/80 dark:border-slate-700/80 shadow-xs"
+          )}>
+            {/* Dynamic Colors Item */}
+            <div className="pixel-inset-item flex items-center justify-between p-4 sm:p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-accent-500/10 flex items-center justify-center text-accent-500 shrink-0">
+                  <Sparkles size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-black dark:text-white leading-tight">{t('auto.dynamiczne_kolory', { defaultValue: 'Dynamiczne Kolory' })}</p>
+                  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{t('auto.dopasowuje_kolory_aplikacji_do_twoj', { defaultValue: 'Dopasowuje kolory aplikacji do Twojej tapety' })}</p>
+                </div>
+              </div>
+              <PixelSwitch
+                checked={Boolean(settings.dynamicColorsEnabled)}
+                activeColor="bg-accent-500"
+                onChange={async (newVal) => {
+                  const updated = {
+                    ...settings,
+                    dynamicColorsEnabled: newVal,
+                    material3Enabled: newVal ? settings.material3Enabled : false
+                  };
+                  setSettings(updated);
+                  localStorage.setItem("dynamicColorsEnabled", String(newVal));
+                  if (!newVal) localStorage.setItem("material3Enabled", "false");
+                  localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
 
- if (user) {
- const uid = getEffectiveUid(user);
- const updates: any = { dynamicColorsEnabled: newVal };
- if (!newVal) updates.material3Enabled = false;
- await setDoc(
- doc(db, "users", uid, "settings", "profile"),
- updates,
- { merge: true }
- );
- queryClient.setQueryData(['userSettings', uid], (old: any) => ({
- ...(old || {}),
- ...updates,
- }));
- queryClient.invalidateQueries({ queryKey: ['userSettings'] });
- }
- }}
- className={cn(
- "w-10 h-6 pl-1 flex-shrink-0 rounded-full flex items-center transition-all bg-slate-300 dark:bg-slate-700",
- settings.dynamicColorsEnabled && "bg-accent-500 pl-5"
- )}
- >
- <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
- </button>
- </div>
- </div>
+                  if (user) {
+                    const uid = getEffectiveUid(user);
+                    const updates: any = { dynamicColorsEnabled: newVal };
+                    if (!newVal) updates.material3Enabled = false;
+                    await setDoc(
+                      doc(db, "users", uid, "settings", "profile"),
+                      updates,
+                      { merge: true }
+                    );
+                    queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+                      ...(old || {}),
+                      ...updates,
+                    }));
+                    queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+                  }
+                }}
+              />
+            </div>
 
- <div
- className={cn(
- "p-6 rounded-[2.5rem] border space-y-6 mt-4",
- settings.glassmorphismEnabled
- ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
- : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
- )}
- >
- <div className="flex items-center justify-between">
- <div>
- <h3 className="text-sm font-black dark:text-white">{t('auto.tryb_eko_maksymalna_wydajność', { defaultValue: i18n.t('auto.tryb_eko_maksymalna_wydaj', { defaultValue: "Tryb Eko (Maksymalna wydajność)" }) })}</h3>
- <p className="text-[10px] text-slate-500">{t('auto.wyłącza_animacje_cienie_oraz_rozmyc', { defaultValue: i18n.t('auto.wylacza_animacje_cienie_o', { defaultValue: "Wyłącza animacje, cienie oraz rozmycia szklane by przyspieszyć działanie." }) })}</p>
- </div>
- <button
- onClick={async () => {
- const mode = !settings.ecoMode;
- setSettings(prev => ({ ...prev, ecoMode: mode }));
- localStorage.setItem("ecoMode", String(mode));
- if (user) {
- await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: mode }, { merge: true }); queryClient.invalidateQueries({ queryKey: ["userSettings"] });;
- }
- }}
- className={cn(
- "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none",
- settings.ecoMode ? "bg-accent-500" : "bg-slate-300 dark:bg-slate-700"
- )}
- >
- <div
- className={cn(
- "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
- settings.ecoMode ? "translate-x-6" : "translate-x-0"
- )}
- />
- </button>
- </div>
- </div>
+            {/* Eco Mode Item */}
+            <div className="pixel-inset-item flex items-center justify-between p-4 sm:p-5">
+              <div className="text-left pr-3">
+                <h3 className="text-sm font-black dark:text-white leading-tight">{t('auto.tryb_eko_maksymalna_wydajność', { defaultValue: i18n.t('auto.tryb_eko_maksymalna_wydaj', { defaultValue: "Tryb Eko (Maksymalna wydajność)" }) })}</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{t('auto.wyłącza_animacje_cienie_oraz_rozmyc', { defaultValue: i18n.t('auto.wylacza_animacje_cienie_o', { defaultValue: "Wyłącza animacje, cienie oraz rozmycia szklane by przyspieszyć działanie." }) })}</p>
+              </div>
+              <PixelSwitch
+                checked={Boolean(settings.ecoMode)}
+                activeColor="bg-accent-500"
+                onChange={async (newVal) => {
+                  setSettings(prev => ({ ...prev, ecoMode: newVal }));
+                  localStorage.setItem("ecoMode", String(newVal));
+                  if (user) {
+                    await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { ecoMode: newVal }, { merge: true });
+                    queryClient.invalidateQueries({ queryKey: ["userSettings"] });
+                  }
+                }}
+              />
+            </div>
+
+            {/* At a Glance Item */}
+            <div className="pixel-inset-item flex items-center justify-between p-4 sm:p-5">
+              <div className="text-left pr-3">
+                <h3 className="text-sm font-black dark:text-white leading-tight">{t('system.at_a_glance_title', { defaultValue: 'Pasek «W skrócie»' })}</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{t('system.at_a_glance_desc', { defaultValue: 'Inteligentny pasek na górze pulpitu informujący o stoperze, osprzęcie i stanie cukru' })}</p>
+              </div>
+              <PixelSwitch
+                checked={settings.atAGlanceEnabled ?? true}
+                activeColor="bg-accent-500"
+                onChange={async (newVal) => {
+                  setSettings(prev => ({ ...prev, atAGlanceEnabled: newVal }));
+                  localStorage.setItem("atAGlanceEnabled", String(newVal));
+                  if (user) {
+                    await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { atAGlanceEnabled: newVal }, { merge: true });
+                    queryClient.invalidateQueries({ queryKey: ["userSettings"] });
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
 
  {/* Program Testów Beta OTA */}
  <div
@@ -1135,33 +1130,30 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  </div>
  </div>
 
- <button
- onClick={async () => {
- const isBeta = !settings.betaProgram;
- setSettings(prev => ({ ...prev, betaProgram: isBeta }));
- localStorage.setItem("betaProgramEnabled", String(isBeta));
- if (user) {
- await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { betaProgram: isBeta }, { merge: true });
- queryClient.invalidateQueries({ queryKey: ["userSettings"] });
- }
- if (isBeta) {
- toast.success("Włączono kanał Beta! Zrestartuj aplikację, aby pobrać wersję testową.");
- } else {
- toast.success("Przywrócono kanał Stabilny.");
- }
- }}
- className={cn(
- "w-12 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none shrink-0 mt-1",
- settings.betaProgram ? "bg-pink-500" : "bg-slate-300 dark:bg-slate-700"
- )}
- >
- <div
- className={cn(
- "bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200",
- settings.betaProgram ? "translate-x-6" : "translate-x-0"
- )}
- />
- </button>
+              <PixelSwitch
+                checked={Boolean(settings.betaProgram)}
+                activeColor="bg-pink-500"
+                className="shrink-0 mt-1"
+                onChange={async (newVal) => {
+                  const isBeta = newVal;
+                  setSettings(prev => ({ ...prev, betaProgram: isBeta }));
+                  localStorage.setItem("betaProgramEnabled", String(isBeta));
+                  try {
+                    if (Capacitor.isNativePlatform() && NotificationBridge?.syncAlertPreferences) {
+                      NotificationBridge.syncAlertPreferences({ betaProgramEnabled: isBeta });
+                    }
+                  } catch (e) {}
+                  if (user) {
+                    await setDoc(doc(db, "users", getEffectiveUid(user), "settings", "profile"), { betaProgram: isBeta }, { merge: true });
+                    queryClient.invalidateQueries({ queryKey: ["userSettings"] });
+                  }
+                  if (isBeta) {
+                    toast.success("Włączono kanał Beta! Zrestartuj aplikację, aby pobrać wersję testową.");
+                  } else {
+                    toast.success("Przywrócono kanał Stabilny.");
+                  }
+                }}
+              />
  </div>
 
  {/* Ostrzeżenie o niestabilności */}

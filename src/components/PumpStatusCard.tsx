@@ -165,7 +165,7 @@ export const PumpStatusCard: React.FC<PumpStatusProps> = ({ data, inventory = []
             <span className="text-[9px] font-black text-slate-400 uppercase tracking-wide">Baza</span>
           </div>
           <span className="text-sm sm:text-base font-black text-purple-500 tabular-nums tracking-tight mt-1">
-            {data.basal?.rate != null ? Number(data.basal.rate).toFixed(2) : '--'}
+            {data.basal?.rate != null ? (Number(data.basal.rate) < 1 && Number(data.basal.rate) > 0 ? Number(data.basal.rate).toFixed(3) : Number(data.basal.rate).toFixed(2)) : '--'}
           </span>
         </div>
       </div>
