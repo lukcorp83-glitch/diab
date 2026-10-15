@@ -510,6 +510,51 @@ export default function ProfileSystem({ user, settings, setSettings, isIOS, push
  />
  </div>
 
+ {Capacitor.isNativePlatform() && (
+  <div
+    className={cn(
+      "group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md",
+      settings.glassmorphismEnabled
+        ? "backdrop-blur-xl bg-white/20 dark:bg-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.15)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] border border-white/50 dark:border-white/10 ring-1 ring-white/30 dark:ring-white/10 ring-inset"
+        : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700",
+    )}
+  >
+    <div className="flex items-center gap-4">
+      <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+        <Moon size={22} />
+      </div>
+      <div className="text-left">
+        <p className="text-sm font-black dark:text-white leading-tight">
+          {t('auto.wygaszacz_ekranu_ladowanie', { defaultValue: "Wygaszacz podczas ładowania" })}
+        </p>
+        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight mt-1">
+          {t('auto.wygaszacz_ekranu_opis', { defaultValue: "Zegar Nocny OLED z odczytem cukru (systemowy Daydream Androida)" })}
+        </p>
+      </div>
+    </div>
+    <button
+      onClick={async () => {
+        Haptics.light();
+        try {
+          const { NotificationBridge } = await import('../../lib/notificationBridge');
+          await NotificationBridge.openDreamSettings();
+          toast.success(
+            i18n.language.startsWith('pl')
+              ? 'Otwarto ustawienia wygaszacza Androida. Wybierz GlikoControl jako wygaszacz.'
+              : 'Opened Android screen saver settings. Select GlikoControl.',
+            { duration: 4000 }
+          );
+        } catch (e) {
+          console.warn("Failed to open dream settings:", e);
+        }
+      }}
+      className="px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-black uppercase tracking-wider transition-all border border-indigo-200 dark:border-indigo-500/20 active:scale-95 shrink-0"
+    >
+      {t('auto.otworz_ustawienia', { defaultValue: "Ustawienia" })}
+    </button>
+  </div>
+ )}
+
  <div
  className={cn(
  "group flex items-center justify-between p-5 rounded-[2rem] border transition-all hover:shadow-md",

@@ -1500,13 +1500,24 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
         if (closestData.glucose !== undefined && !isNaN(closestData.glucose)) {
           const gVal = Number(closestData.glucose);
           const currentZone: 'hypo' | 'hyper' | 'tir' = gVal < targetMin ? 'hypo' : gVal > targetMax ? 'hyper' : 'tir';
-          if (lastHapticZoneRef.current && lastHapticZoneRef.current !== currentZone) {
-            // Przejście między strefami glikemii (norma TIR vs hipo/hiper)
-            Haptics.light();
-          } else {
-            // Tyknięcie na kolejnym punkcie CGM
-            Haptics.tick();
+          
+          if (currentZone === 'hypo') {
+            // Cukier poniżej celu: wyraźniejszy impuls przy wejściu w hipo lub tyknięcie na kolejnych punktach hipo
+            if (lastHapticZoneRef.current !== 'hypo') {
+              Haptics.light();
+            } else {
+              Haptics.tick();
+            }
+          } else if (currentZone === 'hyper') {
+            // Cukier powyżej celu: impuls przy wejściu w hiper lub tyknięcie na kolejnych punktach hiper
+            if (lastHapticZoneRef.current !== 'hyper') {
+              Haptics.light();
+            } else {
+              Haptics.tick();
+            }
           }
+          // Gdy currentZone === 'tir' (w zakresie celu) -> telefon nie wibruje!
+
           lastHapticZoneRef.current = currentZone;
         } else if (closestData.bolusVal || closestData.mealVal || closestData.siteVal || closestData.sensorVal) {
           Haptics.selectionStart();

@@ -2,8 +2,8 @@ import { UserSettings } from "./types";
 ﻿import { Product } from './types';
 import i18n from "./i18n";
 
-export const APP_VERSION = '6.0.63';
-export const CURRENT_VERSION = '6.0.63';
+export const APP_VERSION = '6.0.64';
+export const CURRENT_VERSION = '6.0.64';
 
 import versionData from '../version.json';
 
@@ -55,6 +55,7 @@ export const CATEGORIES = [
   i18n.t('auto.mieso_i_ryby', { defaultValue: i18n.t('auto.mieso_i_ryby', { defaultValue: "Mięso i Ryby" }) }),
   i18n.t('auto.gotowe_posilki', { defaultValue: i18n.t('auto.gotowe_posilki', { defaultValue: "Gotowe Posiłki" }) }),
   i18n.t('auto.slodycze_i_przekaski', { defaultValue: i18n.t('auto.slodycze_i_przekaski', { defaultValue: "Słodycze i Przekąski" }) }),
+  "Napoje",
   "Inne"
 ];
 

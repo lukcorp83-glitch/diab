@@ -118,6 +118,27 @@ export default function InfusionPerformanceWidget({ settings }: InfusionPerforma
         </motion.div>
       )}
 
+      {/* Delayed Absorption (WBT) Info */}
+      {!occlusionRisk.isRiskDetected && occlusionRisk.status === 'delayed_absorption' && (
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 flex items-start gap-2.5 text-amber-800 dark:text-amber-200 shadow-sm z-10"
+        >
+          <div className="p-1.5 bg-amber-500 text-white rounded-xl shrink-0 mt-0.5">
+            <Activity size={16} />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-black uppercase tracking-wider">
+              {t('auto.opoznione_wchlanianie_wbt', { defaultValue: 'Przedłużone wchłanianie posiłku (WBT)' })}
+            </span>
+            <p className="text-[11px] leading-relaxed font-medium opacity-90">
+              {occlusionRisk.message}
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Current Site Main Compact Card */}
       <div className={cn("p-4 rounded-2xl border flex flex-col gap-3 transition-all z-10", statusStyle.bg, statusStyle.border)}>
         <div className="flex items-center justify-between">
@@ -142,9 +163,17 @@ export default function InfusionPerformanceWidget({ settings }: InfusionPerforma
             <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1">
               <Zap size={13} className="text-amber-500" /> {t('auto.szacowana_sprawnosc', { defaultValue: 'Sprawność wchłaniania kaniuli' })}
             </span>
-            <span className={cn("font-black text-sm", statusStyle.text)}>
-              {currentSite.currentEfficiency}%
-            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-[10px] font-medium text-slate-400">
+                {currentSite.isEstimated 
+                  ? t('auto.szacunek_profilu', { defaultValue: '(profil glikemii)' })
+                  : t('auto.sprawdzone_dawki', { defaultValue: `(${currentSite.sampleCount} ${currentSite.sampleCount === 1 ? 'dawka' : 'dawki'})` })
+                }
+              </span>
+              <span className={cn("font-black text-sm", statusStyle.text)}>
+                {currentSite.currentEfficiency}%
+              </span>
+            </div>
           </div>
           <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-300/30 dark:border-slate-700/50">
             <motion.div
@@ -250,10 +279,10 @@ export default function InfusionPerformanceWidget({ settings }: InfusionPerforma
                           {day.avgGlucose !== null ? String(day.avgGlucose) + ' mg/dL' : '—'}
                         </strong>
                       </div>
-                      <div className="flex justify-between">
-                        <span>{t('auto.probki', { defaultValue: 'Korekty' })}:</span>
-                        <strong className="text-slate-700 dark:text-slate-300">
-                          {day.sampleCount > 0 ? String(day.sampleCount) : '0'}
+                      <div className="flex justify-between items-center">
+                        <span>{t('auto.probki', { defaultValue: 'Dawki' })}:</span>
+                        <strong className="text-slate-700 dark:text-slate-300 text-[9.5px]">
+                          {day.sampleCount > 0 ? `${day.sampleCount} ${day.sampleCount === 1 ? 'dawka' : 'dawek'}` : (day.isEstimated ? 'Szacunek' : '0')}
                         </strong>
                       </div>
                     </div>

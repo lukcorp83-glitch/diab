@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCustomProducts, useCommunityProducts } from '../hooks/queries/useFoodDatabase';
 import { useSavedMeals } from '../hooks/queries/useSavedMeals';
 import { LIB_BASE } from '../data/foodDatabase';
+import { dbService } from '../services/databaseService';
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Product } from "../types";
@@ -29,6 +30,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 import { geminiService } from "../services/gemini";
 import { useAppStore } from "../stores/useAppStore";
+import { getDietBadge, isProductDietFriendly, getDietName } from "../lib/dietHelper";
 
 export const getProductName = (p: Product, lang: string) => {
  if (lang.startsWith("en") && p.nameEn) return p.nameEn;
@@ -36,7 +38,7 @@ export const getProductName = (p: Product, lang: string) => {
  return p.name;
 };
 
-export type NutrientFilter = 'all' | 'snack_free' | 'high_protein' | 'high_fiber' | 'fast_carbs';
+export type NutrientFilter = 'all' | 'snack_free' | 'high_protein' | 'high_fiber' | 'fast_carbs' | 'diet_match';
 
 export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Product) => void }) {
   const user = useAuthStore(state => state.user);
@@ -54,6 +56,20 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
   const communityProducts = communityProductsData || [];
   const [activeNutrientFilter, setActiveNutrientFilter] = useState<NutrientFilter>('all');
   const [sortBy, setSortBy] = useState<'date_desc' | 'name_asc' | 'carbs_desc' | 'carbs_asc'>('name_asc');
+  const [visibleCount, setVisibleCount] = useState(40);
+
+  const activeDiet = React.useMemo(() => {
+    try {
+      const s = localStorage.getItem('glikocontrol_user_settings');
+      return s ? JSON.parse(s)?.activeDiet : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    setVisibleCount(40);
+  }, [searchTerm, activeCategory, activeNutrientFilter, sortBy]);
 
  const handleOnlineSearch = async () => {
    if (!searchTerm.trim()) return;
@@ -210,6 +226,9 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  );
  }
 
+ // Trwały zapis w bazie SQLite telefonu (odporny na czyszczenie i restarty)
+ await dbService.saveFoodProduct(prodData);
+
  setIsModalOpen(false);
  setNewProduct({
  name: "",
@@ -257,7 +276,9 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  const isSystem = !p.author && !isCommunity;
 
   let matchesNutrient = true;
-  if (activeNutrientFilter === 'snack_free') {
+  if (activeNutrientFilter === 'diet_match' && activeDiet) {
+    matchesNutrient = isProductDietFriendly(p, activeDiet);
+  } else if (activeNutrientFilter === 'snack_free') {
     matchesNutrient = (p.carbs || 0) <= 5;
   } else if (activeNutrientFilter === 'high_protein') {
     matchesNutrient = (p.protein || 0) >= 15;
@@ -621,6 +642,7 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none items-center">
    {[
      { id: 'all', label: t('food.filter_all', { defaultValue: 'Wszystkie' }), icon: null },
+     ...(activeDiet ? [{ id: 'diet_match', label: `Zgodne z dietą (${getDietName(activeDiet)})`, icon: '✨' }] : []),
      { id: 'snack_free', label: t('food.filter_snack_free', { defaultValue: 'Lekkie (<5g W)' }), icon: '🌱' },
      { id: 'high_protein', label: t('food.filter_high_protein', { defaultValue: 'Wysokobiałkowe (≥15g B)' }), icon: '🍗' },
      { id: 'high_fiber', label: t('food.filter_high_fiber', { defaultValue: 'Bogate w błonnik (≥5g Bł)' }), icon: '🌾' },
@@ -648,7 +670,7 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
 
  <div className="grid gap-1 will-change-transform pixel-stretch-scroll">
  <AnimatePresence>
- {filtered.slice(0, 100).map((p, idx) => {
+ {filtered.slice(0, visibleCount).map((p, idx) => {
  const isCustom = p.author === user?.uid && !p.isCommunity;
  const isOwnCommunity = p.author === user?.uid && p.isCommunity;
  const itemKey = p.id || p.name || `food-item-${idx}`;
@@ -661,10 +683,11 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  className="bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm flex justify-between items-center group mb-2 cursor-pointer hover:border-accent-500 transition-colors"
  >
  <div className="flex-1 min-w-0 pr-4">
- <div className="flex items-center gap-2 mb-1">
+ <div className="flex items-center gap-2 mb-1 flex-wrap">
  <h4 className="font-black text-sm dark:text-white truncate">
  {getProductName(p, i18n.language)}
  </h4>
+ {getDietBadge(p, activeDiet)}
  {p.isCommunity && (
  <span className="text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-accent-50 dark:bg-accent-950 text-accent-500">
  
@@ -724,18 +747,20 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
  if (isDeletable && p.id) {
  return (
  <motion.div
- layout
  key={itemKey}
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95 }}
- transition={{ duration: 0.2 }}
+ transition={{ duration: 0.15 }}
  >
  <SwipeableItem
  key={`swipe-${itemKey}`}
  id={p.id}
  onDelete={async () => {
  try {
+ if (p.id) {
+ await dbService.deleteFoodProduct(p.id);
+ }
  await deleteDoc(doc(db, "users", getEffectiveUid(user), "customProducts", p.id!));
  queryClient.invalidateQueries({ queryKey: ['customProducts'] });
  } catch (err) {
@@ -751,18 +776,31 @@ export default function FoodDatabase({ onAddToPlate}: {  onAddToPlate?: (p: Prod
 
  return (
  <motion.div
- layout
  key={itemKey}
  initial={{ opacity: 0, y: 10 }}
  animate={{ opacity: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.95 }}
- transition={{ duration: 0.2 }}
+ transition={{ duration: 0.15 }}
  >
  {content}
  </motion.div>
  );
  })}
  </AnimatePresence>
+
+ {visibleCount < filtered.length && (
+   <div className="pt-2 pb-6 text-center">
+     <button
+       onClick={() => {
+         Haptics.light();
+         setVisibleCount((prev) => Math.min(prev + 40, filtered.length));
+       }}
+       className="w-full py-3.5 px-4 rounded-2xl bg-white dark:bg-slate-900 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border border-slate-200 dark:border-slate-800 shadow-sm active:scale-95 cursor-pointer"
+     >
+       {t('common.loadMore', { defaultValue: 'Pokaż więcej produktów' })} ({filtered.length - visibleCount} pozostało)
+     </button>
+   </div>
+ )}
  </div>
  </motion.div>
  );

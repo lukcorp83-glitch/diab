@@ -508,12 +508,12 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
  )}
  >
  {!settings.notificationsEnabled && (
- <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 pl-12">
+ <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-2">
  
  {t('auto.włącz_powiadomienia_powyżej_aby_sko', { defaultValue: i18n.t('auto.wlacz_powiadomienia_powyz', { defaultValue: "Włącz powiadomienia powyżej, aby skonfigurować rodzaje alertów." }) })}
  </p>
  )}
- <div className="grid grid-cols-2 gap-3 pl-12">
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
  {[
  {
  id: "hypo",
@@ -552,9 +552,10 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
     };
     const isActive = prefs[pref.id as keyof typeof prefs] ?? true;
     return (
-      <button
+      <div
         key={pref.id}
         onClick={async () => {
+          Haptics.selection();
           const newPrefs = { ...prefs, [pref.id]: !isActive };
           if (pref.id === 'hypo') {
             newPrefs.hypoProtection = !isActive;
@@ -604,35 +605,94 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
           }
         }}
         className={cn(
-          "flex items-center gap-2.5 p-3 rounded-2xl border transition-all text-left relative",
+          "flex items-center justify-between gap-3 p-3 rounded-2xl border transition-all text-left relative cursor-pointer select-none active:scale-[0.98]",
           isActive
             ? "bg-white dark:bg-slate-800 border-accent-500/40 text-slate-800 dark:text-white shadow-sm ring-1 ring-accent-500/20"
             : "bg-slate-100/60 dark:bg-slate-900/40 border-transparent text-slate-400 opacity-60 hover:opacity-100",
         )}
       >
-        <div className={cn(
-          "p-1.5 rounded-xl shrink-0 transition-colors",
-          isActive ? "bg-accent-500/10" : "bg-slate-200/50 dark:bg-slate-800/50"
-        )}>
-          {pref.icon}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className={cn(
+            "p-2 rounded-xl shrink-0 transition-colors",
+            isActive ? "bg-accent-500/10 text-accent-500" : "bg-slate-200/50 dark:bg-slate-800/50 text-slate-400"
+          )}>
+            {pref.icon}
+          </div>
+          <span
+            className={cn(
+              "text-xs font-black uppercase tracking-tight leading-snug break-words flex-1",
+              isActive
+                ? "text-slate-800 dark:text-white"
+                : "text-slate-400 dark:text-slate-500",
+            )}
+          >
+            {pref.label}
+          </span>
         </div>
-        <span
-          className={cn(
-            "text-[10px] font-black uppercase tracking-tight",
-            isActive
-              ? "text-slate-800 dark:text-white"
-              : "text-slate-400",
-          )}
-        >
-          {pref.label}
-        </span>
-      </button>
+        <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+          <PixelSwitch
+            checked={isActive}
+            activeColor="bg-accent-500"
+            onChange={async () => {
+              Haptics.selection();
+              const newPrefs = { ...prefs, [pref.id]: !isActive };
+              if (pref.id === 'hypo') {
+                newPrefs.hypoProtection = !isActive;
+              }
+              const updated = {
+                ...settings,
+                notificationPrefs: newPrefs,
+              };
+              setSettings(updated);
+              localStorage.setItem("notificationPrefs", JSON.stringify(newPrefs));
+              localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+
+              if (Capacitor.isNativePlatform()) {
+                try {
+                  const notifsEnabled = settings.notificationsEnabled !== false;
+                  const hypoOn = notifsEnabled && (newPrefs.hypo !== false) && (newPrefs.hypoProtection !== false);
+                  const hyperOn = notifsEnabled && (newPrefs.hyper !== false);
+                  NotificationBridge.syncAlertPreferences({
+                    hypoEnabled: hypoOn,
+                    hyperEnabled: hyperOn,
+                    targetMin: settings.targetMin || 70,
+                    targetMax: settings.targetMax || 180
+                  }).catch(() => {});
+                } catch (err) {}
+              }
+
+              if (user) {
+                const uid = getEffectiveUid(user);
+                await setDoc(
+                  doc(
+                    db,
+                    "users",
+                    uid,
+                    "settings",
+                    "profile",
+                  ),
+                  {
+                    notificationPrefs: newPrefs,
+                  },
+                  { merge: true },
+                );
+                queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+                  ...(old || {}),
+                  notificationPrefs: newPrefs,
+                }));
+                queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+              }
+            }}
+            ariaLabel={pref.label}
+          />
+        </div>
+      </div>
     );
   })}
  </div>
 
  {settings.notificationsEnabled && (
- <div className="pl-12 mt-6">
+ <div className="mt-6">
  <p className="text-[10px] font-black text-accent-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
  <Sparkles size={12} className="animate-pulse" /> {t('auto.inteligentne_reguły_glikosense', { defaultValue: i18n.t('auto.inteligentne_reguly_gliko', { defaultValue: "Inteligentne reguły GlikoSense" }) })}
  </p>
@@ -655,7 +715,7 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
   };
   const isActive = prefs[pref.id as keyof typeof prefs] ?? false;
   return (
-  <button
+  <div
   key={pref.id}
   onClick={async () => {
   const newPrefs = { ...prefs, [pref.id]: !isActive };
@@ -696,22 +756,23 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
   }
   }}
   className={cn(
-  "flex items-center gap-3 p-3 rounded-2xl border transition-all text-left",
+  "flex items-center justify-between gap-3 p-3 rounded-2xl border transition-all text-left cursor-pointer select-none active:scale-[0.98]",
   isActive
   ? "bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/20 shadow-sm"
-  : "bg-slate-50 dark:bg-slate-900 border-transparent opacity-60"
+  : "bg-slate-50 dark:bg-slate-900 border-transparent opacity-60 hover:opacity-100"
   )}
   >
+  <div className="flex items-center gap-3 min-w-0 flex-1">
   <div className={cn(
   "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
   isActive ? "bg-white dark:bg-indigo-500/20 shadow-sm" : "bg-slate-200 dark:bg-slate-800"
   )}>
   {pref.icon}
   </div>
-  <div>
+  <div className="min-w-0 flex-1">
   <span className={cn(
-  "text-[10px] font-black uppercase tracking-tight block",
-  isActive ? "text-indigo-700 dark:text-indigo-300" : "text-slate-400"
+  "text-xs font-black uppercase tracking-tight block leading-snug break-words",
+  isActive ? "text-indigo-700 dark:text-indigo-300" : "text-slate-400 dark:text-slate-500"
   )}>
   {pref.label}
   </span>
@@ -719,7 +780,54 @@ export default function ProfileNotifications({ user, settings, setSettings, isIO
   {isActive ? i18n.t('auto.glikosense_aktywny', { defaultValue: 'GlikoSense aktywny' }) : i18n.t('auto.regula_wylaczona', { defaultValue: "Reguła wyłączona" })}
   </span>
   </div>
-  </button>
+  </div>
+  <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+    <PixelSwitch
+      checked={isActive}
+      activeColor="bg-indigo-500"
+      onChange={async () => {
+        Haptics.selection();
+        const newPrefs = { ...prefs, [pref.id]: !isActive };
+        const updated = {
+          ...settings,
+          notificationPrefs: newPrefs,
+        };
+        setSettings(updated);
+        localStorage.setItem("notificationPrefs", JSON.stringify(newPrefs));
+        localStorage.setItem("glikocontrol_user_settings", JSON.stringify(updated));
+
+        if (Capacitor.isNativePlatform()) {
+          try {
+            const notifsEnabled = settings.notificationsEnabled !== false;
+            const hypoOn = notifsEnabled && (newPrefs.hypo !== false) && (newPrefs.hypoProtection !== false);
+            const hyperOn = notifsEnabled && (newPrefs.hyper !== false);
+            NotificationBridge.syncAlertPreferences({
+              hypoEnabled: hypoOn,
+              hyperEnabled: hyperOn,
+              targetMin: settings.targetMin || 70,
+              targetMax: settings.targetMax || 180
+            }).catch(() => {});
+          } catch (err) {}
+        }
+
+        if (user) {
+          const uid = getEffectiveUid(user);
+          await setDoc(
+            doc(db, "users", uid, "settings", "profile"),
+            { notificationPrefs: newPrefs },
+            { merge: true }
+          );
+          queryClient.setQueryData(['userSettings', uid], (old: any) => ({
+            ...(old || {}),
+            notificationPrefs: newPrefs,
+          }));
+          queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+        }
+      }}
+      ariaLabel={pref.label}
+    />
+  </div>
+  </div>
   );
   })}
  </div>

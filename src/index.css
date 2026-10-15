@@ -551,8 +551,9 @@ body {
   outline-offset: -1px;
 }
 
-/* M3 Standard Container Radii (Reduce extreme rounded corners) */
+/* M3 Standard Container Radii (Reduce extreme rounded corners to 1.5rem / 24px) */
 :root[data-material3="true"] .rounded-\[2\.5rem\],
+:root[data-material3="true"] .rounded-\[2\.6rem\],
 :root[data-material3="true"] .rounded-\[3rem\] {
   border-radius: 1.5rem !important;
 }
@@ -561,11 +562,13 @@ body {
   border-radius: 1rem !important;
 }
 
-  :root[data-material3="true"] button:not(.rounded-2xl):not(.rounded-3xl):not(.rounded-xl):not(.rounded-lg) {
-    border-radius: 9999px !important; /* Pill shaped buttons */
-  }
 :root[data-material3="true"] .rounded-2xl {
   border-radius: 1rem !important;
+}
+
+/* M3 Pill Buttons - dotyczy wyłącznie małych przycisków akcji, wykluczając duże kafelki widżetowe i karty */
+:root[data-material3="true"] button:not(.rounded-2xl):not(.rounded-3xl):not(.rounded-xl):not(.rounded-lg):not(.rounded-\[2\.5rem\]):not(.rounded-\[2\.6rem\]):not(.rounded-\[3rem\]):not([class*="min-h-"]):not([class*="h-full"]):not([class*="h-32"]):not([class*="h-28"]):not([class*="h-24"]) {
+  border-radius: 9999px !important; /* Pill shaped buttons */
 }
 
 /* ECO MODE OVERRIDES */

@@ -29,6 +29,72 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
+      {
+        name: 'ns-proxy-middleware',
+        configureServer(server) {
+          server.middlewares.use('/api/ns-proxy', async (req, res) => {
+            try {
+              const urlObj = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
+              const targetUrl = urlObj.searchParams.get('url');
+              if (!targetUrl) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: "Missing url parameter" }));
+                return;
+              }
+
+              const parsedUrl = new URL(targetUrl);
+              if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: "Unsupported protocol" }));
+                return;
+              }
+
+              const hostname = parsedUrl.hostname.toLowerCase();
+              if (
+                hostname === '169.254.169.254' ||
+                hostname === 'metadata.google.internal' ||
+                hostname.endsWith('.internal') ||
+                hostname === 'instance-data'
+              ) {
+                res.statusCode = 403;
+                res.end(JSON.stringify({ error: "Access to metadata forbidden" }));
+                return;
+              }
+
+              const secret = req.headers['api-secret'] as string;
+              const headers: Record<string, string> = {
+                'Accept': 'application/json',
+                'Content-Type': (req.headers['content-type'] as string) || 'application/json'
+              };
+              if (secret) headers['api-secret'] = secret;
+
+              let bodyData: any = undefined;
+              if (!['GET', 'HEAD'].includes(req.method?.toUpperCase() || '')) {
+                const chunks: Buffer[] = [];
+                for await (const chunk of req) {
+                  chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+                }
+                if (chunks.length > 0) {
+                  bodyData = Buffer.concat(chunks).toString('utf-8');
+                }
+              }
+
+              const response = await fetch(targetUrl, {
+                method: req.method?.toUpperCase() || 'GET',
+                headers,
+                body: bodyData
+              });
+
+              res.statusCode = response.status;
+              const resText = await response.text();
+              res.end(resText);
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: err.message || String(err) }));
+            }
+          });
+        }
+      },
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',

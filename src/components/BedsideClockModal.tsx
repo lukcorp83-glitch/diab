@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { Capacitor } from '@capacitor/core';
+import toast from 'react-hot-toast';
 import {
   X,
   Moon,
@@ -403,6 +405,32 @@ export const BedsideClockModal: React.FC<BedsideClockModalProps> = ({
                 >
                   SEC
                 </button>
+
+                {/* Wygaszacz podczas ładowania (Android Dream) */}
+                {Capacitor.isNativePlatform() && (
+                  <button
+                    onClick={async () => {
+                      Haptics.light();
+                      try {
+                        const { NotificationBridge } = await import('../lib/notificationBridge');
+                        await NotificationBridge.openDreamSettings();
+                        toast.success(
+                          i18n.language.startsWith('pl')
+                            ? 'Otwarto ustawienia wygaszacza Androida. Wybierz GlikoControl jako wygaszacz.'
+                            : 'Opened screen saver settings. Select GlikoControl as your screen saver.',
+                          { duration: 4000 }
+                        );
+                      } catch (e) {
+                        console.warn('Failed to open dream settings:', e);
+                      }
+                    }}
+                    className="p-2 text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl border border-amber-500/30 transition-all cursor-pointer flex items-center gap-1.5"
+                    title={t('nightstand.open_dream_settings', { defaultValue: 'Wygaszacz podczas ładowania (Android Dream)' })}
+                  >
+                    <Zap size={16} />
+                    <span className="hidden md:inline text-[10px] font-bold">{t('nightstand.screensaver_btn', { defaultValue: 'Wygaszacz' })}</span>
+                  </button>
+                )}
 
                 {/* Pełny ekran */}
                 <button

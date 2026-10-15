@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLogsStore } from "../stores/useLogsStore";
+import { dailyStatsService, DailySummary } from "../services/dailyStatsService";
 import { motion, AnimatePresence } from 'motion/react';
 import { UserSettings } from '../types';
 import { Calendar, Droplets, Utensils, Syringe, ChevronDown, ChevronUp, ActivitySquare, AlertTriangle, Signal, CheckCircle2 } from 'lucide-react';
@@ -45,6 +46,7 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
   const logs = useLogsStore((state) => state.logs);
   const { t } = useTranslation();
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  const savedSummaries = useMemo(() => dailyStatsService.getLocalSummaries(), [logs.length]);
 
   const monthsData = useMemo(() => {
     const data: Record<string, MonthStats> = {};
@@ -79,6 +81,59 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
       days: {}
     });
 
+    // 0. Załaduj podsumowania dni zapisane trwale w danych użytkownika (chmura Firestore / localStorage)
+    Object.values(savedSummaries || {}).forEach(s => {
+      if (!s || !s.dateStr) return;
+      const parts = s.dateStr.split('-');
+      if (parts.length < 3) return;
+      const year = parseInt(parts[0], 10);
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const d = new Date(year, monthIdx, day);
+      if (isNaN(d.getTime())) return;
+      const monthKey = `${parts[0]}-${parts[1]}`;
+      
+      if (!data[monthKey]) {
+        data[monthKey] = initMonthStats(monthKey, d);
+      }
+      data[monthKey].days[s.dateStr] = {
+        dateStr: s.dateStr,
+        carbs: s.carbs || 0,
+        insulin: s.insulin || 0,
+        hypos: s.hypos || 0,
+        hypers: s.hypers || 0,
+        siteChange: !!s.siteChange,
+        sensorChange: !!s.sensorChange,
+        glucoseCount: s.glucoseCount || 0,
+        glucoseSum: s.avgGlucose && s.glucoseCount ? s.avgGlucose * s.glucoseCount : 0,
+        inRangeCount: s.tir && s.glucoseCount ? Math.round((s.tir / 100) * s.glucoseCount) : 0,
+        avgGlucose: s.avgGlucose,
+        tir: s.tir
+      };
+    });
+
+    // Sprawdzamy, które dni mają rzeczywiste wpisy w tablicy logs (aby zaktualizować je na żywo)
+    const activeLogDayKeys = new Set<string>();
+    logs.forEach(l => {
+      const ts = l.timestamp || l.createdAt || 0;
+      const d = new Date(ts);
+      if (!isNaN(d.getTime())) {
+        const dk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        activeLogDayKeys.add(dk);
+      }
+    });
+
+    // Resetujemy dni obecne w logs do czystych wartości, aby przeliczyć je dokładnie ze świeżych logów
+    activeLogDayKeys.forEach(dayKey => {
+      const parts = dayKey.split('-');
+      const monthKey = `${parts[0]}-${parts[1]}`;
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      if (!data[monthKey]) {
+        data[monthKey] = initMonthStats(monthKey, d);
+      }
+      data[monthKey].days[dayKey] = initDayStats(dayKey);
+    });
+
     // 1. Przetwarzanie wszystkich logów (posiłki, bolusy, wymiany)
     logs.forEach(log => {
       const ts = log.timestamp || log.createdAt || 0;
@@ -103,7 +158,6 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
           : ((log as any).carbs || (log as any).linkedMeal?.carbs || 0)
       );
       if (carbVal > 0) {
-        data[monthKey].totalCarbs += carbVal;
         data[monthKey].days[dayKey].carbs += carbVal;
       }
       
@@ -114,21 +168,14 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
           : ((log as any).insulin || (log as any).units || (log as any).dose || (log as any).amount || (log as any).enteredinsulin || 0)
       );
       if (insulinVal > 0) {
-        data[monthKey].totalInsulin += insulinVal;
         data[monthKey].days[dayKey].insulin += insulinVal;
       }
       
       // Wymiany osprzętu
       if (log.type === 'site_change' || (log.type as any) === 'site') {
-        if (!data[monthKey].days[dayKey].siteChange) {
-          data[monthKey].siteChanges += 1;
-        }
         data[monthKey].days[dayKey].siteChange = true;
       }
       if (log.type === 'sensor_change' || (log.type as any) === 'sensor') {
-        if (!data[monthKey].days[dayKey].sensorChange) {
-          data[monthKey].sensorChanges += 1;
-        }
         data[monthKey].days[dayKey].sensorChange = true;
       }
     });
@@ -177,10 +224,8 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
         else if (val > targetMax) newState = 'hyper';
 
         if (newState === 'hypo' && currentState !== 'hypo') {
-          data[monthKey].hypos += 1;
           day.hypos += 1;
         } else if (newState === 'hyper' && currentState !== 'hyper') {
-          data[monthKey].hypers += 1;
           day.hypers += 1;
         }
 
@@ -188,22 +233,45 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
       }
     });
 
-    // 3. Obliczenie średnich i TIR dla każdego dnia oraz całego miesiąca
+    // 3. Obliczenie średnich i TIR dla każdego dnia oraz spójne przeliczenie całego miesiąca
     Object.values(data).forEach(month => {
+      let mCarbs = 0;
+      let mInsulin = 0;
+      let mSiteChanges = 0;
+      let mSensorChanges = 0;
+      let mHypos = 0;
+      let mHypers = 0;
       let mGlucoseCount = 0;
       let mGlucoseSum = 0;
       let mInRangeCount = 0;
 
       Object.values(month.days).forEach(day => {
+        mCarbs += day.carbs || 0;
+        mInsulin += day.insulin || 0;
+        if (day.siteChange) mSiteChanges += 1;
+        if (day.sensorChange) mSensorChanges += 1;
+        mHypos += day.hypos || 0;
+        mHypers += day.hypers || 0;
+
         if (day.glucoseCount > 0) {
-          day.avgGlucose = Math.round(day.glucoseSum / day.glucoseCount);
-          day.tir = Math.round((day.inRangeCount / day.glucoseCount) * 100);
+          if (!day.avgGlucose && day.glucoseSum > 0) {
+            day.avgGlucose = Math.round(day.glucoseSum / day.glucoseCount);
+          }
+          if (day.tir === undefined && day.glucoseCount > 0) {
+            day.tir = Math.round((day.inRangeCount / day.glucoseCount) * 100);
+          }
           mGlucoseCount += day.glucoseCount;
-          mGlucoseSum += day.glucoseSum;
-          mInRangeCount += day.inRangeCount;
+          mGlucoseSum += (day.avgGlucose ? day.avgGlucose * day.glucoseCount : day.glucoseSum);
+          mInRangeCount += (day.tir !== undefined ? Math.round((day.tir / 100) * day.glucoseCount) : day.inRangeCount);
         }
       });
 
+      month.totalCarbs = mCarbs;
+      month.totalInsulin = mInsulin;
+      month.siteChanges = mSiteChanges;
+      month.sensorChanges = mSensorChanges;
+      month.hypos = mHypos;
+      month.hypers = mHypers;
       month.glucoseCount = mGlucoseCount;
       if (mGlucoseCount > 0) {
         month.avgGlucose = Math.round(mGlucoseSum / mGlucoseCount);
@@ -212,7 +280,38 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
     });
 
     return Object.values(data).sort((a, b) => b.monthKey.localeCompare(a.monthKey));
-  }, [logs, settings?.targetMin, settings?.targetMax]);
+  }, [logs, savedSummaries, settings?.targetMin, settings?.targetMax]);
+
+  // Zapisujemy zagregowane podsumowania dni do danych użytkownika (chmura Firebase i localStorage)
+  const isSavingRef = useRef(false);
+  useEffect(() => {
+    if (monthsData.length === 0 || isSavingRef.current) return;
+    const summariesToSave: DailySummary[] = [];
+
+    monthsData.forEach(m => {
+      Object.values(m.days).forEach(d => {
+        if (d.carbs > 0 || d.insulin > 0 || d.glucoseCount > 0 || d.siteChange || d.sensorChange) {
+          summariesToSave.push({
+            dateStr: d.dateStr,
+            carbs: d.carbs,
+            insulin: d.insulin,
+            hypos: d.hypos,
+            hypers: d.hypers,
+            siteChange: d.siteChange,
+            sensorChange: d.sensorChange,
+            glucoseCount: d.glucoseCount,
+            avgGlucose: d.avgGlucose,
+            tir: d.tir,
+            updatedAt: Date.now()
+          });
+        }
+      });
+    });
+
+    if (summariesToSave.length > 0) {
+      dailyStatsService.saveSummaries(summariesToSave);
+    }
+  }, [monthsData]);
 
   // Domyślnie rozwiń najświeższy miesiąc
   useEffect(() => {
@@ -222,11 +321,16 @@ export default function StatisticsView({ settings }: StatisticsViewProps) {
   }, [monthsData, expandedMonth]);
 
   const daysOfData = useMemo(() => {
-    if (!logs || logs.length === 0) return 0;
-    const earliest = logs[logs.length - 1].timestamp || logs[logs.length - 1].createdAt || 0;
-    const latest = logs[0].timestamp || logs[0].createdAt || 0;
-    return Math.max(1, Math.ceil((latest - earliest) / (1000 * 60 * 60 * 24)));
-  }, [logs]);
+    let count = 0;
+    monthsData.forEach(m => {
+      Object.values(m.days).forEach(d => {
+        if (d.carbs > 0 || d.insulin > 0 || d.glucoseCount > 0 || d.siteChange || d.sensorChange) {
+          count++;
+        }
+      });
+    });
+    return count;
+  }, [monthsData]);
 
   if (monthsData.length === 0) {
     return (

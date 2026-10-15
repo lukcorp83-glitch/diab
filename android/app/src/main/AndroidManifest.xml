@@ -100,6 +100,22 @@
             </intent-filter>
         </service>
 
+        <!-- Daydream / Screen Saver Service during charging -->
+        <service
+            android:name=".GlikoBedsideDreamService"
+            android:label="@string/dream_service_name"
+            android:icon="@mipmap/ic_launcher"
+            android:permission="android.permission.BIND_DREAM_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.dream"
+                android:resource="@xml/bedside_dream" />
+        </service>
+
 
         <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>

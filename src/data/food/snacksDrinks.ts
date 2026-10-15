@@ -1,0 +1,73 @@
+import { Product } from '../../types';
+
+export const SNACKS_DRINKS_PRODUCTS: Product[] = [
+  // --- ORZECHY, NASIONA, MASŁA ORZECHOWE ---
+  { id: 'sn_001', name: 'Orzechy włoskie', namePl: 'Orzechy włoskie', nameEn: 'Walnuts', carbs: 11.5, protein: 16.0, fat: 60.0, fiber: 6.5, kcal: 654, gi: 15, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_002', name: 'Orzechy laskowe', namePl: 'Orzechy laskowe', nameEn: 'Hazelnuts', carbs: 10.0, protein: 14.5, fat: 63.0, fiber: 9.0, kcal: 645, gi: 15, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_003', name: 'Migdały łuskane', namePl: 'Migdały łuskane', nameEn: 'Almonds', carbs: 7.5, protein: 20.0, fat: 52.0, fiber: 12.0, kcal: 580, gi: 15, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_004', name: 'Orzechy nerkowca (Cashew)', namePl: 'Orzechy nerkowca (Cashew)', nameEn: 'Cashew nuts', carbs: 26.0, protein: 18.0, fat: 44.0, fiber: 3.3, kcal: 553, gi: 25, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_005', name: 'Orzeszki ziemne (arachidowe) prażone niesolone', namePl: 'Orzeszki ziemne (arachidowe) prażone niesolone', nameEn: 'Peanuts roasted unsalted', carbs: 12.0, protein: 26.0, fat: 49.0, fiber: 8.5, kcal: 585, gi: 15, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_006', name: 'Pistacje prażone', namePl: 'Pistacje prażone', nameEn: 'Pistachios roasted', carbs: 18.0, protein: 20.0, fat: 45.0, fiber: 10.0, kcal: 560, gi: 15, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_007', name: 'Nasiona słonecznika łuskane', namePl: 'Nasiona słonecznika łuskane', nameEn: 'Sunflower seeds shelled', carbs: 14.0, protein: 21.0, fat: 51.0, fiber: 8.6, kcal: 584, gi: 35, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_008', name: 'Pestki dyni łuskane', namePl: 'Pestki dyni łuskane', nameEn: 'Pumpkin seeds shelled', carbs: 12.0, protein: 30.0, fat: 49.0, fiber: 6.0, kcal: 560, gi: 25, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_009', name: 'Siemię lniane całe / mielone', namePl: 'Siemię lniane całe / mielone', nameEn: 'Flaxseeds whole/ground', carbs: 1.5, protein: 18.0, fat: 42.0, fiber: 27.0, kcal: 534, gi: 35, servingSize: 15, category: 'Słodycze i Przekąski' },
+  { id: 'sn_010', name: 'Nasiona Chia (szałwia hiszpańska)', namePl: 'Nasiona Chia (szałwia hiszpańska)', nameEn: 'Chia seeds', carbs: 5.0, protein: 17.0, fat: 31.0, fiber: 34.0, kcal: 486, gi: 1, servingSize: 15, category: 'Słodycze i Przekąski' },
+  { id: 'sn_011', name: 'Masło orzechowe 100% orzechów (Smooth/Crunchy)', namePl: 'Masło orzechowe 100% orzechów (Smooth/Crunchy)', nameEn: 'Peanut butter 100% pure', carbs: 13.0, protein: 26.0, fat: 50.0, fiber: 7.0, kcal: 595, gi: 20, servingSize: 25, category: 'Słodycze i Przekąski' },
+
+  // --- SŁODYCZE I WYPIEKI ---
+  { id: 'sn_020', name: 'Czekolada mleczna tradycyjna', namePl: 'Czekolada mleczna tradycyjna', nameEn: 'Milk chocolate', carbs: 58.0, protein: 7.5, fat: 30.0, fiber: 2.0, kcal: 535, gi: 45, servingSize: 25, category: 'Słodycze i Przekąski' },
+  { id: 'sn_021', name: 'Czekolada gorzka 70% kakao', namePl: 'Czekolada gorzka 70% kakao', nameEn: 'Dark chocolate 70%', carbs: 34.0, protein: 8.5, fat: 42.0, fiber: 10.0, kcal: 565, gi: 25, servingSize: 25, category: 'Słodycze i Przekąski' },
+  { id: 'sn_022', name: 'Czekolada gorzka 85-90% kakao', namePl: 'Czekolada gorzka 85-90% kakao', nameEn: 'Dark chocolate 85-90%', carbs: 14.0, protein: 11.0, fat: 53.0, fiber: 14.0, kcal: 590, gi: 20, servingSize: 20, category: 'Słodycze i Przekąski' },
+  { id: 'sn_023', name: 'Czekolada biała', namePl: 'Czekolada biała', nameEn: 'White chocolate', carbs: 59.0, protein: 6.0, fat: 32.0, kcal: 540, gi: 50, servingSize: 25, category: 'Słodycze i Przekąski' },
+  { id: 'sn_024', name: 'Batonik czekoladowy z karmelem i orzechami (np. Snickers)', namePl: 'Batonik czekoladowy z karmelem i orzechami (np. Snickers)', nameEn: 'Caramel peanut chocolate bar', carbs: 60.0, protein: 8.5, fat: 24.0, kcal: 490, gi: 55, servingSize: 50, category: 'Słodycze i Przekąski' },
+  { id: 'sn_025', name: 'Wafelek w czekoladzie (np. Princessa, Grześki)', namePl: 'Wafelek w czekoladzie (np. Princessa, Grześki)', nameEn: 'Chocolate coated wafer bar', carbs: 55.0, protein: 6.5, fat: 32.0, kcal: 535, gi: 60, servingSize: 36, category: 'Słodycze i Przekąski' },
+  { id: 'sn_026', name: 'Pączek z lukrem i nadzieniem różanym (1 szt.)', namePl: 'Pączek z lukrem i nadzieniem różanym (1 szt.)', nameEn: 'Glazed donut with rose filling (1 pc)', carbs: 52.0, protein: 6.5, fat: 15.0, kcal: 365, gi: 75, servingSize: 80, category: 'Słodycze i Przekąski' },
+  { id: 'sn_027', name: 'Drożdżówka z kruszonką i serem (1 szt.)', namePl: 'Drożdżówka z kruszonką i serem (1 szt.)', nameEn: 'Sweet yeast bun with cheese (1 pc)', carbs: 50.0, protein: 8.0, fat: 9.5, kcal: 320, gi: 68, servingSize: 110, category: 'Słodycze i Przekąski' },
+  { id: 'sn_028', name: 'Sernik tradycyjny pieczony', namePl: 'Sernik tradycyjny pieczony', nameEn: 'Traditional baked cheesecake', carbs: 26.0, protein: 11.0, fat: 17.0, kcal: 300, gi: 55, servingSize: 120, category: 'Słodycze i Przekąski' },
+  { id: 'sn_029', name: 'Szarlotka tradycyjna na kruchym cieście', namePl: 'Szarlotka tradycyjna na kruchym cieście', nameEn: 'Traditional apple pie / szarlotka', carbs: 42.0, protein: 3.5, fat: 11.5, fiber: 2.2, kcal: 285, gi: 60, servingSize: 120, category: 'Słodycze i Przekąski' },
+  { id: 'sn_030', name: 'Lody śmietankowe tradycyjne (1 gałka ~50g)', namePl: 'Lody śmietankowe tradycyjne (1 gałka ~50g)', nameEn: 'Cream ice cream scoop (~50g)', carbs: 24.0, protein: 3.5, fat: 11.0, kcal: 210, gi: 60, servingSize: 50, category: 'Słodycze i Przekąski' },
+  { id: 'sn_031', name: 'Lody wodne / sorbet owocowy (1 gałka ~50g)', namePl: 'Lody wodne / sorbet owocowy (1 gałka ~50g)', nameEn: 'Fruit sorbet / water ice (~50g)', carbs: 30.0, protein: 0.5, fat: 0.1, kcal: 125, gi: 65, servingSize: 50, category: 'Słodycze i Przekąski' },
+  { id: 'sn_032', name: 'Żelki owocowe (np. Haribo)', namePl: 'Żelki owocowe (np. Haribo)', nameEn: 'Gummy bears / fruit candies', carbs: 78.0, protein: 6.5, fat: 0.2, kcal: 345, gi: 78, servingSize: 40, category: 'Słodycze i Przekąski' },
+  { id: 'sn_033', name: 'Biszkopty bez cukru / tradycyjne', namePl: 'Biszkopty tradycyjne', nameEn: 'Sponge ladyfinger biscuits', carbs: 75.0, protein: 9.5, fat: 4.5, kcal: 385, gi: 70, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_034', name: 'Baton proteinowy bez dodatku cukru', namePl: 'Baton proteinowy bez dodatku cukru', nameEn: 'Protein bar no added sugar', carbs: 24.0, protein: 34.0, fat: 12.0, fiber: 14.0, kcal: 340, gi: 25, servingSize: 50, category: 'Słodycze i Przekąski' },
+
+  // --- PRZEKĄSKI SŁONE ---
+  { id: 'sn_040', name: 'Chipsy ziemniaczane solone', namePl: 'Chipsy ziemniaczane solone', nameEn: 'Salted potato chips', carbs: 50.0, protein: 6.0, fat: 34.0, fiber: 4.0, kcal: 535, gi: 70, servingSize: 40, category: 'Słodycze i Przekąski' },
+  { id: 'sn_041', name: 'Chrupki kukurydziane naturalne', namePl: 'Chrupki kukurydziane naturalne', nameEn: 'Corn puffs plain', carbs: 78.0, protein: 8.5, fat: 2.8, fiber: 3.5, kcal: 375, gi: 85, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_042', name: 'Paluszki z solą tradycyjne (np. Lajkonik)', namePl: 'Paluszki z solą tradycyjne (np. Lajkonik)', nameEn: 'Salted pretzel sticks (Lajkonik)', carbs: 74.0, protein: 10.0, fat: 4.5, kcal: 385, gi: 80, servingSize: 40, category: 'Słodycze i Przekąski' },
+  { id: 'sn_043', name: 'Krakersy solone', namePl: 'Krakersy solone', nameEn: 'Salted crackers', carbs: 62.0, protein: 9.0, fat: 21.0, kcal: 480, gi: 75, servingSize: 35, category: 'Słodycze i Przekąski' },
+  { id: 'sn_044', name: 'Popcorn prażony solony (bez masła)', namePl: 'Popcorn prażony solony (bez masła)', nameEn: 'Popped corn salted', carbs: 58.0, protein: 11.0, fat: 14.0, fiber: 10.0, kcal: 410, gi: 65, servingSize: 30, category: 'Słodycze i Przekąski' },
+  { id: 'sn_045', name: 'Nachos kukurydziane solone', namePl: 'Nachos kukurydziane solone', nameEn: 'Tortilla chips / nachos', carbs: 64.0, protein: 7.0, fat: 22.0, fiber: 5.0, kcal: 490, gi: 65, servingSize: 40, category: 'Słodycze i Przekąski' },
+
+  // --- SŁODZIKI, CUKRY, MIODY ---
+  { id: 'sw_001', name: 'Cukier biały (Sacharoza, 1 łyżeczka = 5g)', namePl: 'Cukier biały (Sacharoza, 1 łyżeczka = 5g)', nameEn: 'White table sugar (1 tsp = 5g)', carbs: 100.0, protein: 0.0, fat: 0.0, kcal: 400, gi: 70, servingSize: 5, category: 'Słodycze i Przekąski' },
+  { id: 'sw_002', name: 'Cukier brązowy trzcinowy', namePl: 'Cukier brązowy trzcinowy', nameEn: 'Brown cane sugar', carbs: 98.0, protein: 0.0, fat: 0.0, kcal: 390, gi: 65, servingSize: 5, category: 'Słodycze i Przekąski' },
+  { id: 'sw_003', name: 'Miód pszczeli naturalny (1 łyżeczka = 10g)', namePl: 'Miód pszczeli naturalny (1 łyżeczka = 10g)', nameEn: 'Honey pure natural', carbs: 80.0, protein: 0.5, fat: 0.0, kcal: 325, gi: 60, servingSize: 10, category: 'Słodycze i Przekąski' },
+  { id: 'sw_004', name: 'Syrop klonowy czysty', namePl: 'Syrop klonowy czysty', nameEn: 'Pure maple syrup', carbs: 67.0, protein: 0.0, fat: 0.2, kcal: 260, gi: 54, servingSize: 15, category: 'Słodycze i Przekąski' },
+  { id: 'sw_005', name: 'Erytrytol (Erytrol - 0 kcal, 0 IG)', namePl: 'Erytrytol (Erytrol - 0 kcal, 0 IG)', nameEn: 'Erythritol sweetener (0 kcal, 0 GI)', carbs: 0.0, protein: 0.0, fat: 0.0, kcal: 0, gi: 0, servingSize: 5, category: 'Słodycze i Przekąski' },
+  { id: 'sw_006', name: 'Ksylitol (cukier brzozowy, niski IG)', namePl: 'Ksylitol (cukier brzozowy, niski IG)', nameEn: 'Xylitol birch sugar', carbs: 60.0, protein: 0.0, fat: 0.0, kcal: 240, gi: 12, servingSize: 5, category: 'Słodycze i Przekąski' },
+
+  // --- NAPOJE Z CUKREM I BEZ CUKRU ---
+  { id: 'dr_001', name: 'Coca-Cola oryginalna (puszka 330ml)', namePl: 'Coca-Cola oryginalna (puszka 330ml)', nameEn: 'Coca-Cola regular (can 330ml)', carbs: 10.6, protein: 0.0, fat: 0.0, kcal: 42, gi: 63, servingSize: 330, category: 'Napoje' },
+  { id: 'dr_002', name: 'Coca-Cola Zero / Pepsi Max (0 kcal, 0 WW)', namePl: 'Coca-Cola Zero / Pepsi Max (0 kcal, 0 WW)', nameEn: 'Coca-Cola Zero / Pepsi Max (0 sugar)', carbs: 0.0, protein: 0.0, fat: 0.0, kcal: 0, gi: 0, servingSize: 330, category: 'Napoje' },
+  { id: 'dr_003', name: 'Sok pomarańczowy 100% tłoczony', namePl: 'Sok pomarańczowy 100% tłoczony', nameEn: '100% Orange juice', carbs: 10.0, protein: 0.7, fat: 0.2, kcal: 45, gi: 50, servingSize: 250, category: 'Napoje' },
+  { id: 'dr_004', name: 'Sok jabłkowy 100% klarowany', namePl: 'Sok jabłkowy 100% klarowany', nameEn: '100% Apple juice clear', carbs: 11.5, protein: 0.1, fat: 0.1, kcal: 48, gi: 45, servingSize: 250, category: 'Napoje' },
+  { id: 'dr_005', name: 'Sok pomidorowy 100% z solą', namePl: 'Sok pomidorowy 100% z solą', nameEn: 'Tomato juice 100%', carbs: 3.5, protein: 0.9, fat: 0.1, fiber: 1.0, kcal: 18, gi: 35, servingSize: 250, category: 'Napoje' },
+  { id: 'dr_006', name: 'Kompot truskawkowy słodzony tradycyjny', namePl: 'Kompot truskawkowy słodzony tradycyjny', nameEn: 'Sweet strawberry compote', carbs: 9.0, protein: 0.2, fat: 0.1, kcal: 38, gi: 60, servingSize: 250, category: 'Napoje' },
+  { id: 'dr_007', name: 'Woda mineralna niegazowana / gazowana', namePl: 'Woda mineralna niegazowana / gazowana', nameEn: 'Mineral water still/sparkling', carbs: 0.0, protein: 0.0, fat: 0.0, kcal: 0, gi: 0, servingSize: 250, category: 'Napoje' },
+  { id: 'dr_008', name: 'Kawa czarna (Espresso / Americano bez cukru)', namePl: 'Kawa czarna (Espresso / Americano bez cukru)', nameEn: 'Black coffee (espresso/americano)', carbs: 0.2, protein: 0.3, fat: 0.0, kcal: 2, gi: 0, servingSize: 150, category: 'Napoje' },
+  { id: 'dr_009', name: 'Kawa Cappuccino z mlekiem 2% (200ml)', namePl: 'Kawa Cappuccino z mlekiem 2% (200ml)', nameEn: 'Cappuccino coffee with 2% milk', carbs: 4.0, protein: 2.8, fat: 1.8, kcal: 45, gi: 30, servingSize: 200, category: 'Napoje' },
+  { id: 'dr_010', name: 'Kawa Caffe Latte z mlekiem 2% (300ml)', namePl: 'Kawa Caffe Latte z mlekiem 2% (300ml)', nameEn: 'Caffe Latte with 2% milk', carbs: 4.5, protein: 3.0, fat: 1.8, kcal: 48, gi: 30, servingSize: 300, category: 'Napoje' },
+  { id: 'dr_011', name: 'Herbata czarna / zielona bez cukru', namePl: 'Herbata czarna / zielona bez cukru', nameEn: 'Black / Green tea unsweetened', carbs: 0.1, protein: 0.1, fat: 0.0, kcal: 1, gi: 0, servingSize: 250, category: 'Napoje' },
+  { id: 'dr_012', name: 'Napój izotoniczny dla sportowców (Isotonic)', namePl: 'Napój izotoniczny dla sportowców (Isotonic)', nameEn: 'Isotonic sports drink', carbs: 6.0, protein: 0.0, fat: 0.0, kcal: 25, gi: 75, servingSize: 500, category: 'Napoje' },
+  { id: 'dr_013', name: 'Energy drink klasyczny z cukrem (np. Red Bull)', namePl: 'Energy drink klasyczny z cukrem (np. Red Bull)', nameEn: 'Energy drink regular with sugar', carbs: 11.0, protein: 0.0, fat: 0.0, kcal: 46, gi: 70, servingSize: 250, category: 'Napoje' },
+  { id: 'dr_014', name: 'Energy drink bez cukru (Sugar Free / Zero)', namePl: 'Energy drink bez cukru (Sugar Free / Zero)', nameEn: 'Sugar-free energy drink zero', carbs: 0.0, protein: 0.0, fat: 0.0, kcal: 3, gi: 0, servingSize: 250, category: 'Napoje' },
+
+  // --- ALKOHOLE ---
+  { id: 'dr_020', name: 'Piwo jasne pełne 5% (butelka 500ml)', namePl: 'Piwo jasne pełne 5% (butelka 500ml)', nameEn: 'Lager beer 5% (500ml)', carbs: 3.8, protein: 0.5, fat: 0.0, kcal: 43, gi: 70, servingSize: 500, category: 'Napoje' },
+  { id: 'dr_021', name: 'Piwo bezalkoholowe 0.0% klasyczne', namePl: 'Piwo bezalkoholowe 0.0% klasyczne', nameEn: 'Non-alcoholic beer 0.0%', carbs: 5.2, protein: 0.4, fat: 0.0, kcal: 24, gi: 65, servingSize: 500, category: 'Napoje' },
+  { id: 'dr_022', name: 'Wino wytrawne czerwone', namePl: 'Wino wytrawne czerwone', nameEn: 'Dry red wine', carbs: 0.6, protein: 0.1, fat: 0.0, kcal: 68, gi: 0, servingSize: 150, category: 'Napoje' },
+  { id: 'dr_023', name: 'Wino wytrawne białe', namePl: 'Wino wytrawne białe', nameEn: 'Dry white wine', carbs: 0.8, protein: 0.1, fat: 0.0, kcal: 66, gi: 0, servingSize: 150, category: 'Napoje' },
+  { id: 'dr_024', name: 'Wino słodkie czerwone / deserowe', namePl: 'Wino słodkie czerwone / deserowe', nameEn: 'Sweet dessert red wine', carbs: 12.0, protein: 0.2, fat: 0.0, kcal: 130, gi: 45, servingSize: 100, category: 'Napoje' },
+  { id: 'dr_025', name: 'Wódka czysta 40% (kieliszek 50ml)', namePl: 'Wódka czysta 40% (kieliszek 50ml)', nameEn: 'Pure vodka 40% (shot 50ml)', carbs: 0.0, protein: 0.0, fat: 0.0, kcal: 220, gi: 0, servingSize: 50, category: 'Napoje' }
+];

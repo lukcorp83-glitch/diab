@@ -15,6 +15,7 @@ export interface NotificationBridgePlugin {
   getLastAlertInfo(): Promise<{ lastAlertTime: number; lastAlertType: string }>;
   isBatteryOptimizationIgnored(): Promise<{ isIgnored: boolean }>;
   requestIgnoreBatteryOptimization(): Promise<void>;
+  openDreamSettings(): Promise<void>;
   addListener(
     eventName: 'glucoseNotificationReceived',
     listenerFunc: (data: { glucose: number; iob: number; package: string; trend?: string; delta?: number; timestamp?: number }) => void,

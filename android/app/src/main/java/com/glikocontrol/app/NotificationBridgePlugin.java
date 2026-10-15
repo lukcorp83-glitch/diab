@@ -857,4 +857,24 @@ public class NotificationBridgePlugin extends Plugin {
             call.reject("Failed to get voice readout triggers: " + e.getMessage());
         }
     }
+
+    @PluginMethod
+    public void openDreamSettings(PluginCall call) {
+        try {
+            Intent intent = new Intent(Settings.ACTION_DREAM_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            try {
+                // Alternatywa: Ustawienia wyświetlacza, jeśli dana nakładka nie ma dedykowanego widoku wygaszacza
+                Intent fallback = new Intent(Settings.ACTION_DISPLAY_SETTINGS);
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(fallback);
+                call.resolve();
+            } catch (Exception ex) {
+                call.reject("Failed to open dream settings: " + ex.getMessage());
+            }
+        }
+    }
 }

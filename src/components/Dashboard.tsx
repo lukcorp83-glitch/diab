@@ -1904,7 +1904,8 @@ export default function Dashboard({
                    key={w.id}
                    id={w.id}
                    className={cn(
-                   "relative overflow-hidden flex flex-col p-2.5 gpu-layer will-change-transform",
+                   "relative overflow-hidden flex flex-col gpu-layer will-change-transform",
+                   w.id === "quick_bolus" || w.id === "quick_measurement" ? "p-0" : "p-2.5",
                    widgetSize.endsWith('2') ? "row-span-2 md:min-h-[350px]" : "row-span-1 md:min-h-[140px]",
                    widgetSize.startsWith('2') ? "col-span-2" : "col-span-1",
                    "rounded-[2.6rem]",

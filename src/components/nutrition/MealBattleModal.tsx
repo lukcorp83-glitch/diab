@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -258,15 +259,18 @@ export default function MealBattleModal({
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/70 backdrop-blur-md">
+      <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/75 backdrop-blur-md">
+        {/* Tło klikalne do zamknięcia */}
+        <div className="absolute inset-0 -z-10" onClick={onClose} />
+
         <motion.div
           initial={{ opacity: 0, y: 40, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 40, scale: 0.96 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-t-[2.5rem] sm:rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 shadow-2xl flex flex-col max-h-[94vh] overflow-hidden select-none"
+          className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-t-[2.5rem] sm:rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 shadow-2xl flex flex-col h-[90vh] max-h-[92dvh] sm:h-auto sm:max-h-[88vh] overflow-hidden select-none"
         >
           {/* Uchwyt do przeciągania na telefonach */}
           <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mt-3 mb-1 sm:hidden shrink-0" />
@@ -296,7 +300,7 @@ export default function MealBattleModal({
           </div>
 
           {/* Główna zawartość przewijana */}
-          <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
+          <div className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto overscroll-contain space-y-4 pb-8 sm:pb-6">
             
             {/* 1. DWA KAFELKI ZAWODNIKÓW (AKTYWNE DANIE A i DANIE B) */}
             <div className="grid grid-cols-2 gap-2.5 relative">
@@ -713,7 +717,7 @@ export default function MealBattleModal({
           </div>
 
           {/* Dolny pasek akcji */}
-          <div className="p-4 bg-slate-50/80 dark:bg-slate-900/80 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+          <div className="p-4 pb-[max(1.25rem,env(safe-area-inset-bottom,1.25rem))] sm:pb-4 bg-slate-50/95 dark:bg-slate-900/95 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0 z-10">
             <button
               type="button"
               onClick={onClose}
@@ -737,4 +741,9 @@ export default function MealBattleModal({
       </div>
     </AnimatePresence>
   );
+
+  if (typeof document !== 'undefined') {
+    return createPortal(modalContent, document.body);
+  }
+  return modalContent;
 }

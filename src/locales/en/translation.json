@@ -64,6 +64,8 @@
     "toggle_seconds": "Toggle seconds",
     "fullscreen": "Fullscreen",
     "exit_fullscreen": "Exit fullscreen",
+    "open_dream_settings": "Screen saver while charging (Android Daydream)",
+    "screensaver_btn": "Screen saver",
     "close_title": "Exit bedside mode"
   },
   "dashboard": {
@@ -2277,6 +2279,12 @@
   "auto.kluczowe_parametry_terapii": "Key profile parameters",
   "auto.zapisz_parametry_terapii": "Save profile parameters",
   "auto.dodaj_swoj_pierwszy_wpis": "Add your first entry to start monitoring glucose.",
+  "auto.czy_wiesz_ze_zegar_nocny_oled": "Did you know that you can turn on the OLED Nightstand Clock with burn-in protection, and set it as an automatic screen saver on Android while charging?",
+  "auto.czy_wiesz_ze_pojedynek_posilkow": "Did you know that in 'Meal Battle' you can compare two meals side-by-side to see which one keeps your glucose profile more stable?",
+  "auto.czy_wiesz_ze_powiadomienia_glosowe_sluchawki": "Did you know that the app can read out your current glucose and trend in your headphones on double-clicking the power button or pressing 'next track'?",
+  "auto.wygaszacz_ekranu_ladowanie": "Screen saver while charging",
+  "auto.wygaszacz_ekranu_opis": "OLED Nightstand Clock with glucose reading (Android Daydream)",
+  "auto.otworz_ustawienia": "Settings",
   "auto.czy_wiesz_ze_glikosense_predict": "Did you know that the GlikoSense neural network learns your glucose patterns and can predict trends up to 60 minutes in advance?",
   "auto.czy_wiesz_ze_smart_rotacja": "Did you know that the smart infusion set map tracks tissue rest time (0-100%) and suggests the best spot for your next site?",
   "auto.czy_wiesz_ze_kalkulator_wbt": "Did you know that protein- and fat-rich meals (FPU) absorb over a longer period? Our bolus calculator helps you plan a dual-wave dose!",

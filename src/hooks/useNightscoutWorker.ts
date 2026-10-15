@@ -122,7 +122,7 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
     };
 
     if (nsUrl) {
-      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 10000 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: nsUrl, secret: nsSecret, intervalMs: 5 * 60 * 1000, count: 3500 } });
       useAppStore.getState().setSyncStatus({ status: "syncing", lastSync: useAppStore.getState().syncStatus.lastSync });
     }
 
@@ -139,7 +139,7 @@ export function useNightscoutWorker(user: any, nsUrl: string, nsSecret: string, 
       console.log("Force sync manually triggered (Worker)", { urlToUse });
       useAppStore.getState().setSyncStatus({ status: "syncing", lastSync: useAppStore.getState().syncStatus.lastSync });
       worker.postMessage({ type: 'STOP_SYNC' });
-      worker.postMessage({ type: 'START_SYNC', payload: { url: urlToUse, secret: secretToUse, intervalMs: 5 * 60 * 1000, count: 10000 } });
+      worker.postMessage({ type: 'START_SYNC', payload: { url: urlToUse, secret: secretToUse, intervalMs: 5 * 60 * 1000, count: 3500 } });
     };
 
     console.log("==== HOOK: Rejestruję event listener na force-nightscout-sync ====");

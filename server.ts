@@ -179,9 +179,9 @@ async function startServer() {
   });
 
   // Local CORS Proxy for Nightscout (Secured against SSRF to cloud metadata/sensitive services)
-  app.get("/api/ns-proxy", async (req, res) => {
+  app.all("/api/ns-proxy", async (req, res) => {
     try {
-      const targetUrl = req.query.url as string;
+      const targetUrl = (req.query.url as string) || (req.body?.url as string);
       if (!targetUrl || typeof targetUrl !== 'string') {
         return res.status(400).json({ error: "Missing url parameter" });
       }
@@ -209,11 +209,25 @@ async function startServer() {
         return res.status(403).json({ error: "Access to metadata service is forbidden" });
       }
 
-      const secret = req.headers['api-secret'] as string;
-      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      const secret = (req.headers['api-secret'] as string) || (req.query.secret as string);
+      const contentType = (req.headers['content-type'] as string) || 'application/json';
+      const headers: Record<string, string> = { 
+        'Accept': 'application/json',
+        'Content-Type': contentType
+      };
       if (secret) headers['api-secret'] = secret;
 
-      const response = await fetch(targetUrl, { headers });
+      const method = req.method.toUpperCase();
+      const fetchOptions: RequestInit = {
+        method,
+        headers
+      };
+
+      if (!['GET', 'HEAD'].includes(method) && req.body && Object.keys(req.body).length > 0) {
+        fetchOptions.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      }
+
+      const response = await fetch(targetUrl, fetchOptions);
       const data = await response.text();
       res.status(response.status).send(data);
     } catch (e) {

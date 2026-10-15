@@ -1,6 +1,7 @@
 
 import { LogEntry } from '../types';
 import i18n from "../i18n";
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
 export interface NightscoutEntry {
   sgv: number;
@@ -22,7 +23,141 @@ export interface NightscoutTreatment {
   notes?: string;
 }
 
+export async function hashSecret(secret: string): Promise<string> {
+  const trimmed = secret.trim();
+  // Jeśli to już poprawny 40-znakowy hash SHA-1, nie haszujemy go powtórnie
+  if (/^[a-f0-9]{40}$/i.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(trimmed));
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function sendNsRequest(options: {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  body?: any;
+}): Promise<{ ok: boolean; status: number; data?: any }> {
+  // 1. Natywny Android / iOS (CapacitorHttp działa na poziomie natywnego klienta Java/OkHttp bez ograniczeń CORS)
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await CapacitorHttp.request({
+        method: options.method,
+        url: options.url,
+        headers: options.headers,
+        data: options.body,
+      });
+      return {
+        ok: res.status >= 200 && res.status < 300,
+        status: res.status,
+        data: res.data,
+      };
+    } catch (capErr) {
+      console.warn("CapacitorHttp native request failed, fallbacking:", capErr);
+    }
+  }
+
+  // 2. Środowisko lokalne (localhost:3000 / dev) - bezpośrednio używamy lokalnego proxy, zapobiegając błędom preflight CORS w przeglądarce
+  const isLocal = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  if (isLocal) {
+    try {
+      const proxyUrl = `/api/ns-proxy?url=${encodeURIComponent(options.url)}`;
+      const proxyRes = await fetch(proxyUrl, {
+        method: options.method,
+        headers: options.headers,
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
+      let data: any = null;
+      try { data = await proxyRes.json(); } catch { /* ignore non-json */ }
+      return { ok: proxyRes.ok, status: proxyRes.status, data };
+    } catch (proxyErr) {
+      console.warn("Local proxy /api/ns-proxy failed, falling back to direct fetch:", proxyErr);
+    }
+  }
+
+  // 3. Bezpośrednie wywołanie fetch (np. PWA / Web z poprawnym CORS)
+  try {
+    const res = await fetch(options.url, {
+      method: options.method,
+      headers: options.headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
+    if (res.ok) {
+      let data: any = null;
+      try { data = await res.json(); } catch { /* ignore non-json */ }
+      return { ok: true, status: res.status, data };
+    }
+    if (res.status > 0) {
+      return { ok: false, status: res.status };
+    }
+  } catch (directErr) {
+    console.warn("Direct NS fetch failed (CORS or network):", directErr);
+  }
+
+  // 4. Proxy awaryjne dla środowiska przeglądarkowego
+  const fallbackProxies = [
+    `/api/ns-proxy?url=${encodeURIComponent(options.url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(options.url)}`,
+  ];
+
+  for (const pUrl of fallbackProxies) {
+    try {
+      const pRes = await fetch(pUrl, {
+        method: options.method,
+        headers: options.headers,
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
+      if (pRes.ok) {
+        let data: any = null;
+        try { data = await pRes.json(); } catch { /* ignore */ }
+        return { ok: true, status: pRes.status, data };
+      }
+    } catch {
+      // kontynuuj do kolejnego proxy
+    }
+  }
+
+  return { ok: false, status: 0 };
+}
+
 async function fetchWithFallbacks(directUrl: string, headers: Record<string, string>): Promise<any> {
+  // 1. Na natywnym urządzeniu użyj CapacitorHttp
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await CapacitorHttp.request({
+        method: 'GET',
+        url: directUrl,
+        headers,
+      });
+      if (res.status >= 200 && res.status < 300) {
+        return typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+      }
+    } catch (capErr) {
+      console.warn("CapacitorHttp GET failed, falling back:", capErr);
+    }
+  }
+
+  // 2. Na localhost priorytetem jest lokalne proxy serwera
+  const isLocal = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  if (isLocal) {
+    try {
+      const proxyUrl = `/api/ns-proxy?url=${encodeURIComponent(directUrl)}`;
+      const proxyResponse = await fetch(proxyUrl, { headers });
+      if (proxyResponse.ok) {
+        const textData = await proxyResponse.text();
+        return JSON.parse(textData);
+      }
+    } catch (err) {
+      console.warn("Local proxy failed on localhost, trying direct fetch:", err);
+    }
+  }
+
   let errorMsg = "";
   try {
     const directResponse = await fetch(directUrl, { headers });
@@ -43,7 +178,6 @@ async function fetchWithFallbacks(directUrl: string, headers: Record<string, str
 
   for (const proxyUrl of proxies) {
     try {
-      // Pass headers specifically for local proxy, which can forward them
       const proxyResponse = await fetch(proxyUrl, { headers });
       if (proxyResponse.ok) {
         const textData = await proxyResponse.text();
@@ -344,24 +478,34 @@ export const nightscoutService = {
     const cleanNsId = nsId.replace(/^ns-(meal|insulin|site|sensor)-/, '');
 
     try {
-      const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(effSecret.trim()));
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
 
-      const apiUrl = `${cleanUrl}/api/v1/treatments/${cleanNsId}`;
-      const response = await fetch(apiUrl, {
+      let finalUrl = `${cleanUrl}/api/v1/treatments/${cleanNsId}`;
+
+      if (effSecret) {
+        const trimmedSecret = effSecret.trim();
+        if (trimmedSecret.includes('-')) {
+          finalUrl += (finalUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(trimmedSecret)}`;
+        } else {
+          const hash = await hashSecret(trimmedSecret);
+          headers["api-secret"] = hash;
+        }
+      }
+
+      const res = await sendNsRequest({
+        url: finalUrl,
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "api-secret": hash,
-        },
+        headers,
       });
 
-      if (response && response.ok) {
+      // 200, 204 lub 404 (Not Found = wpis już został wcześniej usunięty z serwera)
+      if (res.ok || res.status === 404) {
         console.log(i18n.t('auto.pomyslnie_usunieto_treatm', { defaultValue: "Pomyślnie usunięto treatment z NS: {{var0}}", var0: cleanNsId }));
         return true;
       } else {
-        console.error(i18n.t('auto.blad_przy_usuwaniu_z_ns_v', { defaultValue: "Błąd przy usuwaniu z NS: {{var0}}", var0: response?.status }));
+        console.error(i18n.t('auto.blad_przy_usuwaniu_z_ns_v', { defaultValue: "Błąd przy usuwaniu z NS: {{var0}}", var0: res.status }));
         return false;
       }
     } catch (error) {
@@ -382,24 +526,33 @@ export const nightscoutService = {
     const cleanEntryId = entryId.replace(/^ns-(cgm|entry|glucose)-/, '');
 
     try {
-      const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(effSecret.trim()));
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
 
-      const apiUrl = `${cleanUrl}/api/v1/entries/${cleanEntryId}`;
-      const response = await fetch(apiUrl, {
+      let finalUrl = `${cleanUrl}/api/v1/entries/${cleanEntryId}`;
+
+      if (effSecret) {
+        const trimmedSecret = effSecret.trim();
+        if (trimmedSecret.includes('-')) {
+          finalUrl += (finalUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(trimmedSecret)}`;
+        } else {
+          const hash = await hashSecret(trimmedSecret);
+          headers["api-secret"] = hash;
+        }
+      }
+
+      const res = await sendNsRequest({
+        url: finalUrl,
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "api-secret": hash,
-        },
+        headers,
       });
 
-      if (response && response.ok) {
+      if (res.ok || res.status === 404) {
         console.log("Pomyślnie usunięto entry z NS:", cleanEntryId);
         return true;
       } else {
-        console.error("Błąd przy usuwaniu entry z NS:", response?.status);
+        console.error("Błąd przy usuwaniu entry z NS:", res.status);
         return false;
       }
     } catch (error) {
@@ -420,25 +573,30 @@ export const nightscoutService = {
         "Content-Type": "application/json",
       };
 
+      let finalUrl = `${cleanUrl}/api/v1/treatments`;
+
       if (apiSecret) {
-        const hashBuffer = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(apiSecret.trim()));
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        headers["api-secret"] = hash;
+        const trimmedSecret = apiSecret.trim();
+        if (trimmedSecret.includes('-')) {
+          finalUrl += (finalUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(trimmedSecret)}`;
+        } else {
+          const hash = await hashSecret(trimmedSecret);
+          headers["api-secret"] = hash;
+        }
       }
 
-      const apiUrl = `${cleanUrl}/api/v1/treatments`;
-      const response = await fetch(apiUrl, {
+      const res = await sendNsRequest({
+        url: finalUrl,
         method: "POST",
         headers,
-        body: JSON.stringify(treatment),
+        body: treatment,
       });
 
-      if (response.ok) {
+      if (res.ok) {
         console.log("Successfully posted treatment to NS");
         return true;
       } else {
-        console.warn("NS postTreatment returned status:", response.status);
+        console.warn("NS postTreatment returned status:", res.status);
         return false;
       }
     } catch (error) {

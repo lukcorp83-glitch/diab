@@ -18,6 +18,7 @@ export interface Product {
   isCommunity?: boolean;
   isCustom?: boolean;
   barcode?: string;
+  isFavorite?: boolean;
 }
 
 export interface LogEntry {

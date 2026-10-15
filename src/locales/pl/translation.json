@@ -64,6 +64,8 @@
     "toggle_seconds": "Pokaż/ukryj sekundy",
     "fullscreen": "Pełny ekran",
     "exit_fullscreen": "Opuść pełny ekran",
+    "open_dream_settings": "Wygaszacz podczas ładowania (Android Dream)",
+    "screensaver_btn": "Wygaszacz",
     "close_title": "Wyjdź z trybu nocnego"
   },
   "dashboard": {
@@ -4025,6 +4027,12 @@
     "disclaimer_short": "Charakter edukacyjny: AI nie dobiera dawek leków ani nie zastępuje lekarza diabetologa.",
     "child_disclaimer": "Tryb bezpieczny dla dzieci: Aplikacja nie doradza dawek ani leków. Zawsze pytaj rodziców, opiekuna lub lekarza!"
   },
+  "auto.czy_wiesz_ze_zegar_nocny_oled": "Czy wiesz, że możesz włączyć Zegar Nocny OLED z ochroną przed wypaleniem, a w telefonie z Androidem ustawić go jako automatyczny wygaszacz ekranu podczas ładowania?",
+  "auto.czy_wiesz_ze_pojedynek_posilkow": "Czy wiesz, że w 'Pojedynku posiłków' możesz zestawić ze sobą dwa dania (np. owsiankę vs jajecznicę) i sprawdzić, po którym z nich glikemia zachowuje się stabilniej?",
+  "auto.czy_wiesz_ze_powiadomienia_glosowe_sluchawki": "Czy wiesz, że aplikacja potrafi przeczytać Twój aktualny cukier i trend w słuchawkach po dwukliku przycisku zasilania telefonu lub naciśnięciu 'następny utwór'?",
+  "auto.wygaszacz_ekranu_ladowanie": "Wygaszacz podczas ładowania",
+  "auto.wygaszacz_ekranu_opis": "Zegar Nocny OLED z odczytem cukru (systemowy Daydream Androida)",
+  "auto.otworz_ustawienia": "Ustawienia",
   "auto.czy_wiesz_ze_glikosense_predict": "Czy wiesz, że sieć neuronowa GlikoSense uczy się Twoich wzorców glikemii i potrafi przewidywać trendy cukru z 60-minutowym wyprzedzeniem?",
   "auto.czy_wiesz_ze_smart_rotacja": "Czy wiesz, że inteligentna mapa wkłuć bada czas odpoczynku Twoich tkanek (0-100%) i sugeruje najświeższe miejsce na nowe wkłucie?",
   "auto.czy_wiesz_ze_kalkulator_wbt": "Czy wiesz, że posiłki bogate w białka i tłuszcze (WBT) wymagają dłuższego wchłaniania? Nasz kalkulator bolusa pomaga zaplanować dawkę dwufazową!",

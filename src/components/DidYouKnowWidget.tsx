@@ -9,6 +9,9 @@ export default function DidYouKnowWidget({ onClick }: { onClick: () => void }) {
   const { t } = useTranslation();
 
   const tips = useMemo(() => [
+    t('auto.czy_wiesz_ze_zegar_nocny_oled', { defaultValue: "Czy wiesz, że możesz włączyć Zegar Nocny OLED z ochroną przed wypaleniem, a w telefonie z Androidem ustawić go jako automatyczny wygaszacz ekranu podczas ładowania?" }),
+    t('auto.czy_wiesz_ze_pojedynek_posilkow', { defaultValue: "Czy wiesz, że w 'Pojedynku posiłków' możesz zestawić ze sobą dwa dania (np. owsiankę vs jajecznicę) i sprawdzić, po którym z nich glikemia zachowuje się stabilniej?" }),
+    t('auto.czy_wiesz_ze_powiadomienia_glosowe_sluchawki', { defaultValue: "Czy wiesz, że aplikacja potrafi przeczytać Twój aktualny cukier i trend w słuchawkach po dwukliku przycisku zasilania telefonu lub naciśnięciu 'następny utwór'?" }),
     t('auto.czy_wiesz_ze_glikosense_predict', { defaultValue: "Czy wiesz, że sieć neuronowa GlikoSense uczy się Twoich wzorców glikemii i potrafi przewidywać trendy cukru z 60-minutowym wyprzedzeniem?" }),
     t('auto.czy_wiesz_ze_smart_rotacja', { defaultValue: "Czy wiesz, że inteligentna mapa wkłuć bada czas odpoczynku Twoich tkanek (0-100%) i sugeruje najświeższe miejsce na nowe wkłucie?" }),
     t('auto.czy_wiesz_ze_kalkulator_wbt', { defaultValue: "Czy wiesz, że posiłki bogate w białka i tłuszcze (WBT) wchłaniają się znacznie dłużej, co warto uwzględnić przy planowaniu pory posiłków?" }),

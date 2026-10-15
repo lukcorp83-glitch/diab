@@ -1,10 +1,10 @@
 {
-    "version": "6.0.63",
+    "version": "6.0.64",
     "url": "https://glikocontrol.pl/update.zip",
-    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.63-beta_OTA.apk",
-    "buildNumber": 176,
+    "apkUrl": "https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/GlikoControl_6.0.64-beta_OTA.apk",
+    "buildNumber": 177,
     "forceUpdate": false,
-    "whatsNew": "Wdrożono Matrycę Fizykochemiczną Posiłku (bufor kwasowy, błonnik żelujący, wolumetryka, estymacja pasażu i okno MMC) oraz inteligentne sekwencjonowanie dań złożonych (hot dog, burger itp.). Usunięto protokół Android Auto.",
-    "whatsNewEn": "Implemented Food Physics & Culinary Matrix (acidic buffer, gel fiber, volumetrics, gastric transit and MMC window) and smart composite meal sequencing (hot dogs, burgers). Removed Android Auto protocol.",
-    "otaRevision": 336
+    "whatsNew": "Wdrożono modularną bazę produktów DiabScale-grade w SQLite (zupy, polskie obiady, pieczywo, nabiał, mięsa, napoje) z trwałym zapisem offline, kalibrację wagową widzenia AI oraz selektywną haptykę na wykresie cukru (wibracja tylko poza celem).",
+    "whatsNewEn": "Implemented modular DiabScale-grade food database in SQLite (soups, Polish dinners, bakery, dairy, meats, drinks) with persistent offline storage, AI vision portion weight calibration, and selective chart haptics (vibration only when out of target).",
+    "otaRevision": 337
 }

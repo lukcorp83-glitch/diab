@@ -14,13 +14,26 @@ export interface VersionEntry {
   changes: (string | ChangeEntry)[];
 }
 
-export const CURRENT_VERSION = '6.0.63';
+export const CURRENT_VERSION = '6.0.64';
 
 import versionData from '../../version.json';
 export const CURRENT_OTA_REVISION = versionData.otaRevision || 0;
 
 export const PWA_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.64",
+    date: "2026-10-15",
+    title: "Baza Produktów DiabScale w SQLite i Selektywna Haptyka",
+    changes: [
+      "Wdrożono modularną bazę produktów żywnościowych DiabScale-grade podzieloną tematycznie (pieczywo, nabiał, mięsa, ryby, owoce, warzywa, polskie obiady, zupy, słodycze, napoje)",
+      "Zaimplementowano trwałą tabelę SQLite food_products w pamięci telefonu z automatycznym zasiewem przy starcie i 100% odpornością na czyszczenie pamięci podręcznej",
+      "Wdrożono trwały zapis własnych potraw i skomponowanych zestawów w bazie SQLite telefonu (pełna dostępność offline)",
+      "Wyeliminowano narzut czasowy tłumaczeń i18n przy starcie bazy produktów oraz zoptymalizowano wyszukiwanie z wirtualizacją listy",
+      "Dodano kalibrację wagową widzenia AI (Reality Anchors) z kuchennymi gramaturami odniesienia, eliminującą zawyżanie węglowodanów przy zdjęciach z bliska",
+      "Wprowadzono selektywny dotykowy scrubbing na wykresie cukru – wibracje haptyczne pojawiają się tylko przy glikemii poza celem (w normie telefon nie wibruje)"
+    ]
+  },
+  {
     version: "6.0.63",
     date: "2026-10-14",
     title: "Fizykochemia Posiłku i Dania Złożone",
@@ -66,27 +79,25 @@ export const PWA_VERSIONS: VersionEntry[] = [
       "Wprowadzono wskaźnik sytości posiłku (Satiety Score) szacujący czas trwania nasycenia energią",
       "Dodano modyfikator schłodzonej skrobi (efekt retrogradacji ziemniaków, ryżu i makaronu) obniżający indeks glikemiczny",
       "Wdrożono wykrywacz ukrytych cukrów w gotowych sosach i dressingach"
-    ]
-  },
-  {
-    version: "6.0.59",
-    date: "2026-10-06",
-    title: "Styl Pixel & Material You oraz Usprawnienia Interfejsu",
-    changes: [
-      "Wdrożono inteligentny pasek «W skrócie» na pulpicie z dynamicznym statusem stopera, osprzętu i glikemii (z możliwością wyłączenia w Ustawieniach)",
-      "Dodano haptyczne suwaki precyzyjnego doboru dawek insuliny i wagi produktów na Talerzu z mechanicznym tyknięciem",
-      "Wprowadzono pigułki filtrów Material 3 Filter Chips w historii posiłków oraz elastyczne rozciąganie listy",
-      "Wdrożono ekspresowe pigułki szybkiego wyszukiwania w Bazie Produktów oraz inteligentny dymek punktu na wykresie glikemii",
-      "Dodano Material 3 Segmented Button na wykresie pełnoekranowym oraz zwijany przycisk Expressive FAB",
-      "Zaimplementowano okna dialogowe potwierdzeń Pixel Monet oraz klauzulę bezpieczeństwa medycznego przy analizie leków AI",
-      "Wdrożono klauzulę o wartościach poglądowych analizy AI ze zdjęcia oraz pamięć podręczną ostatniego posiłku z aparatu (zapobiegającą utracie)",
-      "Wdrożono Haptic Target Pulse na wykresie cukru, wskaźnik błonnika Fiber Shield na Talerzu oraz szybkie chipy przesunięcia czasu posiłku"
     ]
   }
 ];
 
 export const APK_VERSIONS: VersionEntry[] = [
   {
+    version: "6.0.64",
+    date: "2026-10-15",
+    title: "Baza Produktów DiabScale w SQLite i Selektywna Haptyka",
+    changes: [
+      "Wdrożono modularną bazę produktów żywnościowych DiabScale-grade podzieloną tematycznie (pieczywo, nabiał, mięsa, ryby, owoce, warzywa, polskie obiady, zupy, słodycze, napoje)",
+      "Zaimplementowano trwałą tabelę SQLite food_products w pamięci telefonu z automatycznym zasiewem przy starcie i 100% odpornością na czyszczenie pamięci podręcznej",
+      "Wdrożono trwały zapis własnych potraw i skomponowanych zestawów w bazie SQLite telefonu (pełna dostępność offline)",
+      "Wyeliminowano narzut czasowy tłumaczeń i18n przy starcie bazy produktów oraz zoptymalizowano wyszukiwanie z wirtualizacją listy",
+      "Dodano kalibrację wagową widzenia AI (Reality Anchors) z kuchennymi gramaturami odniesienia, eliminującą zawyżanie węglowodanów przy zdjęciach z bliska",
+      "Wprowadzono selektywny dotykowy scrubbing na wykresie cukru – wibracje haptyczne pojawiają się tylko przy glikemii poza celem (w normie telefon nie wibruje)"
+    ]
+  },
+  {
     version: "6.0.63",
     date: "2026-10-14",
     title: "Fizykochemia Posiłku i Dania Złożone",
@@ -132,21 +143,6 @@ export const APK_VERSIONS: VersionEntry[] = [
       "Wprowadzono wskaźnik sytości posiłku (Satiety Score) szacujący czas trwania nasycenia energią",
       "Dodano modyfikator schłodzonej skrobi (efekt retrogradacji ziemniaków, ryżu i makaronu) obniżający indeks glikemiczny",
       "Wdrożono wykrywacz ukrytych cukrów w gotowych sosach i dressingach"
-    ]
-  },
-  {
-    version: "6.0.59",
-    date: "2026-10-06",
-    title: "Styl Pixel & Material You oraz Usprawnienia Interfejsu",
-    changes: [
-      "Wdrożono inteligentny pasek «W skrócie» na pulpicie z dynamicznym statusem stopera, osprzętu i glikemii (z możliwością wyłączenia w Ustawieniach)",
-      "Dodano haptyczne suwaki precyzyjnego doboru dawek insuliny i wagi produktów na Talerzu z mechanicznym tyknięciem",
-      "Wprowadzono pigułki filtrów Material 3 Filter Chips w historii posiłków oraz elastyczne rozciąganie listy",
-      "Wdrożono ekspresowe pigułki szybkiego wyszukiwania w Bazie Produktów oraz inteligentny dymek punktu na wykresie glikemii",
-      "Dodano Material 3 Segmented Button na wykresie pełnoekranowym oraz zwijany przycisk Expressive FAB",
-      "Zaimplementowano okna dialogowe potwierdzeń Pixel Monet oraz klauzulę bezpieczeństwa medycznego przy analizie leków AI",
-      "Wdrożono klauzulę o wartościach poglądowych analizy AI ze zdjęcia oraz pamięć podręczną ostatniego posiłku z aparatu (zapobiegającą utracie)",
-      "Wdrożono Haptic Target Pulse na wykresie cukru, wskaźnik błonnika Fiber Shield na Talerzu oraz szybkie chipy przesunięcia czasu posiłku"
     ]
   }
 ];

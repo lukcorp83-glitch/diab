@@ -34,7 +34,7 @@ import { notificationService } from "./services/notificationService";
 import { nightscoutService } from "./services/nightscout";
 import { healthService } from "./services/healthService";
 import { useNightscoutWorker } from "./hooks/useNightscoutWorker";
-import { loadLocalLogs, deleteLocalLog } from "./lib/localLogs";
+import { loadLocalLogs, saveLocalLogs, deleteLocalLog } from "./lib/localLogs";
 import { downloadCloudPackage, uploadCloudPackage } from "./components/CloudPackageSync";
 import { useGlucoseAlerts } from "./hooks/useGlucoseAlerts";
 import { NotificationBridge } from './lib/notificationBridge';
@@ -197,25 +197,31 @@ export default function App() {
     const reloadDbLogs = async () => {
       try {
         let loadedLogs = await dbService.getLogs(60000);
-        if (loadedLogs.length === 0) {
-          try {
-            let idbLogs = await loadLocalLogs();
-            if (idbLogs && idbLogs.length > 0) {
-              if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
-                idbLogs = idbLogs.filter((l: any) => {
-                  if (l.id && deletedNsIdsRef.current.has(l.id)) return false;
-                  if (l.nsId && deletedNsIdsRef.current.has(l.nsId)) return false;
-                  if (l._id && deletedNsIdsRef.current.has(l._id)) return false;
-                  return true;
-                });
-              }
-              console.log(`[App] Odtworzono ${idbLogs.length} wpisów z IndexedDB do SQLite`);
-              loadedLogs = idbLogs;
-              dbService.saveMultipleLogs(idbLogs).catch(console.error);
-            }
-          } catch (idbErr) {
-            console.warn('[App] Błąd odczytu IndexedDB fallback:', idbErr);
+        let idbLogs: any[] = [];
+        try {
+          idbLogs = await loadLocalLogs();
+        } catch (idbErr) {
+          console.warn('[App] Błąd odczytu IndexedDB:', idbErr);
+        }
+
+        // Pancerne łączenie obu baz na telefonie: SQLite + IndexedDB
+        if (idbLogs && idbLogs.length > 0) {
+          const combinedMap = new Map<string, any>();
+          idbLogs.forEach((l: any) => { if (l && l.id) combinedMap.set(l.id, l); });
+          loadedLogs.forEach((l: any) => { if (l && l.id) combinedMap.set(l.id, l); });
+          const merged = Array.from(combinedMap.values()).sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+
+          if (merged.length > loadedLogs.length) {
+            console.log(`[App] Odtworzono pełniejszą historię z IndexedDB (${merged.length} vs ${loadedLogs.length}) do SQLite`);
+            dbService.saveMultipleLogs(merged).catch(() => {});
           }
+          if (merged.length > idbLogs.length) {
+            saveLocalLogs(merged).catch(() => {});
+          }
+          loadedLogs = merged;
+        } else if (loadedLogs.length > 0) {
+          // Jeśli IndexedDB było puste, natychmiast uzupełniamy je ze SQLite
+          saveLocalLogs(loadedLogs).catch(() => {});
         }
 
         if (deletedNsIdsRef.current && deletedNsIdsRef.current.size > 0) {
@@ -397,8 +403,11 @@ export default function App() {
           isSavingDbRef.current = true;
           try {
             lastSavedMaxTimestampRef.current = Math.max(lastSavedMaxTimestampRef.current, ...toSave.map(x => x.timestamp || 0));
-            // Zapisujemy wszystkie wpisy partiami (dbService.saveMultipleLogs sam dzieli na paczki po 100)
-            await dbService.saveMultipleLogs(toSave);
+            // Pancerne podwójne utrwalenie na telefonie: SQLite + IndexedDB
+            await Promise.all([
+              dbService.saveMultipleLogs(toSave).catch(() => {}),
+              saveLocalLogs(toSave).catch(() => {})
+            ]);
             // Zaktualizuj pamięć podręczną sqliteLogs, by pełna historia była natychmiast trwała
             setSqliteLogs(prev => {
               const map = new Map();
@@ -416,21 +425,39 @@ export default function App() {
       return () => clearTimeout(timeoutId);
     }, [fbLogs, nsLogs]);
 
-    // Automatyczne przywracanie danych z chmury po aktualizacji (gdy baza lokalna jest pusta)
+    // Automatyczne przywracanie historii z dziennej paczki zapasowej w chmurze (syncPackage/latest)
+    // Wykorzystujemy tę samą paczkę, którą aplikacja codziennie wysyła do Firebase, w drugą stronę!
     useEffect(() => {
       if (!user) return;
       const autoRestoreCloudData = async () => {
         const isRestoring = localStorage.getItem('auto_cloud_restore_active');
         if (isRestoring) return;
 
-        const localLogsCount = (sqliteLogs?.length || 0) + (logs?.length || 0);
-        if (localLogsCount < 10) {
-          console.log('[App] Wykryto brak logów po aktualizacji. Automatycznie pobieram paczkę z chmury...');
+        const currentLogs = logs || [];
+        const localLogsCount = Math.max(sqliteLogs?.length || 0, currentLogs.length);
+
+        // Sprawdzamy ile dni historii mamy faktycznie na telefonie
+        let historyDaysSpan = 0;
+        if (currentLogs.length > 0) {
+          const earliest = currentLogs[currentLogs.length - 1]?.timestamp || currentLogs[currentLogs.length - 1]?.createdAt || 0;
+          const latest = currentLogs[0]?.timestamp || currentLogs[0]?.createdAt || Date.now();
+          historyDaysSpan = Math.round((latest - earliest) / (1000 * 60 * 60 * 24));
+        }
+
+        // Sprawdzamy co maksymalnie 4 godziny, aby niepotrzebnie nie obciążać zapytań
+        const lastCheck = Number(localStorage.getItem('last_cloud_package_restore_check') || 0);
+        const FOUR_HOURS = 4 * 60 * 60 * 1000;
+
+        // Jeśli na telefonie brakuje historii (mniej niż 14 dni LUB mniej niż 150 wpisów):
+        if ((localLogsCount < 150 || historyDaysSpan < 14) && (Date.now() - lastCheck > FOUR_HOURS)) {
+          console.log(`[App] Wykryto niepełną historię lokalną (${localLogsCount} wpisów, ${historyDaysSpan} dni). Przywracam z dziennej paczki zapasowej (syncPackage/latest)...`);
           localStorage.setItem('auto_cloud_restore_active', 'true');
+          localStorage.setItem('last_cloud_package_restore_check', Date.now().toString());
           try {
             const success = await downloadCloudPackage(user);
             if (success) {
-              console.log('[App] Pomyślnie automatycznie przywrócono paczkę z chmury!');
+              console.log('[App] Pomyślnie przywrócono pełną historię z dziennej paczki chmurowej!');
+              await reloadDbLogs();
             }
           } catch (e) {
             console.warn('[App] Automatyczne przywracanie paczki z chmury nie powiodło się:', e);

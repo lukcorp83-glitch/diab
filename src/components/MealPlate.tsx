@@ -7,6 +7,7 @@ import { MealPlateModals } from "./MealPlate/MealPlateModals";
 import CameraModeModal from "./MealPlate/CameraModeModal";
 import RestaurantMenuModal, { MenuItemAnalysis, RestaurantMenuResult } from "./MealPlate/RestaurantMenuModal";
 import AiMealVerificationModal, { AiMealResult } from "./MealPlate/AiMealVerificationModal";
+import { addRecentProduct } from "../lib/foodFavorites";
 
 
 import i18n from '../i18n';
@@ -360,6 +361,14 @@ export default function MealPlate({
  const saveToCustomDb = async (product: Product) => {
  if (!user) return;
  try {
+ const prodToSave = {
+ name: getProductName(product, i18n.language),
+ carbs: product.carbs,
+ protein: product.protein || 0,
+ fat: product.fat || 0,
+ gi: typeof product.gi === "number" ? product.gi : 50,
+ category: "Z Sieci",
+ };
  await addDoc(
       collection(
         db,
@@ -367,15 +376,9 @@ export default function MealPlate({
         getEffectiveUid(user),
         "customProducts",
       ),
- {
- name: getProductName(product, i18n.language),
- carbs: product.carbs,
- protein: product.protein || 0,
- fat: product.fat || 0,
- gi: typeof product.gi === "number" ? product.gi : 50,
- category: "Z Sieci",
- },
+ prodToSave,
  );
+ await dbService.saveFoodProduct({ ...prodToSave, isCustom: true } as any);
  queryClient.invalidateQueries({ queryKey: ["customProducts"] });
  toast(i18n.t('auto.zapisano_do_wlasnych_posilkow', { defaultValue: i18n.t('auto.zapisano_do_wlasnych_posi', { defaultValue: "Zapisano do własnych posiłków." }) }));
  } catch (e) {
@@ -530,6 +533,17 @@ export default function MealPlate({
           isCustom: true
         }
       );
+
+      await dbService.saveFoodProduct({
+        id: `meal_set_${Date.now()}`,
+        name: mealName,
+        carbs: Number(totalCarbs.toFixed(1)),
+        protein: Number(totalProtein.toFixed(1)),
+        fat: Number(totalFat.toFixed(1)),
+        gi: Number(weightedGI.toFixed(0)),
+        category: "Zestawy",
+        isCustom: true
+      });
       
       queryClient.invalidateQueries({ queryKey: ["customProducts"] });
       
@@ -545,6 +559,7 @@ export default function MealPlate({
 
   const addSavedMeal = (meal: any) => {
     Haptics.light();
+    addRecentProduct(meal);
     const rawList = meal.items && meal.items.length > 0 ? meal.items : [meal];
     const normalizedItems: PlateItem[] = rawList.map((item: any) => {
       const base = item.product ? { ...item.product, weight: item.weight || 100 } : item;
@@ -580,6 +595,7 @@ export default function MealPlate({
   };
 
   const addToPlate = (product: Product, weight: number = 100) => {
+    addRecentProduct(product);
     const newItem: PlateItem = {
       ...product,
       name: product.name || product.namePl || product.nameEn || 'Produkt',
