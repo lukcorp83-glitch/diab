@@ -204,6 +204,22 @@ function processTreatments(data: any[]): any[] {
     }
 
     const lowerEventType = (t.eventType || '').toLowerCase();
+    if (lowerEventType.includes('temp basal') || (t.rate !== undefined && t.duration !== undefined) || (t.absolute !== undefined && t.duration !== undefined)) {
+      const bRate = Number(t.rate ?? t.absolute ?? 0);
+      const dur = Number(t.duration ?? 30);
+      logs.push({
+        id: `ns-basal-${t._id || timestamp}`,
+        nsId: t._id,
+        type: 'basal',
+        value: bRate,
+        rate: bRate,
+        duration: dur,
+        isTemp: true,
+        timestamp,
+        notes: `Temp Basal ${bRate} U/h (${dur}m)`,
+        source: nsSource
+      });
+    }
     if (lowerEventType === 'site change' || lowerEventType === 'cartridge change' || lowerEventType === 'pump battery change') {
       logs.push({
         id: `ns-site-${t._id || timestamp}`,

@@ -6,6 +6,7 @@ import { LogEntry, UserSettings } from '../types';
 import { MLAnalyzer } from '../services/mlSugarAnalyzer';
 import { getTs, cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
+import { getBasalRateAtTime } from '../lib/nightscoutUtils';
 
 import { Plus, Minus, Maximize2, Move, Droplets, Signal, Apple, Syringe, Activity, Zap } from 'lucide-react';
 import { useTranslation } from "react-i18next";
@@ -50,12 +51,49 @@ interface GlucoseChartProps {
  settings?: UserSettings;
  showLoopSimulation?: boolean;
  showMLPrediction?: boolean;
+ showBasal?: boolean;
+ onToggleBasal?: () => void;
+ pumpStatus?: any;
 }
 
-export default function GlucoseChart({ hours, targetMin, targetMax, theme, settings, showLoopSimulation, showMLPrediction }: GlucoseChartProps) {
+export default function GlucoseChart({ 
+ hours, 
+ targetMin, 
+ targetMax, 
+ theme, 
+ settings, 
+ showLoopSimulation, 
+ showMLPrediction,
+ showBasal: propShowBasal,
+ onToggleBasal,
+ pumpStatus
+}: GlucoseChartProps) {
  const logs = useLogsStore((state) => state.logs);
  const { t } = useTranslation();
  const [crosshair, setCrosshair] = useState<{ x: number, data: any, tClick: number } | null>(null);
+ const [internalShowBasal, setInternalShowBasal] = useState<boolean>(() => {
+   try {
+     const saved = localStorage.getItem('glikosfera_chart_basal');
+     return saved !== null ? JSON.parse(saved) : true;
+   } catch (_) {
+     return true;
+   }
+ });
+ const showBasal = propShowBasal !== undefined ? propShowBasal : internalShowBasal;
+
+ const handleToggleBasal = (e: React.MouseEvent) => {
+   e.stopPropagation();
+   Haptics.selection();
+   if (onToggleBasal) {
+     onToggleBasal();
+   } else {
+     setInternalShowBasal(prev => {
+       const next = !prev;
+       try { localStorage.setItem('glikosfera_chart_basal', JSON.stringify(next)); } catch (_) {}
+       return next;
+     });
+   }
+ };
  const [mlPredictionDataState, setMlPredictionDataState] = useState<{timestamp: number, value: number, confidenceMin?: number, confidenceMax?: number}[]>([]);
  const [isMlProcessing, setIsMlProcessing] = useState(false);
 
@@ -230,6 +268,7 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
     const mLogs: any[] = [];
     const siteLogs: any[] = [];
     const sensorLogs: any[] = [];
+    const basalLogs: any[] = [];
 
     for (let i = 0; i < (logs || []).length; i++) {
       const l = logs[i];
@@ -244,6 +283,8 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
         siteLogs.push({ ...l, timestamp: ts });
       } else if (l.type === 'sensor_change') {
         sensorLogs.push({ ...l, timestamp: ts });
+      } else if (l.type === 'basal') {
+        basalLogs.push({ ...l, timestamp: ts });
       }
     }
 
@@ -252,8 +293,9 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
     mLogs.sort((a, b) => a.timestamp - b.timestamp);
     siteLogs.sort((a, b) => a.timestamp - b.timestamp);
     sensorLogs.sort((a, b) => a.timestamp - b.timestamp);
+    basalLogs.sort((a, b) => a.timestamp - b.timestamp);
 
-    return { gLogs, bLogs, mLogs, siteLogs, sensorLogs };
+    return { gLogs, bLogs, mLogs, siteLogs, sensorLogs, basalLogs };
   }, [logs]);
 
   // Compute insulin stacking events ONCE when boluses change, NOT during pan
@@ -593,6 +635,36 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  return { chartData: sortedData, chartMinY, chartMaxY, now, lastMlTimestamp, xAxisTicks, start, end, hasData };
  }, [logs, hours, targetMin, targetMax, settings?.dia, settings?.isf, settings?.wwRatio, settings?.ecoMode, showLoopSimulation, showMLPrediction, mlPredictionDataState, zoomLevel, panOffsetMs]);
 
+  // Oblicz schodkowy profil dawkowania bazy dla aktualnie widocznego zakresu czasowego [start, end]
+  const basalSegments = useMemo(() => {
+    if (!showBasal) return [];
+    const stepMs = 15 * 60 * 1000;
+    const segs: { start: number; end: number; rate: number; isTemp: boolean }[] = [];
+    let t = start;
+    let prevRate: number | null = null;
+    let prevTemp: boolean = false;
+    let segStart = t;
+
+    while (t <= end) {
+      const { rate, isTemp } = getBasalRateAtTime(t, settings, pumpStatus, partitionedLogs.basalLogs);
+      if (prevRate === null) {
+        prevRate = rate;
+        prevTemp = isTemp;
+        segStart = t;
+      } else if (Math.abs(rate - prevRate) > 0.001 || isTemp !== prevTemp) {
+        segs.push({ start: segStart, end: t, rate: prevRate, isTemp: prevTemp });
+        prevRate = rate;
+        prevTemp = isTemp;
+        segStart = t;
+      }
+      t += stepMs;
+    }
+    if (prevRate !== null) {
+      segs.push({ start: segStart, end, rate: prevRate, isTemp: prevTemp });
+    }
+    return segs;
+  }, [showBasal, start, end, settings, pumpStatus, partitionedLogs.basalLogs]);
+
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -730,6 +802,99 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  ctx.lineTo(xNow, h - pB);
  ctx.stroke();
  ctx.setLineDash([]);
+
+  // ----------------------------------------------------
+  // Dyskretny schodkowy pas dawkowania bazy (Basal Rate Stepped Band) przy dolnej krawędzi
+  // ----------------------------------------------------
+  if (showBasal && basalSegments.length > 0) {
+    const basalBandHeight = 22;
+    const basalBandBottom = h - pB;
+    const basalBandTop = basalBandBottom - basalBandHeight;
+    const maxBasalInView = Math.max(0.4, ...basalSegments.map(s => s.rate));
+
+    ctx.save();
+
+    // 1. Tło i schodkowe wypełnienie (miękki ambient gradient ku dołowi)
+    const basalGrad = ctx.createLinearGradient(0, basalBandTop, 0, basalBandBottom);
+    basalGrad.addColorStop(0, isDark ? 'rgba(56, 189, 248, 0.28)' : 'rgba(2, 132, 199, 0.22)');
+    basalGrad.addColorStop(0.5, isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(2, 132, 199, 0.10)');
+    basalGrad.addColorStop(1, isDark ? 'rgba(56, 189, 248, 0.03)' : 'rgba(2, 132, 199, 0.02)');
+    ctx.fillStyle = basalGrad;
+
+    ctx.beginPath();
+    const firstX = Math.max(pL, getX(basalSegments[0].start));
+    ctx.moveTo(firstX, basalBandBottom);
+
+    for (let i = 0; i < basalSegments.length; i++) {
+      const seg = basalSegments[i];
+      const x1 = Math.max(pL, Math.min(pL + cw, getX(seg.start)));
+      const x2 = Math.max(pL, Math.min(pL + cw, getX(seg.end)));
+      if (x2 <= x1) continue;
+      const stepH = seg.rate > 0 ? Math.max(2, (seg.rate / maxBasalInView) * (basalBandHeight - 3)) : 0;
+      const stepY = basalBandBottom - stepH;
+
+      ctx.lineTo(x1, stepY);
+      ctx.lineTo(x2, stepY);
+    }
+    const lastX = Math.min(pL + cw, getX(basalSegments[basalSegments.length - 1].end));
+    ctx.lineTo(lastX, basalBandBottom);
+    ctx.closePath();
+    ctx.fill();
+
+    // 2. Schodkowa linia profilu
+    for (let i = 0; i < basalSegments.length; i++) {
+      const seg = basalSegments[i];
+      const x1 = Math.max(pL, Math.min(pL + cw, getX(seg.start)));
+      const x2 = Math.max(pL, Math.min(pL + cw, getX(seg.end)));
+      if (x2 <= x1) continue;
+      const stepH = seg.rate > 0 ? Math.max(2, (seg.rate / maxBasalInView) * (basalBandHeight - 3)) : 0;
+      const stepY = basalBandBottom - stepH;
+
+      ctx.beginPath();
+      ctx.strokeStyle = seg.isTemp 
+        ? (isDark ? '#38bdf8' : '#0284c7') 
+        : (isDark ? 'rgba(56, 189, 248, 0.75)' : 'rgba(2, 132, 199, 0.75)');
+      ctx.lineWidth = seg.isTemp ? 1.8 : 1.2;
+      if (seg.isTemp) {
+        ctx.setLineDash([4, 2]);
+      } else {
+        ctx.setLineDash([]);
+      }
+      ctx.moveTo(x1, stepY);
+      ctx.lineTo(x2, stepY);
+      ctx.stroke();
+
+      // Połączenie pionowe z kolejnym segmentem
+      if (i < basalSegments.length - 1) {
+        const nextSeg = basalSegments[i + 1];
+        const nextH = nextSeg.rate > 0 ? Math.max(2, (nextSeg.rate / maxBasalInView) * (basalBandHeight - 3)) : 0;
+        const nextY = basalBandBottom - nextH;
+        ctx.beginPath();
+        ctx.setLineDash([]);
+        ctx.moveTo(x2, stepY);
+        ctx.lineTo(x2, nextY);
+        ctx.stroke();
+      }
+    }
+
+    // 3. Subtelna linia podłogi pasma
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
+    ctx.lineWidth = 1;
+    ctx.moveTo(pL, basalBandBottom);
+    ctx.lineTo(pL + cw, basalBandBottom);
+    ctx.stroke();
+
+    // 4. Etykieta BAZA na lewej krawędzi pasma
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = isDark ? 'rgba(56, 189, 248, 0.65)' : 'rgba(2, 132, 199, 0.75)';
+    ctx.fillText('BAZA', pL + 4, basalBandTop + 3);
+
+    ctx.restore();
+  }
  
  // Activity
   // Dynamiczny Cień Aktywnej Insuliny (IOB / Insulin Activity Shadow)
@@ -1447,7 +1612,7 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  window.removeEventListener('resize', triggerDraw);
  cancelAnimationFrame(frameId);
  };
- }, [chartData, start, end, chartMinY, chartMaxY, targetMin, targetMax, now, isDark, showLoopSimulation, showMLPrediction, xAxisTicks, lastMlTimestamp]);
+ }, [chartData, start, end, chartMinY, chartMaxY, targetMin, targetMax, now, isDark, showLoopSimulation, showMLPrediction, showBasal, basalSegments, xAxisTicks, lastMlTimestamp]);
 
   const lastHapticPointRef = React.useRef<number | null>(null);
   const lastHapticZoneRef = React.useRef<'hypo' | 'hyper' | 'tir' | null>(null);
@@ -1603,6 +1768,18 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  >
  <Maximize2 size={18} className="font-black" />
  </button>
+ <button 
+ onClick={handleToggleBasal}
+ className={cn(
+   "w-10 h-10 rounded-2xl backdrop-blur-xl border flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all glass-target",
+   showBasal
+     ? "bg-sky-500/20 text-sky-500 border-sky-500/30 dark:bg-sky-500/30 dark:text-sky-300 dark:border-sky-500/40"
+     : "bg-white/10 dark:bg-slate-800/80 border-white/20 dark:border-white/10 text-slate-400 dark:text-slate-500"
+ )}
+ title={t('chart.basal_toggle', { defaultValue: 'Przełącz wykres bazy (ON/OFF)' })}
+ >
+ <Syringe size={17} className="font-black" />
+ </button>
  </div>
 
 
@@ -1685,6 +1862,23 @@ export default function GlucoseChart({ hours, targetMin, targetMax, theme, setti
  <span className="text-xs font-black">{Number(crosshair.data.originalM.value).toFixed(1).replace(/\.0$/, '')} g</span>
  </div>
  )}
+ {(() => {
+   if (!showBasal) return null;
+   const b = getBasalRateAtTime(crosshair.data.timestamp, settings, pumpStatus, partitionedLogs.basalLogs);
+   if (!b || b.rate <= 0) return null;
+   return (
+     <div className="flex items-center justify-center gap-1.5 px-2 py-1 rounded-xl bg-sky-500/15 border border-sky-500/20 text-sky-300">
+       <Syringe size={12} className="text-sky-400" />
+       <span className="text-[10px] font-bold">{t('chart.basal', { defaultValue: 'Baza' })}:</span>
+       <span className="text-xs font-black">{Number(b.rate).toFixed(3).replace(/\.?0+$/, '') || '0'} {t('auto.j_h', { defaultValue: 'j/h' })}</span>
+       {b.isTemp && (
+         <span className="text-[8px] uppercase tracking-wider px-1 py-0.5 bg-sky-500/30 rounded text-sky-200 font-black">
+           {t('chart.temp', { defaultValue: 'Tymcz.' })}
+         </span>
+       )}
+     </div>
+   );
+ })()}
  </div>
  </motion.div>
  )}

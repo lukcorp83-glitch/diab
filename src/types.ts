@@ -27,6 +27,7 @@ export interface LogEntry {
     | "glucose"
     | "meal"
     | "bolus"
+    | "basal"
     | "site_change"
     | "sensor_change"
     | "activity"
@@ -44,6 +45,9 @@ export interface LogEntry {
   userModified?: boolean;
   direction?: string;
   delta?: number;
+  rate?: number;
+  duration?: number;
+  isTemp?: boolean;
   medicationData?: {
     name: string;
     dose: string;
@@ -81,6 +85,7 @@ export interface HourlyProfile {
   time: string; // "HH:mm"
   isf: number;
   wwRatio: number;
+  basal?: number;
 }
 
 export interface DrugKnowledge {

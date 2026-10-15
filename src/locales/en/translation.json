@@ -631,7 +631,12 @@
   "chart": {
     "zone_hypo": "Below range",
     "zone_hyper": "Above range",
-    "zone_tir": "In target range"
+    "zone_tir": "In target range",
+    "basal": "Basal",
+    "basal_label": "BASAL",
+    "basal_profile": "Basal (U/h)",
+    "basal_toggle": "Toggle basal chart (ON/OFF)",
+    "temp": "Temp"
   },
   "gemini": {
     "proxy_limit_error_global": "AI modules (GlikoSense, Assistant) offline. Go to: Profile -> Advanced -> Own API Key. The free server reached Google's limits.",
@@ -643,6 +648,7 @@
     "ai_communication_error": "AI communication error. Check connection or API key."
   },
   "auto": {
+    "j_h": "U/h",
     "glosowy_asystent_sluchawkowy": "Headphone Voice Assistant (TTS)",
     "glosowy_asystent_sluchawkowy_opis": "Reads current glucose level to connected headphones",
     "wlaczono_lektora_sluchawkowego": "Headphone voice assistant enabled",

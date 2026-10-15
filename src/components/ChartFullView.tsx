@@ -14,11 +14,13 @@ interface ChartFullViewProps {
  settings: UserSettings;
  theme: 'light' | 'dark';
  setTab: (tab: string) => void;
+ pumpStatus?: any;
 }
 
 export default function ChartFullView({ settings,
  theme,
  setTab,
+ pumpStatus,
 }: ChartFullViewProps) {
  const { t } = useTranslation();
  const [range, setRange] = useState<number>(() => {
@@ -35,6 +37,15 @@ export default function ChartFullView({ settings,
  return saved ? JSON.parse(saved) : true;
  });
  
+ const [showBasal, setShowBasal] = useState(() => {
+   try {
+     const saved = localStorage.getItem('glikosfera_chart_basal');
+     return saved !== null ? JSON.parse(saved) : true;
+   } catch (_) {
+     return true;
+   }
+ });
+
  const [showMLPrediction, setShowMLPrediction] = useState(() => {
  const saved = localStorage.getItem('glikosfera_ml_prediction');
  return saved ? JSON.parse(saved) : true;
@@ -47,6 +58,12 @@ export default function ChartFullView({ settings,
  useEffect(() => {
  localStorage.setItem('glikosfera_ml_prediction', JSON.stringify(showMLPrediction));
  }, [showMLPrediction]);
+
+ useEffect(() => {
+   try {
+     localStorage.setItem('glikosfera_chart_basal', JSON.stringify(showBasal));
+   } catch (_) {}
+ }, [showBasal]);
 
  return (
  <div className="flex flex-col h-full w-full min-h-[600px] gap-6">
@@ -77,7 +94,7 @@ export default function ChartFullView({ settings,
  setShowLoopSimulation(!showLoopSimulation);
  }}
  className={cn(
- "flex-1 flex justify-center items-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-tight border",
+ "flex-1 flex justify-center items-center gap-1.5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all tracking-tight border",
  showLoopSimulation
  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shadow-sm"
  : "bg-white/50 text-slate-400 border-slate-200/50 dark:bg-slate-800/50 dark:border-slate-700/50",
@@ -94,7 +111,7 @@ export default function ChartFullView({ settings,
  setShowMLPrediction(!showMLPrediction);
  }}
  className={cn(
- "flex-1 flex justify-center items-center gap-2 py-3 rounded-xl text-[10px] font-black uppercase transition-all tracking-tight border",
+ "flex-1 flex justify-center items-center gap-1.5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all tracking-tight border",
  showMLPrediction
  ? "bg-accent-500/10 text-accent-600 border-accent-500/20 shadow-sm"
  : "bg-white/50 text-slate-400 border-slate-200/50 dark:bg-slate-800/50 dark:border-slate-700/50",
@@ -103,6 +120,22 @@ export default function ChartFullView({ settings,
  <GlikoSenseIcon size={14} isAnalyzing={showMLPrediction} />
  
  {t('auto.glikosense', { defaultValue: 'GlikoSense' })} {showMLPrediction ? "ON" : "OFF"}
+ </button>
+
+ <button
+ onClick={() => {
+ Haptics.selection();
+ setShowBasal(!showBasal);
+ }}
+ className={cn(
+ "flex-1 flex justify-center items-center gap-1.5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all tracking-tight border",
+ showBasal
+ ? "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20 shadow-sm"
+ : "bg-white/50 text-slate-400 border-slate-200/50 dark:bg-slate-800/50 dark:border-slate-700/50",
+ )}
+ >
+ <Syringe size={14} />
+ {t('chart.basal', { defaultValue: 'Baza' })} {showBasal ? "ON" : "OFF"}
  </button>
  </div>
  </div>
@@ -117,11 +150,22 @@ export default function ChartFullView({ settings,
  settings={settings}
  showLoopSimulation={showLoopSimulation}
  showMLPrediction={showMLPrediction}
+ showBasal={showBasal}
+ onToggleBasal={() => setShowBasal(!showBasal)}
+ pumpStatus={pumpStatus}
  />
  </div>
  </div>
 
  <div className="w-full flex items-center gap-4 overflow-x-auto scrollbar-hide py-3 px-1 snap-x">
+ {showBasal && (
+ <div className="flex items-center gap-1.5 snap-start shrink-0 text-sky-500">
+ <div className="p-1 max-w-fit rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+ <Syringe size={10} strokeWidth={2.5} />
+ </div>
+ <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('chart.basal_profile', { defaultValue: 'Baza (j/h)' })}</span>
+ </div>
+ )}
  <div className="flex items-center gap-1.5 snap-start shrink-0">
  <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 border border-white dark:border-slate-800 shadow-sm" />
  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('auto.glukoza', { defaultValue: 'Glukoza' })}</span>

@@ -89,6 +89,7 @@ export const AppContent = (props: any) => {
                   settings={userSettings || DEFAULT_SETTINGS}
                   theme={theme}
                   setTab={changeTab}
+                  pumpStatus={pumpStatus}
                 />
               )}
             </div>
@@ -98,6 +99,7 @@ export const AppContent = (props: any) => {
                   settings={userSettings || DEFAULT_SETTINGS}
                   theme={theme}
                   setTab={changeTab}
+                  pumpStatus={pumpStatus}
                 />
               </div>
               <div className="lg:col-span-12 xl:col-span-4">
