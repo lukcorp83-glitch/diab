@@ -8,7 +8,7 @@ import { getTs, cn } from '../lib/utils';
 import { Haptics } from '../lib/haptics';
 import { getBasalRateAtTime } from '../lib/nightscoutUtils';
 
-import { Plus, Minus, Maximize2, Move, Droplets, Signal, Apple, Syringe, Activity, Zap } from 'lucide-react';
+import { Plus, Minus, Maximize2, Move, Droplets, Signal, Apple, Syringe, Activity, Zap, Waves } from 'lucide-react';
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
@@ -1778,7 +1778,7 @@ export default function GlucoseChart({
  )}
  title={t('chart.basal_toggle', { defaultValue: 'Przełącz wykres bazy (ON/OFF)' })}
  >
- <Syringe size={17} className="font-black" />
+ <Waves size={17} className="font-black" />
  </button>
  </div>
 
@@ -1868,7 +1868,7 @@ export default function GlucoseChart({
    if (!b || b.rate <= 0) return null;
    return (
      <div className="flex items-center justify-center gap-1.5 px-2 py-1 rounded-xl bg-sky-500/15 border border-sky-500/20 text-sky-300">
-       <Syringe size={12} className="text-sky-400" />
+       <Waves size={12} className="text-sky-400" />
        <span className="text-[10px] font-bold">{t('chart.basal', { defaultValue: 'Baza' })}:</span>
        <span className="text-xs font-black">{Number(b.rate).toFixed(3).replace(/\.?0+$/, '') || '0'} {t('auto.j_h', { defaultValue: 'j/h' })}</span>
        {b.isTemp && (

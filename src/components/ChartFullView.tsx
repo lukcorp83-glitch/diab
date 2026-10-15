@@ -3,7 +3,7 @@ import { UserSettings } from "../types";
 import GlucoseChart from "./GlucoseChart";
 import { Haptics } from "../lib/haptics";
 import GlikoSenseIcon from "./GlikoSenseIcon";
-import { Activity, Apple, Droplets, Signal, Syringe } from "lucide-react";
+import { Activity, Apple, Droplets, Signal, Syringe, Waves } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
@@ -134,7 +134,7 @@ export default function ChartFullView({ settings,
  : "bg-white/50 text-slate-400 border-slate-200/50 dark:bg-slate-800/50 dark:border-slate-700/50",
  )}
  >
- <Syringe size={14} />
+ <Waves size={14} />
  {t('chart.basal', { defaultValue: 'Baza' })} {showBasal ? "ON" : "OFF"}
  </button>
  </div>
@@ -161,7 +161,7 @@ export default function ChartFullView({ settings,
  {showBasal && (
  <div className="flex items-center gap-1.5 snap-start shrink-0 text-sky-500">
  <div className="p-1 max-w-fit rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
- <Syringe size={10} strokeWidth={2.5} />
+ <Waves size={10} strokeWidth={2.5} />
  </div>
  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{t('chart.basal_profile', { defaultValue: 'Baza (j/h)' })}</span>
  </div>
