@@ -29,14 +29,12 @@ export default function UpdateModal() {
         } else {
           const urlsToTry = isBeta 
             ? [
-                'https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja-beta/beta.json?t=' + Date.now(),
                 'https://raw.githubusercontent.com/lukcorp83-glitch/diab/beta/version.json?t=' + Date.now(),
                 'https://glikocontrol.pl/version.json?t=' + Date.now()
               ]
             : [
                 'https://glikocontrol.pl/version.json?t=' + Date.now(),
-                'https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now(),
-                'https://github.com/lukcorp83-glitch/diab/releases/download/aktualizacja/version.json?t=' + Date.now()
+                'https://raw.githubusercontent.com/lukcorp83-glitch/diab/main/version.json?t=' + Date.now()
               ];
 
           for (const url of urlsToTry) {

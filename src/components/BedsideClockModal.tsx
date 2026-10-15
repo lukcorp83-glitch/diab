@@ -56,6 +56,10 @@ export const BedsideClockModal: React.FC<BedsideClockModalProps> = ({
     return localStorage.getItem('gliko_bedside_seconds') === 'true';
   });
 
+  const [showSparkline, setShowSparkline] = useState<boolean>(() => {
+    return localStorage.getItem('gliko_bedside_sparkline') !== 'false';
+  });
+
   const [showControls, setShowControls] = useState<boolean>(true);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [isFullscreen, setIsFullscreen] = useState<boolean>(Boolean(document.fullscreenElement));
@@ -245,6 +249,66 @@ export const BedsideClockModal: React.FC<BedsideClockModalProps> = ({
       .sort((a, b) => a.timestamp - b.timestamp);
   }, [logs]);
 
+  // Statystyki z ostatnich 3 godzin
+  const stats3h = useMemo(() => {
+    if (recent3hGlucose.length === 0) return null;
+    const values = recent3hGlucose.map((p) => p.value);
+    return {
+      min: Math.min(...values),
+      max: Math.max(...values),
+      count: values.length
+    };
+  }, [recent3hGlucose]);
+
+  // Płynna krzywa SVG Beziera dla miniaturowego wykresu nocnego
+  const sparklineData = useMemo(() => {
+    if (recent3hGlucose.length < 2) return null;
+    const minG = 40;
+    const maxG = 260;
+    const minT = recent3hGlucose[0].timestamp;
+    const maxT = recent3hGlucose[recent3hGlucose.length - 1].timestamp || minT + 1;
+    const tSpan = Math.max(1, maxT - minT);
+
+    const coords = recent3hGlucose.map((p) => {
+      const x = Number((((p.timestamp - minT) / tSpan) * 100).toFixed(2));
+      const clamped = Math.max(minG, Math.min(maxG, p.value));
+      const y = Number((100 - ((clamped - minG) / (maxG - minG)) * 100).toFixed(2));
+      return { x, y, value: p.value };
+    });
+
+    let linePath = `M ${coords[0].x} ${coords[0].y}`;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const p0 = coords[Math.max(0, i - 1)];
+      const p1 = coords[i];
+      const p2 = coords[i + 1];
+      const p3 = coords[Math.min(coords.length - 1, i + 2)];
+
+      const cp1x = Number((p1.x + (p2.x - p0.x) / 6).toFixed(2));
+      const cp1y = Number((p1.y + (p2.y - p0.y) / 6).toFixed(2));
+      const cp2x = Number((p2.x - (p3.x - p1.x) / 6).toFixed(2));
+      const cp2y = Number((p2.y - (p3.y - p1.y) / 6).toFixed(2));
+
+      linePath += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+    }
+
+    const last = coords[coords.length - 1];
+    const areaPath = `${linePath} L ${last.x} 100 L ${coords[0].x} 100 Z`;
+
+    const effMin = userSettings?.targetMin || 70;
+    const effMax = userSettings?.targetMax || 180;
+    const targetMinY = Number((100 - ((effMin - minG) / (maxG - minG)) * 100).toFixed(2));
+    const targetMaxY = Number((100 - ((effMax - minG) / (maxG - minG)) * 100).toFixed(2));
+
+    return {
+      linePath,
+      areaPath,
+      coords,
+      last,
+      targetMinY,
+      targetMaxY
+    };
+  }, [recent3hGlucose, userSettings?.targetMin, userSettings?.targetMax]);
+
   // Trend i delta
   const trendInfo = useMemo(() => {
     return getTrendInfo(lastGlucoseLog?.trend || (lastGlucoseLog as any)?.direction, t);
@@ -265,6 +329,7 @@ export const BedsideClockModal: React.FC<BedsideClockModalProps> = ({
           dim: 'text-rose-500/40',
           glow: 'rgba(244, 63, 94, 0.12)',
           stroke: '#f43f5e',
+          gradientColor: '#f43f5e',
           activeBg: 'bg-rose-500/20 text-rose-300 border-rose-500/40'
         };
       case 'emerald':
@@ -274,6 +339,7 @@ export const BedsideClockModal: React.FC<BedsideClockModalProps> = ({
           dim: 'text-emerald-500/40',
           glow: 'rgba(52, 211, 153, 0.12)',
           stroke: '#34d399',
+          gradientColor: '#34d399',
           activeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
         };
       case 'white':
@@ -283,6 +349,7 @@ export const BedsideClockModal: React.FC<BedsideClockModalProps> = ({
           dim: 'text-slate-600',
           glow: 'rgba(255, 255, 255, 0.08)',
           stroke: '#cbd5e1',
+          gradientColor: '#cbd5e1',
           activeBg: 'bg-white/20 text-white border-white/40'
         };
       case 'amber':
@@ -293,6 +360,7 @@ export const BedsideClockModal: React.FC<BedsideClockModalProps> = ({
           dim: 'text-amber-500/40',
           glow: 'rgba(251, 191, 36, 0.12)',
           stroke: '#fbbf24',
+          gradientColor: '#fbbf24',
           activeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/40'
         };
     }
@@ -404,6 +472,26 @@ export const BedsideClockModal: React.FC<BedsideClockModalProps> = ({
                   title={t('nightstand.toggle_seconds', { defaultValue: 'Pokaż/ukryj sekundy' })}
                 >
                   SEC
+                </button>
+
+                {/* Przełącznik wykresu 3h */}
+                <button
+                  onClick={() => {
+                    Haptics.tick();
+                    setShowSparkline(!showSparkline);
+                    localStorage.setItem('gliko_bedside_sparkline', String(!showSparkline));
+                    resetControlsTimeout();
+                  }}
+                  className={cn(
+                    'px-2.5 py-1 rounded-xl text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1',
+                    showSparkline
+                      ? 'bg-white/15 text-white border-white/30'
+                      : 'bg-white/5 text-slate-400 border-white/10'
+                  )}
+                  title={t('nightstand.toggle_sparkline', { defaultValue: 'Pokaż/ukryj wykres 3h' })}
+                >
+                  <Activity size={12} />
+                  <span className="hidden sm:inline">{t('nightstand.chart_btn', { defaultValue: 'Wykres 3h' })}</span>
                 </button>
 
                 {/* Wygaszacz podczas ładowania (Android Dream) */}
@@ -539,75 +627,124 @@ export const BedsideClockModal: React.FC<BedsideClockModalProps> = ({
           </div>
         </div>
 
-        {/* Dolna linia: Miniaturowy wykres nocny (ostatnie 3h) */}
-        <div className="relative z-10 w-full px-6 pb-6 pt-2 pb-safe" style={{ opacity: Math.max(0.2, brightness * 0.8) }}>
-          {recent3hGlucose.length > 2 ? (
-            <div className="w-full max-w-4xl mx-auto h-16 relative">
-              {/* Linie zakresu docelowego */}
-              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-15">
-                <div className="w-full border-b border-dashed border-white" style={{ top: '20%' }} />
-                <div className="w-full border-b border-dashed border-white" style={{ top: '80%' }} />
+        {/* Dolna linia: Nowoczesny miniaturowy wykres nocny (ostatnie 3h) */}
+        {showSparkline && (
+          <div className="relative z-10 w-full px-4 sm:px-8 pb-5 pt-1 pb-safe" style={{ opacity: Math.max(0.25, brightness * 0.9) }}>
+            <div className="w-full max-w-4xl mx-auto rounded-2xl bg-white/[0.02] border border-white/[0.06] p-3 backdrop-blur-xs">
+              {/* Nagłówek wykresu: informacja o oknie 3h i skrajnych wartościach */}
+              <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider mb-1.5 px-1">
+                <div className="flex items-center gap-1.5 opacity-60">
+                  <Activity size={12} className={themeClasses.primary} />
+                  <span className="font-bold text-slate-300">3h Trend</span>
+                </div>
+                {stats3h && (
+                  <span className={cn('font-bold', themeClasses.dim)}>
+                    {t('nightstand.min_max', { min: stats3h.min, max: stats3h.max, defaultValue: `min ${stats3h.min} • max ${stats3h.max} mg/dL` })}
+                  </span>
+                )}
               </div>
 
               {/* Rysowanie SVG linii glikemii */}
-              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
-                {(() => {
-                  const minG = 40;
-                  const maxG = 260;
-                  const minT = recent3hGlucose[0].timestamp;
-                  const maxT = recent3hGlucose[recent3hGlucose.length - 1].timestamp || minT + 1;
-                  const tSpan = Math.max(1, maxT - minT);
+              {sparklineData ? (
+                <div className="w-full h-16 sm:h-20 relative overflow-hidden">
+                  <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                    <defs>
+                      <linearGradient id="bedside-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={themeClasses.gradientColor} stopOpacity="0.25" />
+                        <stop offset="70%" stopColor={themeClasses.gradientColor} stopOpacity="0.05" />
+                        <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
 
-                  const points = recent3hGlucose.map((p) => {
-                    const x = ((p.timestamp - minT) / tSpan) * 100;
-                    const clampedVal = Math.max(minG, Math.min(maxG, p.value));
-                    const y = 100 - ((clampedVal - minG) / (maxG - minG)) * 100;
-                    return `${x.toFixed(1)},${y.toFixed(1)}`;
-                  }).join(' ');
+                    {/* Korytarz normy TIR (targetMin - targetMax) */}
+                    <rect
+                      x="0"
+                      y={sparklineData.targetMaxY}
+                      width="100"
+                      height={Math.max(0, sparklineData.targetMinY - sparklineData.targetMaxY)}
+                      fill="rgba(255, 255, 255, 0.02)"
+                    />
+                    {/* Linie docelowe */}
+                    <line
+                      x1="0"
+                      y1={sparklineData.targetMaxY}
+                      x2="100"
+                      y2={sparklineData.targetMaxY}
+                      stroke="rgba(255, 255, 255, 0.12)"
+                      strokeDasharray="2,3"
+                      strokeWidth="0.8"
+                    />
+                    <line
+                      x1="0"
+                      y1={sparklineData.targetMinY}
+                      x2="100"
+                      y2={sparklineData.targetMinY}
+                      stroke="rgba(255, 255, 255, 0.12)"
+                      strokeDasharray="2,3"
+                      strokeWidth="0.8"
+                    />
 
-                  const lastPoint = recent3hGlucose[recent3hGlucose.length - 1];
-                  const lastX = 100;
-                  const lastClamped = Math.max(minG, Math.min(maxG, lastPoint.value));
-                  const lastY = 100 - ((lastClamped - minG) / (maxG - minG)) * 100;
+                    {/* Oznaczenia 70 i 180 */}
+                    <text x="1" y={sparklineData.targetMaxY - 1.5} fill="rgba(255, 255, 255, 0.3)" fontSize="4" fontFamily="monospace">
+                      {targetMax}
+                    </text>
+                    <text x="1" y={sparklineData.targetMinY + 4.5} fill="rgba(255, 255, 255, 0.3)" fontSize="4" fontFamily="monospace">
+                      {targetMin}
+                    </text>
 
-                  return (
-                    <>
-                      <polyline
-                        fill="none"
-                        stroke={themeClasses.stroke}
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        points={points}
-                      />
-                      <circle
-                        cx={lastX}
-                        cy={lastY}
-                        r="3.5"
-                        fill={themeClasses.stroke}
-                        className="animate-ping"
-                        style={{ transformOrigin: `${lastX}% ${lastY}%` }}
-                      />
-                      <circle
-                        cx={lastX}
-                        cy={lastY}
-                        r="3"
-                        fill={themeClasses.stroke}
-                      />
-                    </>
-                  );
-                })()}
-              </svg>
+                    {/* Wypełnienie pod krzywą */}
+                    <path d={sparklineData.areaPath} fill="url(#bedside-spark-grad)" />
+
+                    {/* Płynna krzywa glikemii */}
+                    <path
+                      d={sparklineData.linePath}
+                      fill="none"
+                      stroke={themeClasses.stroke}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* Pulsujący punkt czołowy */}
+                    <circle
+                      cx={sparklineData.last.x}
+                      cy={sparklineData.last.y}
+                      r="4.5"
+                      fill={themeClasses.stroke}
+                      className="animate-ping"
+                      style={{ transformOrigin: `${sparklineData.last.x}% ${sparklineData.last.y}%` }}
+                    />
+                    <circle
+                      cx={sparklineData.last.x}
+                      cy={sparklineData.last.y}
+                      r="3.2"
+                      fill="#000000"
+                      stroke={themeClasses.stroke}
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                </div>
+              ) : (
+                <div className="h-16 flex items-center justify-center text-slate-600 text-xs font-mono">
+                  {t('nightstand.collecting_points', { defaultValue: 'Zbieranie danych nocnych...' })}
+                </div>
+              )}
+
+              {/* Oś czasu pod wykresem */}
+              <div className="flex justify-between text-[8px] sm:text-[9px] font-mono text-white/30 pt-1 px-1">
+                <span>-3h</span>
+                <span>-2h</span>
+                <span>-1h</span>
+                <span className={themeClasses.secondary}>{t('nightstand.now', { defaultValue: 'teraz' })}</span>
+              </div>
             </div>
-          ) : (
-            <div className="h-6" />
-          )}
 
-          {/* Dyskretna wskazówka dotknięcia */}
-          <p className="text-center text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 mt-1">
-            {t('nightstand.tap_hint', { defaultValue: 'Dotknij ekranu, aby dostosować jasność lub wyjść' })}
-          </p>
-        </div>
+            {/* Dyskretna wskazówka dotknięcia */}
+            <p className="text-center text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 mt-2">
+              {t('nightstand.tap_hint', { defaultValue: 'Dotknij ekranu, aby dostosować jasność lub wyjść' })}
+            </p>
+          </div>
+        )}
       </motion.div>
     )}
     </AnimatePresence>,

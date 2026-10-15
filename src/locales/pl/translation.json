@@ -66,6 +66,11 @@
     "exit_fullscreen": "Opuść pełny ekran",
     "open_dream_settings": "Wygaszacz podczas ładowania (Android Dream)",
     "screensaver_btn": "Wygaszacz",
+    "toggle_sparkline": "Pokaż/ukryj wykres 3h",
+    "chart_btn": "Wykres 3h",
+    "collecting_points": "Zbieranie danych nocnych...",
+    "min_max": "min {{min}} • max {{max}} mg/dL",
+    "now": "teraz",
     "close_title": "Wyjdź z trybu nocnego"
   },
   "dashboard": {

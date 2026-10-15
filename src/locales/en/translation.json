@@ -66,6 +66,11 @@
     "exit_fullscreen": "Exit fullscreen",
     "open_dream_settings": "Screen saver while charging (Android Daydream)",
     "screensaver_btn": "Screen saver",
+    "toggle_sparkline": "Toggle 3h chart",
+    "chart_btn": "3h Chart",
+    "collecting_points": "Collecting night data...",
+    "min_max": "min {{min}} • max {{max}} mg/dL",
+    "now": "now",
     "close_title": "Exit bedside mode"
   },
   "dashboard": {
